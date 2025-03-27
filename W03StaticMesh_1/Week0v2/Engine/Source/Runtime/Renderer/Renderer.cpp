@@ -25,12 +25,9 @@ void FRenderer::Initialize(FGraphicsDevice* graphics)
 {
     Graphics = graphics;
     CreateShader();
-    CreateTextureShader();
     CreateLineShader();
     CreateConstantBuffer();
-    CreateLightingBuffer();
-    CreateLitUnlitBuffer();
-    UpdateLitUnlitConstant(1);
+ 
 }
 
 void FRenderer::Release()
@@ -441,9 +438,7 @@ void FRenderer::UpdateConstant(const FMatrix& MVP, const FMatrix& NormalMatrix, 
         {
             FConstants* constants = static_cast<FConstants*>(ConstantBufferMSR.pData);
             constants->MVP = MVP;
-            constants->ModelMatrixInverseTranspose = NormalMatrix;
-            constants->UUIDColor = UUIDColor;
-            constants->IsSelected = IsSelected;
+           
         }
         Graphics->DeviceContext->Unmap(ConstantBuffer, 0); // GPU�� �ٽ� ��밡���ϰ� �����
     }
@@ -1005,16 +1000,12 @@ void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> Act
 {
     Graphics->DeviceContext->RSSetViewports(1, &ActiveViewport->GetD3DViewport());
     Graphics->ChangeRasterizer(ActiveViewport->GetViewMode());
-    ChangeViewMode(ActiveViewport->GetViewMode());
-    UpdateLightBuffer();
+   // ChangeViewMode(ActiveViewport->GetViewMode());
+   
     UPrimitiveBatch::GetInstance().RenderBatch(ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix());
 
     if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_Primitives))
         RenderStaticMeshes(World, ActiveViewport);
-    RenderGizmos(World, ActiveViewport);
-    if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_BillboardText))
-        RenderBillboards(World, ActiveViewport);
-    RenderLight(World, ActiveViewport);
     
     ClearRenderArr();
 }
@@ -1031,24 +1022,15 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         );
         // 최종 MVP 행렬
         FMatrix MVP = Model * ActiveViewport->GetViewMatrix() * ActiveViewport->GetProjectionMatrix();
-        // 노말 회전시 필요 행렬
-        FMatrix NormalMatrix = FMatrix::Transpose(FMatrix::Inverse(Model));
         FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
         if (World->GetSelectedActor() == StaticMeshComp->GetOwner())
         {
-            UpdateConstant(MVP, NormalMatrix, UUIDColor, true);
+            UpdateConstant(MVP, FMatrix::Identity, UUIDColor, true);
         }
         else
-            UpdateConstant(MVP, NormalMatrix, UUIDColor, false);
+            UpdateConstant(MVP, FMatrix::Identity, UUIDColor, false);
 
-        if (USkySphereComponent* skysphere = Cast<USkySphereComponent>(StaticMeshComp))
-        {
-            UpdateTextureConstant(skysphere->UOffset, skysphere->VOffset);
-        }
-        else
-        {
-            UpdateTextureConstant(0, 0);
-        }
+        UpdateTextureConstant(0, 0);
 
         if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB))
         {
