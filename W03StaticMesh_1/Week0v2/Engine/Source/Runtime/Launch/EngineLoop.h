@@ -1,4 +1,5 @@
 #pragma once
+#include "WindowsPlatformTime.h"
 #include "Core/HAL/PlatformType.h"
 #include "D3D11RHI/GraphicDevice.h"
 #include "Renderer/Renderer.h"
@@ -43,6 +44,7 @@ private:
     UWorld* GWorld;
     SLevelEditor* LevelEditor;
     UnrealEd* UnrealEditor;
+    FWindowsPlatformTime* WindowsPlatformTime;
     bool bIsExit = false;
     const int32 targetFPS = 60;
     bool bTestInput = false;

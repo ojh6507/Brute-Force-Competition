@@ -8,7 +8,10 @@
 #include "UnrealClient.h"
 #include "slate/Widgets/Layout/SSplitter.h"
 #include "LevelEditor/SLevelEditor.h"
+#include "WindowsPlatformTime.h"
 
+std::atomic<double> FWindowsPlatformTime::GSecondsPerCycle{0.0};
+std::atomic<bool> FWindowsPlatformTime::bInitialized{false};
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -166,18 +169,18 @@ void FEngineLoop::Render()
 
 void FEngineLoop::Tick()
 {
-    LARGE_INTEGER frequency;
     const double targetFrameTime = 1000.0 / targetFPS; // 한 프레임의 목표 시간 (밀리초 단위)
 
-    QueryPerformanceFrequency(&frequency);
+    FWindowsPlatformTime::InitTiming();
 
-    LARGE_INTEGER startTime, endTime;
+    uint64 StartTime, EndTime;
+    
     double elapsedTime = 1.0;
 
     while (bIsExit == false)
     {
-        QueryPerformanceCounter(&startTime);
-
+        StartTime = FWindowsPlatformTime::Cycles64();
+        
         MSG msg;
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
@@ -206,11 +209,12 @@ void FEngineLoop::Tick()
         GUObjectArray.ProcessPendingDestroyObjects();
 
         graphicDevice.SwapBuffer();
+        
         do
         {
             Sleep(0);
-            QueryPerformanceCounter(&endTime);
-            elapsedTime = (endTime.QuadPart - startTime.QuadPart) * 1000.0 / frequency.QuadPart;
+            EndTime = FWindowsPlatformTime::Cycles64();
+            elapsedTime = FWindowsPlatformTime::ToMilliseconds(EndTime - StartTime);
         }
         while (elapsedTime < targetFrameTime);
     }
