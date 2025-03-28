@@ -8,7 +8,11 @@
 #include "Classes/Components/StaticMeshComponent.h"
 #include "Engine/StaticMeshActor.h"
 #include "Components/SkySphereComponent.h"
-
+#include "Editor/UnrealEd/SceneMgr.h"
+#include "tinyfiledialogs/tinyfiledialogs.h"
+#include <fstream>
+#include <sstream>
+#include <string>
 
 void UWorld::Initialize()
 {
@@ -17,7 +21,7 @@ void UWorld::Initialize()
     //SpawnObject(OBJ_CUBE);
   
    
-    const int gridX = 50;
+  /*  const int gridX = 50;
     const int gridY = 50;
     const int gridZ = 20;
     const float spacing = 1.f;
@@ -35,8 +39,26 @@ void UWorld::Initialize()
                 TempActor->SetActorLocation(FVector(x * spacing, y * spacing, z * spacing));
             }
         }
-    }
+    }*/
 
+    {
+        char const* lFilterPatterns[1] = { "*.scene" };
+        const char* FileName = tinyfd_openFileDialog("Open Scene File", "", 1, lFilterPatterns, "Scene(.scene) file", 0);
+
+        if (FileName == nullptr)
+        {
+            tinyfd_messageBox("Error", "파일을 불러올 수 없습니다.", "ok", "error", 1);
+            ImGui::End();
+            return;
+        }
+
+      
+        FString jsonContent = FSceneMgr::LoadSceneFromFile(FileName);
+
+         FSceneMgr::ParseSceneData(jsonContent);
+    }
+    /* TODO: Scene Load 
+    */
    
 }
 

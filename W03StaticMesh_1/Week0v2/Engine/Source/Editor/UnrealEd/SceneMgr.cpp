@@ -52,7 +52,8 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
                     if (value.contains("ObjStaticMeshAsset"))
                     {
                         UStaticMeshComponent* staticMeshComp = static_cast<UStaticMeshComponent*>(obj);
-                        UStaticMesh* Mesh = FManagerOBJ::CreateStaticMesh(value["ObjStaticMeshAsset"].get<std::string>());
+                        FString  str = value["ObjStaticMeshAsset"].get<std::string>();
+                        UStaticMesh* Mesh = FManagerOBJ::CreateStaticMesh(str);
                         staticMeshComp->SetStaticMesh(Mesh);
                     }
                 }
