@@ -993,11 +993,15 @@ void FRenderer::ClearRenderArr()
     LightObjs.Empty();
 }
 
+void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewport)
+{
+
+    Graphics->DeviceContext->RSSetViewports(1, &ActiveViewport->GetD3DViewport());
+}
+
 void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
-    Graphics->DeviceContext->RSSetViewports(1, &ActiveViewport->GetD3DViewport());
     Graphics->ChangeRasterizer(ActiveViewport->GetViewMode());
-   // ChangeViewMode(ActiveViewport->GetViewMode());
    
     UPrimitiveBatch::GetInstance().RenderBatch(ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix());
 

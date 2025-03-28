@@ -161,19 +161,19 @@ void SLevelEditor::OnResize()
 
 void SLevelEditor::ResizeViewports()
 {
-    if (bMultiViewportMode) {
-        if (GetViewports()[0]) {
-            for (int i = 0;i < 4;++i)
-            {
-                GetViewports()[i]->ResizeViewport(VSplitter->SideLT->Rect, VSplitter->SideRB->Rect,
-                    HSplitter->SideLT->Rect, HSplitter->SideRB->Rect);
-            }
-        }
-    }
-    else
-    {
+    // if (bMultiViewportMode) {
+    //     if (GetViewports()[0]) {
+    //         for (int i = 0;i < 4;++i)
+    //         {
+    //             GetViewports()[i]->ResizeViewport(VSplitter->SideLT->Rect, VSplitter->SideRB->Rect,
+    //                 HSplitter->SideLT->Rect, HSplitter->SideRB->Rect);
+    //         }
+    //     }
+    // }
+    // else
+    // {
         ActiveViewportClient->GetViewport()->ResizeViewport(FRect(0.0f, 0.0f, EditorWidth, EditorHeight));
-    }
+    // }
 }
 
 void SLevelEditor::OnMultiViewport()
