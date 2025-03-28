@@ -1,4 +1,4 @@
-﻿#include "Player.h"
+#include "Player.h"
 
 #include "UnrealClient.h"
 #include "World.h"
@@ -44,7 +44,7 @@ void AEditorPlayer::Input()
 
             uint32 UUID = GetEngine().graphicDevice.GetPixelUUID(mousePos);
             // TArray<UObject*> objectArr = GetWorld()->GetObjectArr();
-            for ( const auto obj : TObjectRange<USceneComponent>())
+            for (const auto obj : TObjectRange<USceneComponent>())
             {
                 if (obj->GetUUID() != UUID) continue;
 
@@ -57,7 +57,9 @@ void AEditorPlayer::Input()
             const auto& ActiveViewport = GetEngine().GetLevelEditor()->GetActiveViewportClient();
             ScreenToViewSpace(mousePos.x, mousePos.y, ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix(), pickPosition);
             bool res = PickGizmo(pickPosition);
-            if (!res) PickActor(pickPosition);
+            if (!res) {
+                PickActor(pickPosition);
+            }
         }
         else
         {
@@ -222,6 +224,8 @@ void AEditorPlayer::PickActor(const FVector& pickPosition)
 {
     if (!(ShowFlags::GetInstance().currentFlags & EEngineShowFlags::SF_Primitives)) return;
 
+    FScopeCycleCounter pickCounter;
+    ++TotalPickCount;
     const UActorComponent* Possible = nullptr;
     int maxIntersect = 0;
     float minDistance = FLT_MAX;
@@ -260,6 +264,8 @@ void AEditorPlayer::PickActor(const FVector& pickPosition)
     if (Possible)
     {
         GetWorld()->SetPickedActor(Possible->GetOwner());
+        LastPickTime = pickCounter.Finish();
+        TotalPickTime += LastPickTime;
     }
 }
 

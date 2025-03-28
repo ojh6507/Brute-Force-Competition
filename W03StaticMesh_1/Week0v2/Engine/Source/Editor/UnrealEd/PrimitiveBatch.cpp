@@ -41,8 +41,7 @@ void UPrimitiveBatch::RenderBatch(const FMatrix& View, const FMatrix& Projection
 
     FMatrix Model = FMatrix::Identity;
     FMatrix MVP = Model * View * Projection;
-    FMatrix NormalMatrix = FMatrix::Transpose(FMatrix::Inverse(Model));
-    FEngineLoop::renderer.UpdateConstant(MVP, NormalMatrix, FVector4(0,0,0,0), false);
+    FEngineLoop::renderer.UpdateConstant(MVP, FVector4(0,0,0,0), false);
     FEngineLoop::renderer.UpdateGridConstantBuffer(GridParam);
 
     UpdateBoundingBoxResources();
@@ -133,39 +132,7 @@ void UPrimitiveBatch::ReleaseOBBResources()
 }
 void UPrimitiveBatch::RenderAABB(const FBoundingBox& localAABB, const FVector& center, const FMatrix& modelMatrix)
 {
-    FVector localVertices[8] = {
-         { localAABB.min.x, localAABB.min.y, localAABB.min.z },
-         { localAABB.max.x, localAABB.min.y, localAABB.min.z },
-         { localAABB.min.x, localAABB.max.y, localAABB.min.z },
-         { localAABB.max.x, localAABB.max.y, localAABB.min.z },
-         { localAABB.min.x, localAABB.min.y, localAABB.max.z },
-         { localAABB.max.x, localAABB.min.y, localAABB.max.z },
-         { localAABB.min.x, localAABB.max.y, localAABB.max.z },
-         { localAABB.max.x, localAABB.max.y, localAABB.max.z }
-    };
-
-    FVector worldVertices[8];
-    worldVertices[0] = center + FMatrix::TransformVector(localVertices[0], modelMatrix);
-
-    FVector min = worldVertices[0], max = worldVertices[0];
-
-    // 첫 번째 값을 제외한 나머지 버텍스를 변환하고 min/max 계산
-    for (int i = 1; i < 8; ++i)
-    {
-        worldVertices[i] = center + FMatrix::TransformVector(localVertices[i], modelMatrix);
-
-        min.x = (worldVertices[i].x < min.x) ? worldVertices[i].x : min.x;
-        min.y = (worldVertices[i].y < min.y) ? worldVertices[i].y : min.y;
-        min.z = (worldVertices[i].z < min.z) ? worldVertices[i].z : min.z;
-
-        max.x = (worldVertices[i].x > max.x) ? worldVertices[i].x : max.x;
-        max.y = (worldVertices[i].y > max.y) ? worldVertices[i].y : max.y;
-        max.z = (worldVertices[i].z > max.z) ? worldVertices[i].z : max.z;
-    }
-    FBoundingBox BoundingBox;
-    BoundingBox.min = min;
-    BoundingBox.max = max;
-    BoundingBoxes.Add(BoundingBox);
+    BoundingBoxes.Add(localAABB.TransformWorld(modelMatrix));
 }
 void UPrimitiveBatch::RenderOBB(const FBoundingBox& localAABB, const FVector& center, const FMatrix& modelMatrix)
 {

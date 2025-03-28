@@ -245,6 +245,24 @@ struct FBoundingBox
 
         return true;
     }
+    FBoundingBox TransformWorld(const FMatrix& worldMatrix) const
+    {
+        // 모델 공간 중심과 half-extents 계산
+        FVector center = (min + max) * 0.5f;
+        FVector extents = (max - min) * 0.5f;
+
+        // 점 변환 함수 TransformPoint는 worldMatrix를 사용해 center를 월드 좌표로 변환합니다.
+        FVector worldCenter = worldMatrix.TransformPosition(center);
+
+        FVector worldExtents;
+        worldExtents.x = fabs(worldMatrix.M[0][0]) * extents.x + fabs(worldMatrix.M[0][1]) * extents.y + fabs(worldMatrix.M[0][2]) * extents.z;
+        worldExtents.y = fabs(worldMatrix.M[1][0]) * extents.x + fabs(worldMatrix.M[1][1]) * extents.y + fabs(worldMatrix.M[1][2]) * extents.z;
+        worldExtents.z = fabs(worldMatrix.M[2][0]) * extents.x + fabs(worldMatrix.M[2][1]) * extents.y + fabs(worldMatrix.M[2][2]) * extents.z;
+
+        // 월드 AABB 생성
+        return FBoundingBox(worldCenter - worldExtents, worldCenter + worldExtents);
+    }
+   
 
 };
 struct FCone

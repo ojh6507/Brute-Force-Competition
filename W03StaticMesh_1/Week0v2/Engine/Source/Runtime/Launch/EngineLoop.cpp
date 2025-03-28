@@ -8,6 +8,7 @@
 #include "UnrealClient.h"
 #include "slate/Widgets/Layout/SSplitter.h"
 #include "LevelEditor/SLevelEditor.h"
+#include "Actors/Player.h"
 #include "WindowsPlatformTime.h"
 
 std::atomic<double> FWindowsPlatformTime::GSecondsPerCycle{ 0.0 };
@@ -177,14 +178,12 @@ void FEngineLoop::Tick()
 
         Input();
         GWorld->Tick(elapsedTime / 1000.0);
-        LevelEditor->Tick(elapsedTime/ 1000.0);
+        LevelEditor->Tick(elapsedTime / 1000.0);
         Render();
         UIMgr->BeginFrame();
 
-
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-
 
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoResize |
@@ -194,12 +193,19 @@ void FEngineLoop::Tick()
             ImGuiWindowFlags_AlwaysAutoResize |
             ImGuiWindowFlags_NoInputs;
 
-        ImGui::Begin("FPSOverlay", nullptr, windowFlags);
+        ImGui::Begin("Overlay", nullptr, windowFlags);
+
         ImGui::SetWindowFontScale(1.5f);
         ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "FPS: %.1f (%.1f ms)", fps, elapsedTime);
-        ImGui::SetWindowFontScale(1.0f);
 
-     
+        // 두 UI 정보 사이에 간격 추가
+        ImGui::Spacing();
+
+        // Picking 관련 UI 정보 출력
+
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Picking Time: %f ms : Num Attemps: %d : Accumlated Time: %f ms", FWindowsPlatformTime::ToMilliseconds( GWorld->GetEditorPlayer()->LastPickTime),
+            GWorld->GetEditorPlayer()->TotalPickCount, FWindowsPlatformTime::ToMilliseconds(GWorld->GetEditorPlayer()->TotalPickTime));
+        ImGui::SetWindowFontScale(1.0f);
 
         ImGui::End();
         ImGui::PopStyleColor();
@@ -221,7 +227,7 @@ void FEngineLoop::Tick()
         {
             fps = 0.0f;
         }
-     
+
     }
 }
 

@@ -21,6 +21,10 @@ class AEditorPlayer : public AActor
     void AddControlMode();
     void AddCoordiMode();
 
+
+    int TotalPickCount;
+    float LastPickTime;
+    float TotalPickTime;
 private:
     int RayIntersectsObject(const FVector& pickPosition, USceneComponent* obj, float& hitDistance, int& intersectCount);
     void ScreenToViewSpace(int screenX, int screenY, const FMatrix& viewMatrix, const FMatrix& projectionMatrix, FVector& rayOrigin);
