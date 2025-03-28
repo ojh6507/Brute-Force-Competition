@@ -10,8 +10,8 @@
 #include "LevelEditor/SLevelEditor.h"
 #include "WindowsPlatformTime.h"
 
-std::atomic<double> FWindowsPlatformTime::GSecondsPerCycle{0.0};
-std::atomic<bool> FWindowsPlatformTime::bInitialized{false};
+std::atomic<double> FWindowsPlatformTime::GSecondsPerCycle{ 0.0 };
+std::atomic<bool> FWindowsPlatformTime::bInitialized{ false };
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -35,7 +35,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
             {
                 FEngineLoop::graphicDevice.OnResize(hWnd);
             }
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 1; i++)
             {
                 if (GEngineLoop.GetLevelEditor())
                 {
@@ -45,13 +45,16 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
                     }
                 }
             }
+            if (GEngineLoop.LevelEditor)
+                GEngineLoop.renderer.InitOnceState(GEngineLoop.LevelEditor->GetActiveViewportClient());
+
         }
-   /*  Console::GetInstance().OnResize(hWnd);
-   */ // ControlPanel::GetInstance().OnResize(hWnd);
-    // PropertyPanel::GetInstance().OnResize(hWnd);
-    // Outliner::GetInstance().OnResize(hWnd);
-    // ViewModeDropdown::GetInstance().OnResize(hWnd);
-    // ShowFlags::GetInstance().OnResize(hWnd);
+        /*  Console::GetInstance().OnResize(hWnd);
+        */ // ControlPanel::GetInstance().OnResize(hWnd);
+        // PropertyPanel::GetInstance().OnResize(hWnd);
+        // Outliner::GetInstance().OnResize(hWnd);
+        // ViewModeDropdown::GetInstance().OnResize(hWnd);
+        // ShowFlags::GetInstance().OnResize(hWnd);
         if (GEngineLoop.GetUnrealEditor())
         {
             GEngineLoop.GetUnrealEditor()->OnResize(hWnd);
@@ -129,7 +132,7 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
 
     GWorld = new UWorld;
     GWorld->Initialize();
-    
+
     renderer.InitOnceState(LevelEditor->GetActiveViewportClient());
 
     return 0;
@@ -139,34 +142,10 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
 void FEngineLoop::Render()
 {
     graphicDevice.Prepare();
-    // if (LevelEditor->IsMultiViewport())
-    // {
-    //     std::shared_ptr<FEditorViewportClient> viewportClient = GetLevelEditor()->GetActiveViewportClient();
-    //     for (int i = 0; i < 4; ++i)
-    //     {
-    //         LevelEditor->SetViewportClient(i);
-    //         // graphicDevice.DeviceContext->RSSetViewports(1, &LevelEditor->GetViewports()[i]->GetD3DViewport());
-    //         // graphicDevice.ChangeRasterizer(LevelEditor->GetActiveViewportClient()->GetViewMode());
-    //         // renderer.ChangeViewMode(LevelEditor->GetActiveViewportClient()->GetViewMode());
-    //         // renderer.PrepareShader();
-    //         // renderer.UpdateLightBuffer();
-    //         // RenderWorld();
-    //         renderer.PrepareRender();
-    //         renderer.Render(GetWorld(),LevelEditor->GetActiveViewportClient());
-    //     }
-    //     GetLevelEditor()->SetViewportClient(viewportClient);
-    // }
-    // else
-    // {
-        // graphicDevice.DeviceContext->RSSetViewports(1, &LevelEditor->GetActiveViewportClient()->GetD3DViewport());
-        // graphicDevice.ChangeRasterizer(LevelEditor->GetActiveViewportClient()->GetViewMode());
-        // renderer.ChangeViewMode(LevelEditor->GetActiveViewportClient()->GetViewMode());
-        // renderer.PrepareShader();
-        // renderer.UpdateLightBuffer();
-        // RenderWorld();
-        renderer.PrepareRender();
-        renderer.Render(GetWorld(),LevelEditor->GetActiveViewportClient());
-    // }
+
+    renderer.PrepareRender();
+    renderer.Render(GetWorld(), LevelEditor->GetActiveViewportClient());
+
 }
 
 void FEngineLoop::Tick()
@@ -175,14 +154,14 @@ void FEngineLoop::Tick()
     FWindowsPlatformTime::InitTiming();
 
     uint64 StartTime, EndTime;
-    
+
     double elapsedTime = 1.0;
     float fps = 0.0f;
 
     while (bIsExit == false)
     {
         StartTime = FWindowsPlatformTime::Cycles64();
-        
+
         MSG msg;
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
@@ -201,7 +180,7 @@ void FEngineLoop::Tick()
         LevelEditor->Tick(elapsedTime);
         Render();
         UIMgr->BeginFrame();
-        
+
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
@@ -214,21 +193,18 @@ void FEngineLoop::Tick()
             ImGuiWindowFlags_NoSavedSettings |
             ImGuiWindowFlags_AlwaysAutoResize |
             ImGuiWindowFlags_NoInputs;
-      
+
         ImGui::Begin("FPSOverlay", nullptr, windowFlags);
         ImGui::SetWindowFontScale(1.5f);
         ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "FPS: %.1f (%.1f ms)", fps, elapsedTime);
         ImGui::SetWindowFontScale(1.0f);
 
-        ImGui::End();
+     
+
+        UIMgr->EndFrame();
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
 
-
-
-
-       
-        UIMgr->EndFrame();
 
         // Pending 처리된 오브젝트 제거
         GUObjectArray.ProcessPendingDestroyObjects();
@@ -244,13 +220,7 @@ void FEngineLoop::Tick()
         {
             fps = 0.0f;
         }
-     /*   do
-        {
-            Sleep(0);
-            EndTime = FWindowsPlatformTime::Cycles64();
-            elapsedTime = FWindowsPlatformTime::ToMilliseconds(EndTime - StartTime);
-        }
-        while (elapsedTime < targetFrameTime);*/
+     
     }
 }
 
@@ -297,11 +267,13 @@ void FEngineLoop::Exit()
 
 void FEngineLoop::WindowInit(HINSTANCE hInstance)
 {
+    SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+
     WCHAR WindowClass[] = L"JungleWindowClass";
 
     WCHAR Title[] = L"Game Tech Lab";
 
-    WNDCLASSW wndclass = {0};
+    WNDCLASSW wndclass = { 0 };
     wndclass.lpfnWndProc = WndProc;
     wndclass.hInstance = hInstance;
     wndclass.lpszClassName = WindowClass;

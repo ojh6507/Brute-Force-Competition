@@ -7,6 +7,7 @@ class JungleMath
 public:
     static FVector4 ConvertV3ToV4(FVector vec3);
     static FMatrix CreateModelMatrix(FVector translation, FVector rotation, FVector scale);
+    static DirectX::XMMATRIX CreateModelXMMatrix(const FVector& translation, const FVector& rotation, const FVector& scale);
     static FMatrix CreateModelMatrix(FVector translation, FQuat rotation, FVector scale);
     static FMatrix CreateViewMatrix(FVector eye, FVector target, FVector up);
     static FMatrix CreateProjectionMatrix(float fov, float aspect, float nearPlane, float farPlane);

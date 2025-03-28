@@ -20,6 +20,7 @@
 #include "PropertyEditor/ShowFlags.h"
 #include "UObject/UObjectIterator.h"
 #include "Components/SkySphereComponent.h"
+#include "Camera/CameraComponent.h"
 
 void FRenderer::Initialize(FGraphicsDevice* graphics)
 {
@@ -27,7 +28,7 @@ void FRenderer::Initialize(FGraphicsDevice* graphics)
     CreateShader();
     CreateLineShader();
     CreateConstantBuffer();
- 
+
 }
 
 void FRenderer::Release()
@@ -99,7 +100,14 @@ void FRenderer::PrepareShader() const
         Graphics->DeviceContext->PSSetConstantBuffers(3, 1, &FlagBuffer);
         Graphics->DeviceContext->PSSetConstantBuffers(4, 1, &SubMeshConstantBuffer);
         Graphics->DeviceContext->PSSetConstantBuffers(5, 1, &TextureConstantBufer);
+
     }
+    if (ConstantBufferXM) {
+
+        Graphics->DeviceContext->VSSetConstantBuffers(6, 1, &ConstantBufferXM);
+        Graphics->DeviceContext->PSSetConstantBuffers(6, 1, &ConstantBufferXM);
+    }
+
 }
 
 void FRenderer::ResetVertexShader() const
@@ -194,7 +202,7 @@ void FRenderer::RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<F
 
         subMeshIndex == selectedSubMeshIndex ? UpdateSubMeshConstant(true) : UpdateSubMeshConstant(false);
 
-        overrideMaterial[materialIndex] != nullptr ? 
+        overrideMaterial[materialIndex] != nullptr ?
             UpdateMaterial(overrideMaterial[materialIndex]->GetMaterialInfo()) : UpdateMaterial(materials[materialIndex]->Material->GetMaterialInfo());
 
         if (renderData->IndexBuffer)
@@ -239,7 +247,7 @@ ID3D11Buffer* FRenderer::CreateVertexBuffer(FVertexSimple* vertices, UINT byteWi
     vertexbufferdesc.Usage = D3D11_USAGE_IMMUTABLE; // will never be updated 
     vertexbufferdesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-    D3D11_SUBRESOURCE_DATA vertexbufferSRD = {vertices};
+    D3D11_SUBRESOURCE_DATA vertexbufferSRD = { vertices };
 
     ID3D11Buffer* vertexBuffer;
 
@@ -278,7 +286,7 @@ ID3D11Buffer* FRenderer::CreateIndexBuffer(uint32* indices, UINT byteWidth) cons
     indexbufferdesc.BindFlags = D3D11_BIND_INDEX_BUFFER; // index buffer�� ����ϰڴ�.
     indexbufferdesc.ByteWidth = byteWidth;               // buffer ũ�� ����
 
-    D3D11_SUBRESOURCE_DATA indexbufferSRD = {indices};
+    D3D11_SUBRESOURCE_DATA indexbufferSRD = { indices };
 
     ID3D11Buffer* indexBuffer;
 
@@ -328,6 +336,8 @@ void FRenderer::CreateConstantBuffer()
     constantbufferdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
     Graphics->Device->CreateBuffer(&constantbufferdesc, nullptr, &ConstantBuffer);
+    constantbufferdesc.ByteWidth = sizeof(FConstantsXM) + 0xf & 0xfffffff0;
+    Graphics->Device->CreateBuffer(&constantbufferdesc, nullptr, &ConstantBufferXM);
 
     constantbufferdesc.ByteWidth = sizeof(FSubUVConstant) + 0xf & 0xfffffff0;
     Graphics->Device->CreateBuffer(&constantbufferdesc, nullptr, &SubUVConstantBuffer);
@@ -340,7 +350,7 @@ void FRenderer::CreateConstantBuffer()
 
     constantbufferdesc.ByteWidth = sizeof(FMaterialConstants) + 0xf & 0xfffffff0;
     Graphics->Device->CreateBuffer(&constantbufferdesc, nullptr, &MaterialConstantBuffer);
-    
+
     constantbufferdesc.ByteWidth = sizeof(FSubMeshConstants) + 0xf & 0xfffffff0;
     Graphics->Device->CreateBuffer(&constantbufferdesc, nullptr, &SubMeshConstantBuffer);
 
@@ -435,9 +445,23 @@ void FRenderer::UpdateConstant(const FMatrix& MVP, const FMatrix& NormalMatrix, 
         {
             FConstants* constants = static_cast<FConstants*>(ConstantBufferMSR.pData);
             constants->MVP = MVP;
-           
+
         }
         Graphics->DeviceContext->Unmap(ConstantBuffer, 0); // GPU�� �ٽ� ��밡���ϰ� �����
+    }
+}
+void FRenderer::UpdateConstantXM(const DirectX::XMMATRIX& MVP, FVector4 UUIDColor, bool IsSelected) const
+{
+    if (ConstantBufferXM)
+    {
+        D3D11_MAPPED_SUBRESOURCE ConstantBufferMSR; // GPU�� �޸� �ּ� ����
+
+        Graphics->DeviceContext->Map(ConstantBufferXM, 0, D3D11_MAP_WRITE_DISCARD, 0, &ConstantBufferMSR); // update constant buffer every frame
+        {
+            FConstantsXM* constants = static_cast<FConstantsXM*>(ConstantBufferMSR.pData);
+            XMStoreFloat4x4(&constants->MVP, MVP);
+        }
+        Graphics->DeviceContext->Unmap(ConstantBufferXM, 0); // GPU�� �ٽ� ��밡���ϰ� �����
     }
 }
 
@@ -469,8 +493,8 @@ void FRenderer::UpdateMaterial(const FObjMaterialInfo& MaterialInfo) const
     }
     else
     {
-        ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
-        ID3D11SamplerState* nullSampler[1] = {nullptr};
+        ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+        ID3D11SamplerState* nullSampler[1] = { nullptr };
 
         Graphics->DeviceContext->PSSetShaderResources(0, 1, nullSRV);
         Graphics->DeviceContext->PSSetSamplers(0, 1, nullSampler);
@@ -585,6 +609,11 @@ void FRenderer::ReleaseTextureShader()
         ConstantBuffer->Release();
         ConstantBuffer = nullptr;
     }
+    if (ConstantBufferXM)
+    {
+        ConstantBufferXM->Release();
+        ConstantBufferXM = nullptr;
+    }
 }
 
 void FRenderer::PrepareTextureShader() const
@@ -693,7 +722,7 @@ ID3D11Buffer* FRenderer::CreateVertexBuffer(FVertexTexture* vertices, UINT byteW
     vertexbufferdesc.Usage = D3D11_USAGE_IMMUTABLE; // will never be updated 
     vertexbufferdesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-    D3D11_SUBRESOURCE_DATA vertexbufferSRD = {vertices};
+    D3D11_SUBRESOURCE_DATA vertexbufferSRD = { vertices };
 
     ID3D11Buffer* vertexBuffer;
 
@@ -786,7 +815,7 @@ void FRenderer::ReleaseLineShader() const
 
 ID3D11Buffer* FRenderer::CreateStaticVerticesBuffer() const
 {
-    FSimpleVertex vertices[2]{{0}, {0}};
+    FSimpleVertex vertices[2]{ {0}, {0} };
 
     D3D11_BUFFER_DESC vbDesc = {};
     vbDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -1002,47 +1031,66 @@ void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewp
 void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
     Graphics->ChangeRasterizer(ActiveViewport->GetViewMode());
-   
+    // ChangeViewMode(ActiveViewport->GetViewMode());
+
     UPrimitiveBatch::GetInstance().RenderBatch(ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix());
 
     if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_Primitives))
+    {
         RenderStaticMeshes(World, ActiveViewport);
-    
+    }
     ClearRenderArr();
 }
 
 void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
-    PrepareShader();
+    PrepareShader(); 
+    FVector cameraLocation = ActiveViewport->ViewTransformPerspective.GetLocation();
+    FVector CameraForward = ActiveViewport->ViewTransformPerspective.GetForwardVector();
+    float cullDistance = 70;
     for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
     {
-        FMatrix Model = JungleMath::CreateModelMatrix(
+        FVector objectLocation = StaticMeshComp->GetWorldLocation();
+        FVector dir = (objectLocation - cameraLocation);
+        
+        // 거리 계산 (벡터 차의 길이)
+        float dist = objectLocation.Distance(cameraLocation);
+        FVector DirNorm = dir.Normalize();
+        float dotVal = DirNorm.Dot(CameraForward);
+        if (dotVal < 0) continue;
+       
+        if (dist > cullDistance) continue;
+        DirectX::XMMATRIX ModelMatrix = JungleMath::CreateModelXMMatrix(
             StaticMeshComp->GetWorldLocation(),
             StaticMeshComp->GetWorldRotation(),
             StaticMeshComp->GetWorldScale()
         );
         // 최종 MVP 행렬
-        FMatrix MVP = Model * ActiveViewport->GetViewMatrix() * ActiveViewport->GetProjectionMatrix();
+        DirectX::XMMATRIX MVP =
+            ModelMatrix * ActiveViewport->GetViewMatrix().ToXMMATRIX() * ActiveViewport->GetProjectionMatrix().ToXMMATRIX();
+
+      
+
         FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
         if (World->GetSelectedActor() == StaticMeshComp->GetOwner())
         {
-            UpdateConstant(MVP, FMatrix::Identity, UUIDColor, true);
+            UpdateConstantXM(MVP, UUIDColor, true);
         }
         else
-            UpdateConstant(MVP, FMatrix::Identity, UUIDColor, false);
+            UpdateConstantXM(MVP, UUIDColor, false);
 
         UpdateTextureConstant(0, 0);
 
-        if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB))
-        {
-            UPrimitiveBatch::GetInstance().RenderAABB(
-                StaticMeshComp->GetBoundingBox(),
-                StaticMeshComp->GetWorldLocation(),
-                Model
-            );
-        }
-                
-    
+        //if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB))
+        //{
+        //    UPrimitiveBatch::GetInstance().RenderAABB(
+        //        StaticMeshComp->GetBoundingBox(),
+        //        StaticMeshComp->GetWorldLocation(),
+        //        FM
+        //    );
+        //}
+
+
         if (!StaticMeshComp->GetStaticMesh()) continue;
 
         OBJ::FStaticMeshRenderData* renderData = StaticMeshComp->GetStaticMesh()->GetRenderData();
@@ -1059,30 +1107,30 @@ void FRenderer::RenderGizmos(const UWorld* World, const std::shared_ptr<FEditorV
         return;
     }
 
-    #pragma region GizmoDepth
-        ID3D11DepthStencilState* DepthStateDisable = Graphics->DepthStateDisable;
-        Graphics->DeviceContext->OMSetDepthStencilState(DepthStateDisable, 0);
-    #pragma endregion GizmoDepth
+#pragma region GizmoDepth
+    ID3D11DepthStencilState* DepthStateDisable = Graphics->DepthStateDisable;
+    Graphics->DeviceContext->OMSetDepthStencilState(DepthStateDisable, 0);
+#pragma endregion GizmoDepth
 
     //  fill solid,  Wirframe 에서도 제대로 렌더링되기 위함
     Graphics->DeviceContext->RSSetState(FEngineLoop::graphicDevice.RasterizerStateSOLID);
-    
+
     for (auto GizmoComp : GizmoObjs)
     {
-        
-        if ((GizmoComp->GetGizmoType()==UGizmoBaseComponent::ArrowX ||
-            GizmoComp->GetGizmoType()==UGizmoBaseComponent::ArrowY ||
-            GizmoComp->GetGizmoType()==UGizmoBaseComponent::ArrowZ)
+
+        if ((GizmoComp->GetGizmoType() == UGizmoBaseComponent::ArrowX ||
+            GizmoComp->GetGizmoType() == UGizmoBaseComponent::ArrowY ||
+            GizmoComp->GetGizmoType() == UGizmoBaseComponent::ArrowZ)
             && World->GetEditorPlayer()->GetControlMode() != CM_TRANSLATION)
             continue;
-        else if ((GizmoComp->GetGizmoType()==UGizmoBaseComponent::ScaleX ||
-            GizmoComp->GetGizmoType()==UGizmoBaseComponent::ScaleY ||
-            GizmoComp->GetGizmoType()==UGizmoBaseComponent::ScaleZ)
+        else if ((GizmoComp->GetGizmoType() == UGizmoBaseComponent::ScaleX ||
+            GizmoComp->GetGizmoType() == UGizmoBaseComponent::ScaleY ||
+            GizmoComp->GetGizmoType() == UGizmoBaseComponent::ScaleZ)
             && World->GetEditorPlayer()->GetControlMode() != CM_SCALE)
             continue;
-        else if ((GizmoComp->GetGizmoType()==UGizmoBaseComponent::CircleX ||
-            GizmoComp->GetGizmoType()==UGizmoBaseComponent::CircleY ||
-            GizmoComp->GetGizmoType()==UGizmoBaseComponent::CircleZ)
+        else if ((GizmoComp->GetGizmoType() == UGizmoBaseComponent::CircleX ||
+            GizmoComp->GetGizmoType() == UGizmoBaseComponent::CircleY ||
+            GizmoComp->GetGizmoType() == UGizmoBaseComponent::CircleZ)
             && World->GetEditorPlayer()->GetControlMode() != CM_ROTATION)
             continue;
         FMatrix Model = JungleMath::CreateModelMatrix(GizmoComp->GetWorldLocation(),
@@ -1163,7 +1211,7 @@ void FRenderer::RenderLight(UWorld* World, std::shared_ptr<FEditorViewportClient
 {
     for (auto Light : LightObjs)
     {
-        FMatrix Model = JungleMath::CreateModelMatrix(Light->GetWorldLocation(), Light->GetWorldRotation(), {1, 1, 1});
+        FMatrix Model = JungleMath::CreateModelMatrix(Light->GetWorldLocation(), Light->GetWorldRotation(), { 1, 1, 1 });
         UPrimitiveBatch::GetInstance().AddCone(Light->GetWorldLocation(), Light->GetRadius(), 15, 140, Light->GetColor(), Model);
         UPrimitiveBatch::GetInstance().RenderOBB(Light->GetBoundingBox(), Light->GetWorldLocation(), Model);
     }

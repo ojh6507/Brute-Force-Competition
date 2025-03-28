@@ -145,6 +145,12 @@ public: //Camera Movement
     FMatrix& GetProjectionMatrix() { return Projection; }
     void UpdateViewMatrix();
     void UpdateProjectionMatrix();
+    struct Plane {
+        float a, b, c, d; // 평면 방정식: ax + by + cz + d = 0
+    };
+
+    void ExtractFrustumPlanes(const FMatrix& viewProj, Plane planes[6]);
+   
 
     bool IsOrtho() const;
     bool IsPerspective() const;

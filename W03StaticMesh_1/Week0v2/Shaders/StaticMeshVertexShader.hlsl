@@ -1,5 +1,5 @@
 // MatrixBuffer: 변환 행렬 관리
-cbuffer MatrixConstants : register(b0)
+cbuffer MatrixConstants : register(b6)
 {
     row_major float4x4 MVP;
   

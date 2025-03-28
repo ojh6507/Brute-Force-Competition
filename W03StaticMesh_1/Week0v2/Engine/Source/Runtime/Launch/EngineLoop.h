@@ -39,12 +39,12 @@ public:
 
     HWND hWnd;
 
-private:
     UImGuiManager* UIMgr;
     UWorld* GWorld;
     SLevelEditor* LevelEditor;
     UnrealEd* UnrealEditor;
     FWindowsPlatformTime* WindowsPlatformTime;
+private:
     bool bIsExit = false;
     const int32 targetFPS = 60;
     bool bTestInput = false;

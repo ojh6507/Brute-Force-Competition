@@ -20,27 +20,11 @@ void UWorld::Initialize()
     CreateBaseObject();
     //SpawnObject(OBJ_CUBE);
   
-   
-  /*  const int gridX = 50;
-    const int gridY = 50;
-    const int gridZ = 20;
-    const float spacing = 1.f;
-    for (int x = 0; x < gridX; ++x)
-    {
-        for (int y = 0; y < gridY; ++y)
-        {
-            for (int z = 0; z < gridZ; ++z)
-            {
-                AStaticMeshActor* TempActor = SpawnActor<AStaticMeshActor>();
-                TempActor->SetActorLabel(TEXT("OBJ_APPLE"));
-                UStaticMeshComponent* MeshComp = TempActor->GetStaticMeshComponent();
-                FManagerOBJ::CreateStaticMesh("apple_mid.obj");
-                MeshComp->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"apple_mid.obj"));
-                TempActor->SetActorLocation(FVector(x * spacing, y * spacing, z * spacing));
-            }
-        }
-    }*/
+#if _DEBUG
+    FString jsonContent = FSceneMgr::LoadSceneFromFile("Assets/Data/Default.scene");
+    FSceneMgr::ParseSceneData(jsonContent);
 
+#endif
     {
         char const* lFilterPatterns[1] = { "*.scene" };
         const char* FileName = tinyfd_openFileDialog("Open Scene File", "", 1, lFilterPatterns, "Scene(.scene) file", 0);
@@ -115,19 +99,6 @@ void UWorld::Tick(float DeltaTime)
 	camera->TickComponent(DeltaTime);
 	EditorPlayer->Tick(DeltaTime);
 	LocalGizmo->Tick(DeltaTime);
-
-    // SpawnActor()에 의해 Actor가 생성된 경우, 여기서 BeginPlay 호출
-    for (AActor* Actor : PendingBeginPlayActors)
-    {
-        Actor->BeginPlay();
-    }
-    PendingBeginPlayActors.Empty();
-
-    // 매 틱마다 Actor->Tick(...) 호출
-	for (AActor* Actor : ActorsArray)
-	{
-	    Actor->Tick(DeltaTime);
-	}
 }
 
 void UWorld::Release()
