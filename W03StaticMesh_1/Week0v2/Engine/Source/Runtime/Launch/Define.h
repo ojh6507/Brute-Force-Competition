@@ -293,6 +293,9 @@ struct FMaterialConstants {
 struct FConstants {
     FMatrix MVP;      // 모델
 };
+struct FConstantsXM {
+   DirectX::XMFLOAT4X4 MVP;      // 모델
+};
 struct FLitUnlitConstants {
     int isLit; // 1 = Lit, 0 = Unlit 
     FVector pad;

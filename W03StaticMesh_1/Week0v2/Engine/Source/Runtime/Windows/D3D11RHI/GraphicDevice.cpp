@@ -24,11 +24,18 @@ void FGraphicsDevice::CreateDeviceAndSwapChain(HWND hWindow) {
     SwapchainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // 스왑 방식
 
     // 디바이스와 스왑 체인 생성
+#if _DEBUG
     HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
         D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG,
         featurelevels, ARRAYSIZE(featurelevels), D3D11_SDK_VERSION,
         &SwapchainDesc, &SwapChain, &Device, nullptr, &DeviceContext);
 
+#else
+    HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
+    D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+    featurelevels, ARRAYSIZE(featurelevels), D3D11_SDK_VERSION,
+    &SwapchainDesc, &SwapChain, &Device, nullptr, &DeviceContext);
+#endif
     if (FAILED(hr)) {
         MessageBox(hWindow, L"CreateDeviceAndSwapChain failed!", L"Error", MB_ICONERROR | MB_OK);
         return;

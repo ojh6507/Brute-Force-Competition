@@ -21,7 +21,7 @@ SLevelEditor::~SLevelEditor()
 
 void SLevelEditor::Initialize()
 {
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < 1; i++)
     {
         viewportClients[i] = std::make_shared<FEditorViewportClient>();
         viewportClients[i]->Initialize(i);
@@ -134,7 +134,7 @@ void SLevelEditor::Release()
 
 void SLevelEditor::SelectViewport(POINT point)
 {
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 1; i++)
     {
         if (viewportClients[i]->IsSelected(point))
         {
@@ -202,7 +202,7 @@ void SLevelEditor::LoadConfig()
 
     SetViewportClient(GetValueFromConfig(config, "ActiveViewportIndex", 0));
     bMultiViewportMode = GetValueFromConfig(config, "bMutiView", false);
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < 1; i++)
     {
         viewportClients[i]->LoadConfig(config);
     }
@@ -220,7 +220,7 @@ void SLevelEditor::SaveConfig()
         HSplitter->SaveConfig(config);
     if (VSplitter)
         VSplitter->SaveConfig(config);
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < 1; i++)
     {
         viewportClients[i]->SaveConfig(config);
     }

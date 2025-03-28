@@ -23,9 +23,29 @@ FMatrix JungleMath::CreateModelMatrix(FVector translation, FVector rotation, FVe
     //FMatrix Rotation = JungleMath::EulerToQuaternion(rotation).ToMatrix();
 
     FMatrix Scale = FMatrix::CreateScale(scale.x, scale.y, scale.z);
+    Scale.ToXMMATRIX();
+    Translation.ToXMMATRIX();
+    Rotation.ToXMMATRIX();
     return Scale * Rotation * Translation;
 }
+DirectX::XMMATRIX JungleMath::CreateModelXMMatrix(const FVector& translation, const FVector& rotation, const FVector& scale)
+{
+    // 이동 행렬 생성
+    XMMATRIX matTranslation = XMMatrixTranslation(translation.x, translation.y, translation.z);
 
+    // 회전 행렬 생성 (각도를 라디안으로 변환)
+    XMMATRIX matRotation = XMMatrixRotationRollPitchYaw(
+        XMConvertToRadians(rotation.x),
+        XMConvertToRadians(rotation.y),
+        XMConvertToRadians(rotation.z)
+    );
+
+    // 스케일 행렬 생성
+    XMMATRIX matScale = XMMatrixScaling(scale.x, scale.y, scale.z);
+
+    // 최종 모델 행렬: Scale * Rotation * Translation (오른쪽부터 적용)
+    return matScale * matRotation * matTranslation;
+}
 FMatrix JungleMath::CreateModelMatrix(FVector translation, FQuat rotation, FVector scale)
 {
     FMatrix Translation = FMatrix::CreateTranslationMatrix(translation);
