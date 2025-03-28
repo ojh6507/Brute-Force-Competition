@@ -510,4 +510,7 @@
   <ItemGroup>
     <Natvis Include="Week0v2.natvis" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Engine\Source\Runtime\Core\Math\Vector4.cpp" />
+  </ItemGroup>
 </Project>

@@ -5,7 +5,93 @@
 // 4x4 행렬 연산
 struct FMatrix
 {
-	float M[4][4];
+    //float M[4][4];
+    union
+    {
+        struct
+        {
+            float M[4][4];
+        };
+    
+        DirectX::XMMATRIX DirectXMatrix; 
+    };
+
+        /*FVector4 ArrVector[4];
+
+        struct
+        {
+            float _00;
+            float _01;
+            float _02;
+            float _03;
+
+            float _10;
+            float _11;
+            float _12;
+            float _13;
+
+            float _20;
+            float _21;
+            float _22;
+            float _23;
+
+            float _30;
+            float _31;
+            float _32;
+            float _33;
+        };
+
+    //    float Arr1D[4 * 4];
+    //    */
+    //};
+
+    //FMatrix& operator=(DirectX::XMMATRIX _Matrix)
+    //{
+    //    DirectXMatrix = _Matrix;
+    //    return *this;
+    //}
+
+    FMatrix()
+    {
+        DirectXMatrix = DirectX::XMMatrixIdentity();
+    }
+
+    FMatrix(const FMatrix& _Matrix)
+        : DirectXMatrix(_Matrix.DirectXMatrix)
+    {
+    }
+
+    FMatrix(const DirectX::FXMMATRIX& _Matrix)
+        : DirectXMatrix(_Matrix)
+    {
+    }
+
+        // 기본 생성자 (예: 단위 행렬)
+    //FMatrix()
+    //{
+    //    // 단위 행렬 등으로 초기화
+    //    for (int i = 0; i < 4; ++i)
+    //        for (int j = 0; j < 4; ++j)
+    //            M[i][j] = (i == j) ? 1.0f : 0.0f;
+    //}
+
+    // initializer_list를 받는 생성자 (C++11 이상)
+    FMatrix(std::initializer_list<std::initializer_list<float>> list)
+    {
+        if (list.size() != 4) throw std::invalid_argument("Initializer list must have 4 rows.");
+        int col = 0;
+        for (const auto& col_list : list)
+        {
+            if (col_list.size() != 4) throw std::invalid_argument("Initializer list rows must have 4 columns.");
+            int row = 0;
+            for (float val : col_list)
+            {
+                M[col][row++] = val;
+            }
+            col++;
+        }
+    }
+
 	static const FMatrix Identity;
 	// 기본 연산자 오버로딩
 	FMatrix operator+(const FMatrix& Other) const;
