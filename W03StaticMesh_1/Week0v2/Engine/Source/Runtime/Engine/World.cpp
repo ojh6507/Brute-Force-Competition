@@ -19,7 +19,7 @@ void UWorld::Initialize()
     // TODO: Load Scene
     CreateBaseObject();
     //SpawnObject(OBJ_CUBE);
-  
+
 #if _DEBUG
     FString jsonContent = FSceneMgr::LoadSceneFromFile("Assets/Data/Default.scene");
     FSceneMgr::ParseSceneData(jsonContent);
@@ -36,15 +36,14 @@ void UWorld::Initialize()
             return;
         }
 
-      
-        FString jsonContent = FSceneMgr::LoadSceneFromFile(FileName);
 
-         FSceneMgr::ParseSceneData(jsonContent);
+        FString jsonContent = FSceneMgr::LoadSceneFromFile(FileName);
+        FSceneMgr::ParseSceneData(jsonContent);
     }
 #endif
-    /* TODO: Scene Load 
+    /* TODO: Scene Load
     */
-   
+
 }
 
 void UWorld::CreateBaseObject()
@@ -97,27 +96,27 @@ void UWorld::ReleaseBaseObject()
 
 void UWorld::Tick(float DeltaTime)
 {
-	camera->TickComponent(DeltaTime);
-	EditorPlayer->Tick(DeltaTime);
-	LocalGizmo->Tick(DeltaTime);
+    camera->TickComponent(DeltaTime);
+    EditorPlayer->Tick(DeltaTime);
+    LocalGizmo->Tick(DeltaTime);
 }
 
 void UWorld::Release()
 {
-	for (AActor* Actor : ActorsArray)
-	{
-		Actor->EndPlay(EEndPlayReason::WorldTransition);
+    for (AActor* Actor : ActorsArray)
+    {
+        Actor->EndPlay(EEndPlayReason::WorldTransition);
         TSet<UActorComponent*> Components = Actor->GetComponents();
-	    for (UActorComponent* Component : Components)
-	    {
-	        GUObjectArray.MarkRemoveObject(Component);
-	    }
-	    GUObjectArray.MarkRemoveObject(Actor);
-	}
+        for (UActorComponent* Component : Components)
+        {
+            GUObjectArray.MarkRemoveObject(Component);
+        }
+        GUObjectArray.MarkRemoveObject(Actor);
+    }
     ActorsArray.Empty();
 
-	pickingGizmo = nullptr;
-	ReleaseBaseObject();
+    pickingGizmo = nullptr;
+    ReleaseBaseObject();
 
     GUObjectArray.ProcessPendingDestroyObjects();
 }
@@ -158,5 +157,5 @@ bool UWorld::DestroyActor(AActor* ThisActor)
 
 void UWorld::SetPickingGizmo(UObject* Object)
 {
-	pickingGizmo = Cast<USceneComponent>(Object);
+    pickingGizmo = Cast<USceneComponent>(Object);
 }
