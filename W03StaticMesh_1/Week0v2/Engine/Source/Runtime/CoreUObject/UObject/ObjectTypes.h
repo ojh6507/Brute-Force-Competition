@@ -5,6 +5,7 @@ enum OBJECTS
 {
 	OBJ_SPHERE,
 	OBJ_CUBE,
+    OBJ_APPLE,
 	OBJ_SpotLight,
 	OBJ_PARTICLE,
 	OBJ_Text,

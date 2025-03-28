@@ -336,31 +336,13 @@ struct FLoaderOBJ
                 vertex.y = RawData.Vertices[vIdx].y;
                 vertex.z = RawData.Vertices[vIdx].z;
 
-                vertex.r = 1.0f; vertex.g = 1.0f; vertex.b = 1.0f; vertex.a = 1.0f; // 기본 색상
-
+               
                 if (tIdx != UINT32_MAX && tIdx < RawData.UVs.Num())
                 {
                     vertex.u = RawData.UVs[tIdx].x;
                     vertex.v = -RawData.UVs[tIdx].y;
                 }
 
-                if (nIdx != UINT32_MAX && nIdx < RawData.Normals.Num())
-                {
-                    vertex.nx = RawData.Normals[nIdx].x;
-                    vertex.ny = RawData.Normals[nIdx].y;
-                    vertex.nz = RawData.Normals[nIdx].z;
-                }
-
-                for (int32 j = 0; j < OutStaticMesh.MaterialSubsets.Num(); j++)
-                {
-                    const FMaterialSubset& subset = OutStaticMesh.MaterialSubsets[j];
-                    if ( i >= subset.IndexStart && i < subset.IndexStart + subset.IndexCount)
-                    {
-                        vertex.MaterialIndex = subset.MaterialIndex;
-                        break;
-                    }
-                }
-                
                 index = OutStaticMesh.Vertices.Num();
                 OutStaticMesh.Vertices.Add(vertex);
                 vertexMap[key] = index;
@@ -425,13 +407,13 @@ public:
     static OBJ::FStaticMeshRenderData* LoadObjStaticMeshAsset(const FString& PathFileName)
     {
         OBJ::FStaticMeshRenderData* NewStaticMesh = new OBJ::FStaticMeshRenderData();
-        
+
         if ( const auto It = ObjStaticMeshMap.Find(PathFileName))
         {
             return *It;
         }
         
-        FWString BinaryPath = (PathFileName + ".bin").ToWideString();
+        FWString BinaryPath = (AssetDir + BinaryDir + PathFileName + ".bin").ToWideString();
         if (std::ifstream(BinaryPath).good())
         {
             if (LoadStaticMeshFromBinary(BinaryPath, *NewStaticMesh))
@@ -443,7 +425,7 @@ public:
         
         // Parse OBJ
         FObjInfo NewObjInfo;
-        bool Result = FLoaderOBJ::ParseOBJ(PathFileName, NewObjInfo);
+        bool Result = FLoaderOBJ::ParseOBJ(AssetDir + PathFileName, NewObjInfo);
 
         if (!Result)
         {
@@ -522,7 +504,7 @@ public:
         File.write(reinterpret_cast<const char*>(StaticMesh.Vertices.GetData()), VertexCount * sizeof(FVertexSimple));
 
         // Indices
-        uint32 IndexCount = StaticMesh.Indices.Num();
+        UINT IndexCount = StaticMesh.Indices.Num();
         File.write(reinterpret_cast<const char*>(&IndexCount), sizeof(IndexCount));
         File.write(reinterpret_cast<const char*>(StaticMesh.Indices.GetData()), IndexCount * sizeof(UINT));
 
@@ -601,7 +583,7 @@ public:
         File.read(reinterpret_cast<char*>(OutStaticMesh.Vertices.GetData()), VertexCount * sizeof(FVertexSimple));
 
         // Indices
-        uint32 IndexCount = 0;
+        UINT IndexCount = 0;
         File.read(reinterpret_cast<char*>(&IndexCount), sizeof(IndexCount));
         OutStaticMesh.Indices.SetNum(IndexCount);
         File.read(reinterpret_cast<char*>(OutStaticMesh.Indices.GetData()), IndexCount * sizeof(UINT));
@@ -702,4 +684,6 @@ private:
     inline static TMap<FString, OBJ::FStaticMeshRenderData*> ObjStaticMeshMap;
     inline static TMap<FWString, UStaticMesh*> staticMeshMap;
     inline static TMap<FString, UMaterial*> materialMap;
+    inline static FString AssetDir = "Assets/";
+    inline static FString BinaryDir = "binary/";
 };

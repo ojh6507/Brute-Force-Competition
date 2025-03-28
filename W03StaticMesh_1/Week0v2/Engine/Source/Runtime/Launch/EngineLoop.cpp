@@ -46,8 +46,8 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
                 }
             }
         }
-     Console::GetInstance().OnResize(hWnd);
-    // ControlPanel::GetInstance().OnResize(hWnd);
+   /*  Console::GetInstance().OnResize(hWnd);
+   */ // ControlPanel::GetInstance().OnResize(hWnd);
     // PropertyPanel::GetInstance().OnResize(hWnd);
     // Outliner::GetInstance().OnResize(hWnd);
     // ViewModeDropdown::GetInstance().OnResize(hWnd);
@@ -130,6 +130,8 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
     GWorld = new UWorld;
     GWorld->Initialize();
 
+
+
     return 0;
 }
 
@@ -169,13 +171,13 @@ void FEngineLoop::Render()
 
 void FEngineLoop::Tick()
 {
-    const double targetFrameTime = 1000.0 / targetFPS; // 한 프레임의 목표 시간 (밀리초 단위)
 
     FWindowsPlatformTime::InitTiming();
 
     uint64 StartTime, EndTime;
     
     double elapsedTime = 1.0;
+    float fps = 0.0f;
 
     while (bIsExit == false)
     {
@@ -199,24 +201,56 @@ void FEngineLoop::Tick()
         LevelEditor->Tick(elapsedTime);
         Render();
         UIMgr->BeginFrame();
-        UnrealEditor->Render();
+        
 
-        Console::GetInstance().Draw();
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
 
+
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_AlwaysAutoResize |
+            ImGuiWindowFlags_NoInputs;
+      
+        ImGui::Begin("FPSOverlay", nullptr, windowFlags);
+        ImGui::SetWindowFontScale(1.5f);
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "FPS: %.1f (%.1f ms)", fps, elapsedTime);
+        ImGui::SetWindowFontScale(1.0f);
+
+        ImGui::End();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
+
+
+
+
+       
         UIMgr->EndFrame();
 
         // Pending 처리된 오브젝트 제거
         GUObjectArray.ProcessPendingDestroyObjects();
 
         graphicDevice.SwapBuffer();
-        
-        do
+        EndTime = FWindowsPlatformTime::Cycles64();
+        elapsedTime = FWindowsPlatformTime::ToMilliseconds(EndTime - StartTime);
+        if (elapsedTime > 0.0)
+        {
+            fps = static_cast<float>(1000.0 / elapsedTime);
+        }
+        else
+        {
+            fps = 0.0f;
+        }
+     /*   do
         {
             Sleep(0);
             EndTime = FWindowsPlatformTime::Cycles64();
             elapsedTime = FWindowsPlatformTime::ToMilliseconds(EndTime - StartTime);
         }
-        while (elapsedTime < targetFrameTime);
+        while (elapsedTime < targetFrameTime);*/
     }
 }
 

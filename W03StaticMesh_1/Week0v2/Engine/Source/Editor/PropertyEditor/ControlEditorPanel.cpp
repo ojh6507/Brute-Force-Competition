@@ -21,58 +21,58 @@
 
 void ControlEditorPanel::Render()
 {
-    /* Pre Setup */
-    ImGuiIO& io = ImGui::GetIO();
-    ImFont* IconFont = io.Fonts->Fonts[FEATHER_FONT];
-    ImVec2 IconSize = ImVec2(32, 32);
-    
-    float PanelWidth = (Width) * 0.8f;
-    float PanelHeight = 45.0f;
+   // /* Pre Setup */
+   // ImGuiIO& io = ImGui::GetIO();
+   // ImFont* IconFont = io.Fonts->Fonts[FEATHER_FONT];
+   // ImVec2 IconSize = ImVec2(32, 32);
+   // 
+   // float PanelWidth = (Width) * 0.8f;
+   // float PanelHeight = 45.0f;
 
-    float PanelPosX = 1.0f;
-    float PanelPosY = 1.0f;
+   // float PanelPosX = 1.0f;
+   // float PanelPosY = 1.0f;
 
-    ImVec2 MinSize(300, 50);
-    ImVec2 MaxSize(FLT_MAX, 50);
-    
-    /* Min, Max Size */
-    ImGui::SetNextWindowSizeConstraints(MinSize, MaxSize);
-    
-    /* Panel Position */
-    ImGui::SetNextWindowPos(ImVec2(PanelPosX, PanelPosY), ImGuiCond_Always);
+   // ImVec2 MinSize(300, 50);
+   // ImVec2 MaxSize(FLT_MAX, 50);
+   // 
+   // /* Min, Max Size */
+   // ImGui::SetNextWindowSizeConstraints(MinSize, MaxSize);
+   // 
+   // /* Panel Position */
+   // ImGui::SetNextWindowPos(ImVec2(PanelPosX, PanelPosY), ImGuiCond_Always);
 
-    /* Panel Size */
-    ImGui::SetNextWindowSize(ImVec2(PanelWidth, PanelHeight), ImGuiCond_Always);
+   // /* Panel Size */
+   // ImGui::SetNextWindowSize(ImVec2(PanelWidth, PanelHeight), ImGuiCond_Always);
 
-    /* Panel Flags */
-    ImGuiWindowFlags PanelFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground;
-    
-    /* Render Start */
-    ImGui::Begin("Control Panel", nullptr, PanelFlags);
-    
-    CreateMenuButton(IconSize, IconFont);
-    
-    ImGui::SameLine();
-    
-    CreateFlagButton();
-    
-    ImGui::SameLine();
+   // /* Panel Flags */
+   // ImGuiWindowFlags PanelFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground;
+   // 
+   // /* Render Start */
+   // ImGui::Begin("Control Panel", nullptr, PanelFlags);
+   // 
+   //// CreateMenuButton(IconSize, IconFont);
+   // 
+   // ImGui::SameLine();
+   // 
+   //// CreateFlagButton();
+   // 
+   // ImGui::SameLine();
 
-    CreateModifyButton(IconSize, IconFont);
+   // CreateModifyButton(IconSize, IconFont);
 
-    ImGui::SameLine();
+   // ImGui::SameLine();
 
-    /* Get Window Content Region */
-    float ContentWidth = ImGui::GetWindowContentRegionMax().x;
+   // /* Get Window Content Region */
+   // float ContentWidth = ImGui::GetWindowContentRegionMax().x;
 
-    /* Move Cursor X Position */
-    ImGui::SetCursorPosX(ContentWidth - (IconSize.x * 3.0f + 16.0f));
-    
-    ImGui::PushFont(IconFont);
-    CreateSRTButton(IconSize);
-    ImGui::PopFont();
-    
-    ImGui::End();
+   // /* Move Cursor X Position */
+   // ImGui::SetCursorPosX(ContentWidth - (IconSize.x * 3.0f + 16.0f));
+   // 
+   // ImGui::PushFont(IconFont);
+   // CreateSRTButton(IconSize);
+   // ImGui::PopFont();
+   // 
+   // ImGui::End();
 }
 
 void ControlEditorPanel::CreateMenuButton(ImVec2 ButtonSize, ImFont* IconFont)
@@ -202,55 +202,55 @@ void ControlEditorPanel::CreateMenuButton(ImVec2 ButtonSize, ImFont* IconFont)
 
 void ControlEditorPanel::CreateModifyButton(ImVec2 ButtonSize, ImFont* IconFont)
 {
-    ImGui::PushFont(IconFont);
-    if (ImGui::Button("\ue9c4", ButtonSize)) // Slider
-    {
-        ImGui::OpenPopup("SliderControl");
-    }
-    ImGui::PopFont();
+    //ImGui::PushFont(IconFont);
+    //if (ImGui::Button("\ue9c4", ButtonSize)) // Slider
+    //{
+    //    ImGui::OpenPopup("SliderControl");
+    //}
+    //ImGui::PopFont();
 
-    if (ImGui::BeginPopup("SliderControl"))
-    {
-        ImGui::Text("Grid Scale");
-        GridScale = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->GetGridSize();
-        ImGui::SetNextItemWidth(120.0f);
-        if (ImGui::DragFloat("##Grid Scale", &GridScale, 0.1f, 1.0f, 20.0f, "%.1f"))
-        {
-            GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->SetGridSize(GridScale);
-        }
-        ImGui::Separator();
+    //if (ImGui::BeginPopup("SliderControl"))
+    //{
+    //    ImGui::Text("Grid Scale");
+    //    GridScale = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->GetGridSize();
+    //    ImGui::SetNextItemWidth(120.0f);
+    //    if (ImGui::DragFloat("##Grid Scale", &GridScale, 0.1f, 1.0f, 20.0f, "%.1f"))
+    //    {
+    //        GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->SetGridSize(GridScale);
+    //    }
+    //    ImGui::Separator();
 
-        ImGui::Text("Camera FOV");
-        FOV = &GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->ViewFOV;
-        ImGui::SetNextItemWidth(120.0f);
-        if (ImGui::DragFloat("##Fov", FOV, 0.1f, 30.0f, 120.0f, "%.1f"))
-        {
-            //GEngineLoop.GetWorld()->GetCamera()->SetFOV(FOV);
-            
-        }
-        ImGui::Spacing();
+    //    ImGui::Text("Camera FOV");
+    //    FOV = &GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->ViewFOV;
+    //    ImGui::SetNextItemWidth(120.0f);
+    //    if (ImGui::DragFloat("##Fov", FOV, 0.1f, 30.0f, 120.0f, "%.1f"))
+    //    {
+    //        GEngineLoop.GetWorld()->GetCamera()->SetFOV(FOV);
+    //        
+    //    }
+    //    ImGui::Spacing();
 
-        ImGui::Text("Camera Speed");
-        CameraSpeed = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->GetCameraSpeedScalar();
-        ImGui::SetNextItemWidth(120.0f);
-        if (ImGui::DragFloat("##CamSpeed", &CameraSpeed, 0.1f, 0.198f, 192.0f, "%.1f"))
-        {
-            GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->SetCameraSpeedScalar(CameraSpeed);
-        }
-        
-        ImGui::EndPopup();
-    }
+    //    ImGui::Text("Camera Speed");
+    //    CameraSpeed = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->GetCameraSpeedScalar();
+    //    ImGui::SetNextItemWidth(120.0f);
+    //    if (ImGui::DragFloat("##CamSpeed", &CameraSpeed, 0.1f, 0.198f, 192.0f, "%.1f"))
+    //    {
+    //        GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->SetCameraSpeedScalar(CameraSpeed);
+    //    }
+    //    
+    //    ImGui::EndPopup();
+    //}
 
-    ImGui::SameLine();
-    
-    ImGui::PushFont(IconFont);
-    if (ImGui::Button("\ue9c8", ButtonSize))
-    {
-        ImGui::OpenPopup("PrimitiveControl");
-    }
-    ImGui::PopFont();
+    //ImGui::SameLine();
+    //
+    //ImGui::PushFont(IconFont);
+    //if (ImGui::Button("\ue9c8", ButtonSize))
+    //{
+    //    ImGui::OpenPopup("PrimitiveControl");
+    //}
+    //ImGui::PopFont();
 
-    if (ImGui::BeginPopup("PrimitiveControl"))
+    if (ImGui::Begin("PrimitiveControl"))
     {
         struct Primitive {
             const char* label;
@@ -259,6 +259,7 @@ void ControlEditorPanel::CreateModifyButton(ImVec2 ButtonSize, ImFont* IconFont)
 
         static const Primitive primitives[] = {
             { .label= "Cube",      .obj= OBJ_CUBE },
+            { .label= "Apple",      .obj= OBJ_APPLE },
             { .label= "Sphere",    .obj= OBJ_SPHERE },
             { .label= "SpotLight", .obj= OBJ_SpotLight },
             { .label= "Particle",  .obj= OBJ_PARTICLE },
@@ -283,14 +284,50 @@ void ControlEditorPanel::CreateModifyButton(ImVec2 ButtonSize, ImFont* IconFont)
                 }
                 case OBJ_CUBE:
                 {
-                    for (int i = 0; i < 50000; ++i) {
+                    const int gridX = 50;
+                    const int gridY = 50;
+                    const int gridZ = 20;
+                    const float spacing = 1.5f;
+                    for (int x = 0; x < gridX; ++x)
+                    {
+                        for (int y = 0; y < gridY; ++y)
+                        {
+                            for (int z = 0; z < gridZ; ++z)
+                            {
 
-                        AStaticMeshActor* TempActor = World->SpawnActor<AStaticMeshActor>();
-                        TempActor->SetActorLabel(TEXT("OBJ_CUBE"));
-                        UStaticMeshComponent* MeshComp = TempActor->GetStaticMeshComponent();
-                        FManagerOBJ::CreateStaticMesh("Assets/Cube/cube-tex.obj");
-                        MeshComp->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"cube-tex.obj"));
+                                AStaticMeshActor* TempActor = World->SpawnActor<AStaticMeshActor>();
+                                TempActor->SetActorLabel(TEXT("OBJ_CUBE"));
+                                UStaticMeshComponent* MeshComp = TempActor->GetStaticMeshComponent();
+                                FManagerOBJ::CreateStaticMesh("Cube/cube-tex.obj");
+                                MeshComp->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"cube-tex.obj"));
+                                TempActor->SetActorLocation(FVector(x* spacing, y* spacing, z* spacing));
+                            }
+                        }
                     }
+                    break;
+                } 
+                case OBJ_APPLE:
+                {
+                    const int gridX = 50;
+                    const int gridY = 50;
+                    const int gridZ = 20;
+                    const float spacing =1.f;
+                    for (int x = 0; x < gridX; ++x)
+                    {
+                        for (int y = 0; y < gridY; ++y)
+                        {
+                            for (int z = 0; z < gridZ; ++z)
+                            {
+                                AStaticMeshActor* TempActor = World->SpawnActor<AStaticMeshActor>();
+                                TempActor->SetActorLabel(TEXT("OBJ_APPLE"));
+                                UStaticMeshComponent* MeshComp = TempActor->GetStaticMeshComponent();
+                                FManagerOBJ::CreateStaticMesh("apple_mid.obj");
+                                MeshComp->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"apple_mid.obj"));
+                                TempActor->SetActorLocation(FVector(x* spacing, y* spacing, z* spacing));
+                            }
+                        }
+                    }
+                  
                     break;
                 }
                 case OBJ_SpotLight:
@@ -334,7 +371,7 @@ void ControlEditorPanel::CreateModifyButton(ImVec2 ButtonSize, ImFont* IconFont)
                 }
             }
         }
-        ImGui::EndPopup();
+        ImGui::End();
     }
 }
 

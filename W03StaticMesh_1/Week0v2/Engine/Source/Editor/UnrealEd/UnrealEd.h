@@ -1,7 +1,7 @@
-﻿#pragma once
+#pragma once
 #include "Container/Map.h"
 #include "Container/String.h"
-
+#include "PropertyEditor/ControlEditorPanel.h"
 class UEditorPanel;
 
 class UnrealEd
@@ -18,5 +18,5 @@ public:
     std::shared_ptr<UEditorPanel> GetEditorPanel(const FString& PanelId);
 
 private:
-    TMap<FString, std::shared_ptr<UEditorPanel>> Panels;
+    std::shared_ptr<ControlEditorPanel> ControlPanel;
 };

@@ -16,7 +16,27 @@ void UWorld::Initialize()
     CreateBaseObject();
     //SpawnObject(OBJ_CUBE);
   
-    AActor* SpawnedActor = SpawnActor<AActor>();
+   
+    const int gridX = 50;
+    const int gridY = 50;
+    const int gridZ = 20;
+    const float spacing = 1.f;
+    for (int x = 0; x < gridX; ++x)
+    {
+        for (int y = 0; y < gridY; ++y)
+        {
+            for (int z = 0; z < gridZ; ++z)
+            {
+                AStaticMeshActor* TempActor = SpawnActor<AStaticMeshActor>();
+                TempActor->SetActorLabel(TEXT("OBJ_APPLE"));
+                UStaticMeshComponent* MeshComp = TempActor->GetStaticMeshComponent();
+                FManagerOBJ::CreateStaticMesh("apple_mid.obj");
+                MeshComp->SetStaticMesh(FManagerOBJ::GetStaticMesh(L"apple_mid.obj"));
+                TempActor->SetActorLocation(FVector(x * spacing, y * spacing, z * spacing));
+            }
+        }
+    }
+
    
 }
 
