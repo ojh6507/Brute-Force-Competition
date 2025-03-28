@@ -176,8 +176,8 @@ void FEngineLoop::Tick()
         }
 
         Input();
-        GWorld->Tick(elapsedTime);
-        LevelEditor->Tick(elapsedTime);
+        GWorld->Tick(elapsedTime / 1000.0);
+        LevelEditor->Tick(elapsedTime/ 1000.0);
         Render();
         UIMgr->BeginFrame();
 
