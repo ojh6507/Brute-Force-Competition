@@ -157,11 +157,11 @@ void FRenderer::ChangeViewMode(EViewModeIndex evi) const
     switch (evi)
     {
     case EViewModeIndex::VMI_Lit:
-        UpdateLitUnlitConstant(1);
+        //UpdateLitUnlitConstant(1);
         break;
     case EViewModeIndex::VMI_Wireframe:
     case EViewModeIndex::VMI_Unlit:
-        UpdateLitUnlitConstant(0);
+        //UpdateLitUnlitConstant(0);
         break;
     }
 }
@@ -200,7 +200,7 @@ void FRenderer::RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<F
     {
         int materialIndex = renderData->MaterialSubsets[subMeshIndex].MaterialIndex;
 
-        subMeshIndex == selectedSubMeshIndex ? UpdateSubMeshConstant(true) : UpdateSubMeshConstant(false);
+        //subMeshIndex == selectedSubMeshIndex ? UpdateSubMeshConstant(true) : UpdateSubMeshConstant(false);
 
         overrideMaterial[materialIndex] != nullptr ?
             UpdateMaterial(overrideMaterial[materialIndex]->GetMaterialInfo()) : UpdateMaterial(materials[materialIndex]->Material->GetMaterialInfo());
@@ -467,23 +467,23 @@ void FRenderer::UpdateConstantXM(const DirectX::XMMATRIX& MVP, FVector4 UUIDColo
 
 void FRenderer::UpdateMaterial(const FObjMaterialInfo& MaterialInfo) const
 {
-    if (MaterialConstantBuffer)
-    {
-        D3D11_MAPPED_SUBRESOURCE ConstantBufferMSR; // GPU�� �޸� �ּ� ����
+    //if (MaterialConstantBuffer)
+    //{
+    //    D3D11_MAPPED_SUBRESOURCE ConstantBufferMSR; // GPU�� �޸� �ּ� ����
 
-        Graphics->DeviceContext->Map(MaterialConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ConstantBufferMSR); // update constant buffer every frame
-        {
-            FMaterialConstants* constants = static_cast<FMaterialConstants*>(ConstantBufferMSR.pData);
-            constants->DiffuseColor = MaterialInfo.Diffuse;
-            constants->TransparencyScalar = MaterialInfo.TransparencyScalar;
-            constants->AmbientColor = MaterialInfo.Ambient;
-            constants->DensityScalar = MaterialInfo.DensityScalar;
-            constants->SpecularColor = MaterialInfo.Specular;
-            constants->SpecularScalar = MaterialInfo.SpecularScalar;
-            constants->EmmisiveColor = MaterialInfo.Emissive;
-        }
-        Graphics->DeviceContext->Unmap(MaterialConstantBuffer, 0); // GPU�� �ٽ� ��밡���ϰ� �����
-    }
+    //    Graphics->DeviceContext->Map(MaterialConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ConstantBufferMSR); // update constant buffer every frame
+    //    {
+    //        FMaterialConstants* constants = static_cast<FMaterialConstants*>(ConstantBufferMSR.pData);
+    //        constants->DiffuseColor = MaterialInfo.Diffuse;
+    //        constants->TransparencyScalar = MaterialInfo.TransparencyScalar;
+    //        constants->AmbientColor = MaterialInfo.Ambient;
+    //        constants->DensityScalar = MaterialInfo.DensityScalar;
+    //        constants->SpecularColor = MaterialInfo.Specular;
+    //        constants->SpecularScalar = MaterialInfo.SpecularScalar;
+    //        constants->EmmisiveColor = MaterialInfo.Emissive;
+    //    }
+    //    Graphics->DeviceContext->Unmap(MaterialConstantBuffer, 0); // GPU�� �ٽ� ��밡���ϰ� �����
+    //}
 
     if (MaterialInfo.bHasTexture == true)
     {
@@ -500,47 +500,47 @@ void FRenderer::UpdateMaterial(const FObjMaterialInfo& MaterialInfo) const
         Graphics->DeviceContext->PSSetSamplers(0, 1, nullSampler);
     }
 }
-
-void FRenderer::UpdateLitUnlitConstant(int isLit) const
-{
-    if (FlagBuffer)
-    {
-        D3D11_MAPPED_SUBRESOURCE constantbufferMSR; // GPU �� �޸� �ּ� ����
-        Graphics->DeviceContext->Map(FlagBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
-        auto constants = static_cast<FLitUnlitConstants*>(constantbufferMSR.pData); //GPU �޸� ���� ����
-        {
-            constants->isLit = isLit;
-        }
-        Graphics->DeviceContext->Unmap(FlagBuffer, 0);
-    }
-}
-
-void FRenderer::UpdateSubMeshConstant(bool isSelected) const
-{
-    if (SubMeshConstantBuffer) {
-        D3D11_MAPPED_SUBRESOURCE constantbufferMSR; // GPU �� �޸� �ּ� ����
-        Graphics->DeviceContext->Map(SubMeshConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
-        FSubMeshConstants* constants = (FSubMeshConstants*)constantbufferMSR.pData; //GPU �޸� ���� ����
-        {
-            constants->isSelectedSubMesh = isSelected;
-        }
-        Graphics->DeviceContext->Unmap(SubMeshConstantBuffer, 0);
-    }
-}
-
-void FRenderer::UpdateTextureConstant(float UOffset, float VOffset)
-{
-    if (TextureConstantBufer) {
-        D3D11_MAPPED_SUBRESOURCE constantbufferMSR; // GPU �� �޸� �ּ� ����
-        Graphics->DeviceContext->Map(TextureConstantBufer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
-        FTextureConstants* constants = (FTextureConstants*)constantbufferMSR.pData; //GPU �޸� ���� ����
-        {
-            constants->UOffset = UOffset;
-            constants->VOffset = VOffset;
-        }
-        Graphics->DeviceContext->Unmap(TextureConstantBufer, 0);
-    }
-}
+//
+//void FRenderer::UpdateLitUnlitConstant(int isLit) const
+//{
+//    if (FlagBuffer)
+//    {
+//        D3D11_MAPPED_SUBRESOURCE constantbufferMSR; // GPU �� �޸� �ּ� ����
+//        Graphics->DeviceContext->Map(FlagBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
+//        auto constants = static_cast<FLitUnlitConstants*>(constantbufferMSR.pData); //GPU �޸� ���� ����
+//        {
+//            constants->isLit = isLit;
+//        }
+//        Graphics->DeviceContext->Unmap(FlagBuffer, 0);
+//    }
+//}
+//
+//void FRenderer::UpdateSubMeshConstant(bool isSelected) const
+//{
+//    if (SubMeshConstantBuffer) {
+//        D3D11_MAPPED_SUBRESOURCE constantbufferMSR; // GPU �� �޸� �ּ� ����
+//        Graphics->DeviceContext->Map(SubMeshConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
+//        FSubMeshConstants* constants = (FSubMeshConstants*)constantbufferMSR.pData; //GPU �޸� ���� ����
+//        {
+//            constants->isSelectedSubMesh = isSelected;
+//        }
+//        Graphics->DeviceContext->Unmap(SubMeshConstantBuffer, 0);
+//    }
+//}
+//
+//void FRenderer::UpdateTextureConstant(float UOffset, float VOffset)
+//{
+//    if (TextureConstantBufer) {
+//        D3D11_MAPPED_SUBRESOURCE constantbufferMSR; // GPU �� �޸� �ּ� ����
+//        Graphics->DeviceContext->Map(TextureConstantBufer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
+//        FTextureConstants* constants = (FTextureConstants*)constantbufferMSR.pData; //GPU �޸� ���� ����
+//        {
+//            constants->UOffset = UOffset;
+//            constants->VOffset = VOffset;
+//        }
+//        Graphics->DeviceContext->Unmap(TextureConstantBufer, 0);
+//    }
+//}
 
 void FRenderer::CreateTextureShader()
 {
@@ -1079,7 +1079,7 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         else
             UpdateConstantXM(MVP, UUIDColor, false);
 
-        UpdateTextureConstant(0, 0);
+        //UpdateTextureConstant(0, 0);
 
         //if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB))
         //{
