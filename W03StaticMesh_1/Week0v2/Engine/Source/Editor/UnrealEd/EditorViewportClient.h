@@ -94,7 +94,7 @@ public:
     void Tick(float DeltaTime);
     void Release();
 
-    void Input();
+    void Input(float DeltaTime);
     void ResizeViewport(const DXGI_SWAP_CHAIN_DESC& swapchaindesc);
     void ResizeViewport(FRect Top, FRect Bottom, FRect Left, FRect Right);
 

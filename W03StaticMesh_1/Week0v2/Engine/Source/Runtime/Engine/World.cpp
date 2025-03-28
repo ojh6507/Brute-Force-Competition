@@ -24,7 +24,7 @@ void UWorld::Initialize()
     FString jsonContent = FSceneMgr::LoadSceneFromFile("Assets/Data/Default.scene");
     FSceneMgr::ParseSceneData(jsonContent);
 
-#endif
+#else
     {
         char const* lFilterPatterns[1] = { "*.scene" };
         const char* FileName = tinyfd_openFileDialog("Open Scene File", "", 1, lFilterPatterns, "Scene(.scene) file", 0);
@@ -41,6 +41,7 @@ void UWorld::Initialize()
 
          FSceneMgr::ParseSceneData(jsonContent);
     }
+#endif
     /* TODO: Scene Load 
     */
    

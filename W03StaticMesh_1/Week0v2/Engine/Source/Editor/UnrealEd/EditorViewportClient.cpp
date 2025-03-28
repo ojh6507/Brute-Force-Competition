@@ -37,7 +37,7 @@ void FEditorViewportClient::Initialize(int32 viewportIndex)
 
 void FEditorViewportClient::Tick(float DeltaTime)
 {
-    Input();
+    Input(DeltaTime);
     UpdateViewMatrix();
     UpdateProjectionMatrix();
 
@@ -52,7 +52,7 @@ void FEditorViewportClient::Release()
 
 
 
-void FEditorViewportClient::Input()
+void FEditorViewportClient::Input(float DeltaTime)
 {
     ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureMouse) return;
@@ -90,27 +90,27 @@ void FEditorViewportClient::Input()
         }
         if (GetAsyncKeyState('A') & 0x8000)
         {
-            CameraMoveRight(-1.f);
+            CameraMoveRight(-1.f * DeltaTime);
         }
         if (GetAsyncKeyState('D') & 0x8000)
         {
-            CameraMoveRight(1.f);
+            CameraMoveRight(1.f * DeltaTime);
         }
         if (GetAsyncKeyState('W') & 0x8000)
         {
-            CameraMoveForward(1.f);
+            CameraMoveForward(1.f * DeltaTime);
         }
         if (GetAsyncKeyState('S') & 0x8000)
         {
-            CameraMoveForward(-1.f);
+            CameraMoveForward(-1.f * DeltaTime);
         }
         if (GetAsyncKeyState('E') & 0x8000)
         {
-            CameraMoveUp(1.f);
+            CameraMoveUp(1.f * DeltaTime);
         }
         if (GetAsyncKeyState('Q') & 0x8000)
         {
-            CameraMoveUp(-1.f);
+            CameraMoveUp(-1.f * DeltaTime);
         }
     }
     else
