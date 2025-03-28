@@ -35,6 +35,7 @@ UStaticMesh* FManagerOBJ::CreateStaticMesh(FString filePath)
     staticMesh->SetData(staticMeshRenderData);
 
     staticMeshMap.Add(staticMeshRenderData->ObjectName, staticMesh);
+    return staticMesh;
 }
 
 UStaticMesh* FManagerOBJ::GetStaticMesh(FWString name)

@@ -58,6 +58,10 @@ void UGizmoBaseComponent::TickComponent(float DeltaTime)
 
     if (AActor* PickedActor = GetWorld()->GetSelectedActor())
     {
+        if (!PickedActor->GetRootComponent())
+        {
+            return;
+        }
         std::shared_ptr<FEditorViewportClient> activeViewport = GetEngine().GetLevelEditor()->GetActiveViewportClient();
         if (activeViewport->IsPerspective())
         {

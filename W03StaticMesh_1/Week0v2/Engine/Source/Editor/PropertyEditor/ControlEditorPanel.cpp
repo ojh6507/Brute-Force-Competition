@@ -14,6 +14,10 @@
 #include "tinyfiledialogs/tinyfiledialogs.h"
 #include "UnrealEd/EditorViewportClient.h"
 #include "PropertyEditor/ShowFlags.h"
+#include "Editor/UnrealEd/SceneMgr.h"
+#include <fstream>
+#include <sstream>
+#include <string>
 
 void ControlEditorPanel::Render()
 {
@@ -103,6 +107,14 @@ void ControlEditorPanel::CreateMenuButton(ImVec2 ButtonSize, ImFont* IconFont)
                 ImGui::End();
                 return;
             }
+
+            //std::ifstream file(FileName);
+            //std::stringstream buffer;
+            //buffer << file.rdbuf();
+            FString jsonContent = FSceneMgr::LoadSceneFromFile(FileName);
+
+            FSceneMgr::ParseSceneData(jsonContent);
+
 
             // TODO: Load Scene
         }
