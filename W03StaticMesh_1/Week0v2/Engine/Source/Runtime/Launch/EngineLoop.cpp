@@ -201,9 +201,10 @@ void FEngineLoop::Tick()
 
      
 
-        UIMgr->EndFrame();
+        ImGui::End();
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
+        UIMgr->EndFrame();
 
 
         // Pending 처리된 오브젝트 제거
