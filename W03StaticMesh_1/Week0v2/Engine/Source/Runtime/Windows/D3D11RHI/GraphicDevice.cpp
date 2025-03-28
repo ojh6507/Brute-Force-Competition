@@ -25,11 +25,11 @@ void FGraphicsDevice::CreateDeviceAndSwapChain(HWND hWindow) {
 
     // 디바이스와 스왑 체인 생성
 #if _DEBUG
+
     HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
         D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG,
         featurelevels, ARRAYSIZE(featurelevels), D3D11_SDK_VERSION,
         &SwapchainDesc, &SwapChain, &Device, nullptr, &DeviceContext);
-
 #else
     HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
     D3D11_CREATE_DEVICE_BGRA_SUPPORT,
@@ -289,7 +289,7 @@ void FGraphicsDevice::Release()
 }
 
 void FGraphicsDevice::SwapBuffer() {
-    SwapChain->Present(1, 0);
+    SwapChain->Present(0, 0);
 }
 void FGraphicsDevice::Prepare()
 {
