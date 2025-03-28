@@ -7,8 +7,16 @@
 #define SMALL_NUMBER         (1.e-8f)
 #define KINDA_SMALL_NUMBER   (1.e-4f)
 
+#define HALF_PI			(1.57079632679f)
+#define TWO_PI			(6.28318530717f)
+
 #define PI_DOUBLE            (3.141592653589793238462643383279502884197169399)
 
+// 라디안 -> 각도 변환 상수 (180 / PI)
+#define R2D (57.295779513f)
+
+// 각도 -> 라디안 변환 상수 (PI / 180)
+#define D2R (0.0174532925f)
 
 struct FMath
 {

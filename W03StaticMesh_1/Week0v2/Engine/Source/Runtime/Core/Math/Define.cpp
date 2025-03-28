@@ -28,11 +28,9 @@ FMatrix FMatrix::operator-(const FMatrix& Other) const {
 
 // 행렬 곱셈
 FMatrix FMatrix::operator*(const FMatrix& Other) const {
-    FMatrix Result = {};
-    for (int32 i = 0; i < 4; i++)
-        for (int32 j = 0; j < 4; j++)
-            for (int32 k = 0; k < 4; k++)
-                Result.M[i][j] += M[i][k] * Other.M[k][j];
+
+    FMatrix Result = DirectX::XMMatrixMultiply(DirectXMatrix, Other.DirectXMatrix);
+
     return Result;
 }
 
