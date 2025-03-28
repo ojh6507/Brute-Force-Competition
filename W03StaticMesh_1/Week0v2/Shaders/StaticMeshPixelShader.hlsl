@@ -4,7 +4,7 @@ SamplerState Sampler : register(s0);
 cbuffer MatrixConstants : register(b0 )
 {
     row_major float4x4 MVP;
-  
+    int isSelected;
 };
 
 //struct FMaterial
@@ -71,18 +71,20 @@ PS_OUTPUT mainPS(PS_INPUT input)
     output.UUID = 1;
     
     float3 texColor = Textures.Sample(Sampler, input.texcoord);
-    //float3 color;
+    float3 color;
     //if (texColor.g == 0) // TODO: boolean으로 변경
     //    color = saturate(Material.DiffuseColor);
     //else
     //{
-    //    color = texColor + Material.DiffuseColor;
+      color = texColor;
     //}
-    output.color = float4(texColor, 1);
+    if (isSelected)
+    {
+        color += float3(0.5f, 0.5f, 0.0f);
+    }
+    output.color = float4(color,1);
     return output;
-    //if (isSelected)
-    //{
-    //    color += float3(0.2f, 0.2f, 0.0f); // 노란색 틴트로 하이라이트
+    // 노란색 틴트로 하이라이트
     //    if (IsSelectedSubMesh)
     //        color = float3(1, 1, 1);
     //}

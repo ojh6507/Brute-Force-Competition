@@ -10,7 +10,7 @@ public:
     UStaticMeshComponent() = default;
 
     PROPERTY(int, selectedSubMeshIndex);
-
+    bool picked;
     virtual uint32 GetNumMaterials() const override;
     virtual UMaterial* GetMaterial(uint32 ElementIndex) const override;
     virtual uint32 GetMaterialIndex(FName MaterialSlotName) const override;
@@ -26,7 +26,7 @@ public:
         OverrideMaterials.SetNum(value->GetMaterials().Num());
         AABB = FBoundingBox(staticMesh->GetRenderData()->BoundingBoxMin, staticMesh->GetRenderData()->BoundingBoxMax);
     }
-
+    bool IsPicked() { return picked; }
 protected:
     UStaticMesh* staticMesh = nullptr;
     int selectedSubMeshIndex = -1;

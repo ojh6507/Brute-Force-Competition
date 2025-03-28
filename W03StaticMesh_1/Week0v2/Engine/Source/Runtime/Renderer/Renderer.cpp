@@ -445,6 +445,7 @@ void FRenderer::UpdateConstant(const FMatrix& MVP, FVector4 UUIDColor, bool IsSe
         {
             FConstants* constants = static_cast<FConstants*>(ConstantBufferMSR.pData);
             constants->MVP = MVP;
+            constants->IsSelected = IsSelected;
 
         }
         Graphics->DeviceContext->Unmap(ConstantBuffer, 0); // GPU�� �ٽ� ��밡���ϰ� �����
@@ -460,6 +461,7 @@ void FRenderer::UpdateConstantXM(const DirectX::XMMATRIX& MVP, FVector4 UUIDColo
         {
             FConstantsXM* constants = static_cast<FConstantsXM*>(ConstantBufferMSR.pData);
             XMStoreFloat4x4(&constants->MVP, MVP);
+            constants->IsSelected = IsSelected;
         }
         Graphics->DeviceContext->Unmap(ConstantBufferXM, 0); // GPU�� �ٽ� ��밡���ϰ� �����
     }
@@ -1060,8 +1062,8 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         FVector DirNorm = dir.Normalize();
         float dotVal = DirNorm.Dot(CameraForward);
 
-      /*  if (dotVal < 0) continue;
-        if (dist > cullDistance) continue;*/
+        if (dotVal < 0) continue;
+        if (dist > cullDistance) continue;
 
         FMatrix Model = JungleMath::CreateModelMatrix(
             StaticMeshComp->GetWorldLocation(),
@@ -1085,7 +1087,7 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
 
 
         FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
-        if (World->GetSelectedActor() == StaticMeshComp->GetOwner())
+        if (World->GetSelectedComp() == StaticMeshComp)
         {
             UpdateConstant(MVP, UUIDColor, true);
         }
