@@ -9,6 +9,7 @@
 #include "Define.h"
 #include "Container/Octree.h"
 #include "Container/Set.h"
+#include "Container/Map.h"
 
 class ULightComponentBase;
 class UWorld;
@@ -51,7 +52,7 @@ public:
     //Render
     void RenderPrimitive(ID3D11Buffer* pBuffer, UINT numVertices) const;
     void RenderPrimitive(ID3D11Buffer* pVertexBuffer, UINT numVertices, ID3D11Buffer* pIndexBuffer, UINT numIndices) const;
-    void RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<FStaticMaterial*> materials, TArray<UMaterial*> overrideMaterial, int selectedSubMeshIndex) const;
+    void RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<FStaticMaterial*> materials, TArray<UMaterial*> overrideMaterial, int selectedSubMeshIndex);
    
     void RenderTexturedModelPrimitive(ID3D11Buffer* pVertexBuffer, UINT numVertices, ID3D11Buffer* pIndexBuffer, UINT numIndices, ID3D11ShaderResourceView* InTextureSRV, ID3D11SamplerState* InSamplerState) const;
     //Release
@@ -80,7 +81,7 @@ public:
 
     // update
     void UpdateLightBuffer() const;
-    void UpdateConstant(const FMatrix& MVP, const FMatrix& NormalMatrix, FVector4 UUIDColor, bool IsSelected) const;
+    void UpdateConstant(const FMatrix& MVP,  FVector4 UUIDColor, bool IsSelected) const;
     void UpdateConstantXM(const DirectX::XMMATRIX& MVP, FVector4 UUIDColor, bool IsSelected) const;
    void UpdateMaterial(const FObjMaterialInfo& MaterialInfo) const;
    //void UpdateLitUnlitConstant(int isLit) const;
@@ -148,12 +149,22 @@ public: // line shader
     void RenderLight(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport);
     void RenderBillboards(UWorld* World,std::shared_ptr<FEditorViewportClient> ActiveViewport);
     
+
+    void MaterialSorting();
+
 private:
     TArray<UStaticMeshComponent*> StaticMeshObjs;
+    int PrevStaticMeshObjsNum = 0;
+    class UMaterial* CurrentMaterial = nullptr;
+    bool bIsDirtyRenderObj = true;
+
+    //TMap<FName, TArray<UStaticMeshComponent>> StaticMeshObjsSorting;
     TArray<UGizmoBaseComponent*> GizmoObjs;
     TArray<UBillboardComponent*> BillboardObjs;
     TArray<ULightComponentBase*> LightObjs;
     
+
+
 public:
     ID3D11VertexShader* VertexLineShader = nullptr;
     ID3D11PixelShader* PixelLineShader = nullptr;

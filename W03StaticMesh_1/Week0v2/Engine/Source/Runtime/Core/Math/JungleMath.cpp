@@ -23,9 +23,7 @@ FMatrix JungleMath::CreateModelMatrix(FVector translation, FVector rotation, FVe
     //FMatrix Rotation = JungleMath::EulerToQuaternion(rotation).ToMatrix();
 
     FMatrix Scale = FMatrix::CreateScale(scale.x, scale.y, scale.z);
-    Scale.ToXMMATRIX();
-    Translation.ToXMMATRIX();
-    Rotation.ToXMMATRIX();
+
     return Scale * Rotation * Translation;
 }
 DirectX::XMMATRIX JungleMath::CreateModelXMMatrix(const FVector& translation, const FVector& rotation, const FVector& scale)

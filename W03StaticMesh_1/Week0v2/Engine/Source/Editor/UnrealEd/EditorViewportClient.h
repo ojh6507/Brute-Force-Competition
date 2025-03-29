@@ -14,6 +14,9 @@
 extern FEngineLoop GEngineLoop;
 
 
+struct Plane {
+    float a, b, c, d; // 평면 방정식: ax + by + cz + d = 0
+};
 
 struct FViewportCameraTransform
 {
@@ -89,7 +92,7 @@ public:
     ~FEditorViewportClient();
 
     virtual void        Draw(FViewport* Viewport) override;
-    virtual UWorld*     GetWorld() const { return NULL; };
+    virtual UWorld* GetWorld() const { return NULL; };
     void Initialize(int32 viewportIndex);
     void Tick(float DeltaTime);
     void Release();
@@ -106,7 +109,7 @@ protected:
     float CameraSpeedScalar = 1.0f;
     float GridSize;
 
-public: 
+public:
     FViewport* Viewport;
     int32 ViewportIndex;
     FViewport* GetViewport() { return Viewport; }
@@ -145,12 +148,65 @@ public: //Camera Movement
     FMatrix& GetProjectionMatrix() { return Projection; }
     void UpdateViewMatrix();
     void UpdateProjectionMatrix();
-    struct Plane {
-        float a, b, c, d; // 평면 방정식: ax + by + cz + d = 0
-    };
 
-    void ExtractFrustumPlanes(const FMatrix& viewProj, Plane planes[6]);
-   
+ 
+    Plane PlaneFromPoints(const FVector& p0, const FVector& p1, const FVector& p2)
+    {
+        // 두 벡터의 외적을 이용해 법선 구하기
+        FVector normal = (p1 - p0).Cross(p2 - p0);
+        normal.Normalize();
+        // 평면 방정식: ax + by + cz + d = 0, d = -n·p0
+        float d = -normal.Dot(p0);
+        return Plane(normal.x, normal.y, normal.z, d);
+    }
+    void ExtractFrustumPlanesDirect(Plane(&planes)[6]);
+    // AABB의 8개 꼭짓점을 구하는 헬퍼 함수
+    void GetAABBVertices(const FBoundingBox& box, FVector vertices[8])
+    {
+        vertices[0] = FVector(box.min.x, box.min.y, box.min.z);
+        vertices[1] = FVector(box.max.x, box.min.y, box.min.z);
+        vertices[2] = FVector(box.min.x, box.max.y, box.min.z);
+        vertices[3] = FVector(box.min.x, box.min.y, box.max.z);
+        vertices[4] = FVector(box.max.x, box.max.y, box.min.z);
+        vertices[5] = FVector(box.min.x, box.max.y, box.max.z);
+        vertices[6] = FVector(box.max.x, box.min.y, box.max.z);
+        vertices[7] = FVector(box.max.x, box.max.y, box.max.z);
+    }
+    void GetBoundingSphere(const FBoundingBox& box, FVector& outCenter, float& outRadius)
+    {
+        outCenter.x = (box.min.x + box.max.x) * 0.5f;
+        outCenter.y = (box.min.y + box.max.y) * 0.5f;
+        outCenter.z = (box.min.z + box.max.z) * 0.5f;
+
+        // AABB의 한 꼭짓점과 중심 사이의 거리로 반지름 결정
+        FVector diff = box.max - outCenter;
+        outRadius = (diff.x * diff.x + diff.y * diff.y + diff.z * diff.z);
+    }
+    bool IsSphereInsideFrustum(const Plane planes[6], const FVector& center, float radius)
+    {
+        for (int i = 0; i < 6; ++i)
+        {
+            // 평면 방정식: ax + by + cz + d
+            float ddistance = planes[i].a * center.x +
+                planes[i].b * center.y +
+                planes[i].c * center.z +
+                planes[i].d;
+
+            // 거리가 -radius보다 작으면 구가 평면 밖에 있음
+            if (ddistance < -radius)
+                return false;
+        }
+        return true;
+    }
+
+    bool IsAABBVisible(const Plane planes[6], const FBoundingBox& box)
+    {
+        FVector center;
+        float radius;
+        GetBoundingSphere(box, center, radius);
+
+        return IsSphereInsideFrustum(planes, center, radius);
+    }
 
     bool IsOrtho() const;
     bool IsPerspective() const;
@@ -168,7 +224,7 @@ public: //Camera Movement
 private: // Input
     POINT lastMousePos;
     bool bRightMouseDown = false;
-   
+
 
 public:
     void LoadConfig(const TMap<FString, FString>& config);
@@ -176,11 +232,11 @@ public:
 private:
     TMap<FString, FString> ReadIniFile(const FString& filePath);
     void WriteIniFile(const FString& filePath, const TMap<FString, FString>& config);
-	
+
 public:
     PROPERTY(int32, CameraSpeedSetting)
-    PROPERTY(float, GridSize)
-    float GetCameraSpeedScalar() const { return CameraSpeedScalar; };
+        PROPERTY(float, GridSize)
+        float GetCameraSpeedScalar() const { return CameraSpeedScalar; };
     void SetCameraSpeedScalar(float value);
 
 private:

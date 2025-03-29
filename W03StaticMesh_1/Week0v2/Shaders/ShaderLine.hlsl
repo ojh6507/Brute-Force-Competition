@@ -281,7 +281,7 @@ PS_INPUT mainVS(VS_INPUT input)
         uint bbEdgeIndex = index % 12;
         
         pos = ComputeBoundingBoxPosition(bbInstanceID, bbEdgeIndex, input.vertexID);
-        color = float4(1.0, 1.0, 0.0, 1.0); // 노란색
+        color = float4(1.0, 1.0, 1.0, 1.0); // 노란색
     }
     else if (input.instanceID < obbStart)
     {

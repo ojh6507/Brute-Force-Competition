@@ -182,7 +182,7 @@ void FRenderer::RenderPrimitive(ID3D11Buffer* pVertexBuffer, UINT numVertices, I
     Graphics->DeviceContext->DrawIndexed(numIndices, 0, 0);
 }
 
-void FRenderer::RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<FStaticMaterial*> materials, TArray<UMaterial*> overrideMaterial, int selectedSubMeshIndex = -1) const
+void FRenderer::RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<FStaticMaterial*> materials, TArray<UMaterial*> overrideMaterial, int selectedSubMeshIndex = -1)
 {
     UINT offset = 0;
     Graphics->DeviceContext->IASetVertexBuffers(0, 1, &renderData->VertexBuffer, &Stride, &offset);
@@ -202,9 +202,17 @@ void FRenderer::RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<F
 
         //subMeshIndex == selectedSubMeshIndex ? UpdateSubMeshConstant(true) : UpdateSubMeshConstant(false);
 
-        overrideMaterial[materialIndex] != nullptr ?
-            UpdateMaterial(overrideMaterial[materialIndex]->GetMaterialInfo()) : UpdateMaterial(materials[materialIndex]->Material->GetMaterialInfo());
 
+        //bool b = ;
+
+        if (materials[materialIndex]->Material != CurrentMaterial)
+        {
+            overrideMaterial[materialIndex] != nullptr ?
+                UpdateMaterial(overrideMaterial[materialIndex]->GetMaterialInfo()) : UpdateMaterial(materials[materialIndex]->Material->GetMaterialInfo());
+
+            CurrentMaterial = materials[materialIndex]->Material;
+        }
+        
         if (renderData->IndexBuffer)
         {
             // index draw
@@ -435,7 +443,7 @@ void FRenderer::UpdateLightBuffer() const
     Graphics->DeviceContext->Unmap(LightingBuffer, 0);
 }
 
-void FRenderer::UpdateConstant(const FMatrix& MVP, const FMatrix& NormalMatrix, FVector4 UUIDColor, bool IsSelected) const
+void FRenderer::UpdateConstant(const FMatrix& MVP, FVector4 UUIDColor, bool IsSelected) const
 {
     if (ConstantBuffer)
     {
@@ -445,6 +453,7 @@ void FRenderer::UpdateConstant(const FMatrix& MVP, const FMatrix& NormalMatrix, 
         {
             FConstants* constants = static_cast<FConstants*>(ConstantBufferMSR.pData);
             constants->MVP = MVP;
+            constants->IsSelected = IsSelected;
 
         }
         Graphics->DeviceContext->Unmap(ConstantBuffer, 0); // GPU�� �ٽ� ��밡���ϰ� �����
@@ -460,6 +469,7 @@ void FRenderer::UpdateConstantXM(const DirectX::XMMATRIX& MVP, FVector4 UUIDColo
         {
             FConstantsXM* constants = static_cast<FConstantsXM*>(ConstantBufferMSR.pData);
             XMStoreFloat4x4(&constants->MVP, MVP);
+            constants->IsSelected = IsSelected;
         }
         Graphics->DeviceContext->Unmap(ConstantBufferXM, 0); // GPU�� �ٽ� ��밡���ϰ� �����
     }
@@ -992,34 +1002,42 @@ void FRenderer::RenderBatch(
 
 void FRenderer::PrepareRender()
 {
-    for (const auto iter : TObjectRange<USceneComponent>())
+
+    if (bIsDirtyRenderObj == true)
     {
-        if (UStaticMeshComponent* pStaticMeshComp = Cast<UStaticMeshComponent>(iter))
+        for (const auto iter : TObjectRange<UStaticMeshComponent>())
         {
-            if (!Cast<UGizmoBaseComponent>(iter))
-                StaticMeshObjs.Add(pStaticMeshComp);
+            if (UStaticMeshComponent* pStaticMeshComp = Cast<UStaticMeshComponent>(iter))
+            {
+                if (!Cast<UGizmoBaseComponent>(iter))
+                    StaticMeshObjs.Add(pStaticMeshComp);
+            }
+            
+            /*   if (UGizmoBaseComponent* pGizmoComp = Cast<UGizmoBaseComponent>(iter))
+               {
+                   GizmoObjs.Add(pGizmoComp);
+               }
+               if (UBillboardComponent* pBillboardComp = Cast<UBillboardComponent>(iter))
+               {
+                   BillboardObjs.Add(pBillboardComp);
+               }
+               if (ULightComponentBase* pLightComp = Cast<ULightComponentBase>(iter))
+               {
+                   LightObjs.Add(pLightComp);
+               }*/
         }
-        if (UGizmoBaseComponent* pGizmoComp = Cast<UGizmoBaseComponent>(iter))
-        {
-            GizmoObjs.Add(pGizmoComp);
-        }
-        if (UBillboardComponent* pBillboardComp = Cast<UBillboardComponent>(iter))
-        {
-            BillboardObjs.Add(pBillboardComp);
-        }
-        if (ULightComponentBase* pLightComp = Cast<ULightComponentBase>(iter))
-        {
-            LightObjs.Add(pLightComp);
-        }
+
+        bIsDirtyRenderObj = false;
     }
+
 }
 
 void FRenderer::ClearRenderArr()
 {
-    StaticMeshObjs.Empty();
-    GizmoObjs.Empty();
-    BillboardObjs.Empty();
-    LightObjs.Empty();
+    //StaticMeshObjs.Empty();
+    //GizmoObjs.Empty();
+    //BillboardObjs.Empty();
+    //LightObjs.Empty();
 }
 
 void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewport)
@@ -1044,55 +1062,64 @@ void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> Act
 
 void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
-    PrepareShader(); 
+    PrepareShader();
     FVector cameraLocation = ActiveViewport->ViewTransformPerspective.GetLocation();
     FVector CameraForward = ActiveViewport->ViewTransformPerspective.GetForwardVector();
-    float cullDistance = 70;
+    float cullDistance = 80;
+    Plane frustumPlanes[6];
+    ActiveViewport->ExtractFrustumPlanesDirect(frustumPlanes);
+
+    MaterialSorting();
+
     for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
     {
         FVector objectLocation = StaticMeshComp->GetWorldLocation();
         FVector dir = (objectLocation - cameraLocation);
-        
+
         // 거리 계산 (벡터 차의 길이)
         float dist = objectLocation.Distance(cameraLocation);
         FVector DirNorm = dir.Normalize();
         float dotVal = DirNorm.Dot(CameraForward);
+
         if (dotVal < 0) continue;
-       
         if (dist > cullDistance) continue;
-        DirectX::XMMATRIX ModelMatrix = JungleMath::CreateModelXMMatrix(
+
+        FMatrix Model = JungleMath::CreateModelMatrix(
             StaticMeshComp->GetWorldLocation(),
             StaticMeshComp->GetWorldRotation(),
             StaticMeshComp->GetWorldScale()
         );
+
         // 최종 MVP 행렬
-        DirectX::XMMATRIX MVP =
-            ModelMatrix * ActiveViewport->GetViewMatrix().ToXMMATRIX() * ActiveViewport->GetProjectionMatrix().ToXMMATRIX();
+        FMatrix MVP = Model * ActiveViewport->GetViewMatrix() * ActiveViewport->GetProjectionMatrix();
+        bool ac = ActiveViewport->IsAABBVisible(frustumPlanes, StaticMeshComp->GetBoundingBox().TransformWorld(MVP));
+        if (!ac) continue;
+
+        if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB))
+        {
+            UPrimitiveBatch::GetInstance().RenderAABB(
+                StaticMeshComp->GetBoundingBox(),
+                StaticMeshComp->GetWorldLocation(),
+                Model
+            );
+        }
+
 
         FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
-        if (World->GetSelectedActor() == StaticMeshComp->GetOwner())
+        if (World->GetSelectedComp() == StaticMeshComp)
         {
-            UpdateConstantXM(MVP, UUIDColor, true);
+            UpdateConstant(MVP, UUIDColor, true);
         }
         else
-            UpdateConstantXM(MVP, UUIDColor, false);
+            UpdateConstant(MVP, UUIDColor, false);
 
         //UpdateTextureConstant(0, 0);
-
-        //if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB))
-        //{
-        //    UPrimitiveBatch::GetInstance().RenderAABB(
-        //        StaticMeshComp->GetBoundingBox(),
-        //        StaticMeshComp->GetWorldLocation(),
-        //        FM
-        //    );
-        //}
 
 
         if (!StaticMeshComp->GetStaticMesh()) continue;
 
         OBJ::FStaticMeshRenderData* renderData = StaticMeshComp->GetStaticMesh()->GetRenderData();
-        if (renderData == nullptr) continue;
+        //if (renderData == nullptr) return;
 
         RenderPrimitive(renderData, StaticMeshComp->GetStaticMesh()->GetMaterials(), StaticMeshComp->GetOverrideMaterials(), StaticMeshComp->GetselectedSubMeshIndex());
     }
@@ -1135,22 +1162,21 @@ void FRenderer::RenderGizmos(const UWorld* World, const std::shared_ptr<FEditorV
             GizmoComp->GetWorldRotation(),
             GizmoComp->GetWorldScale()
         );
-        FMatrix NormalMatrix = FMatrix::Transpose(FMatrix::Inverse(Model));
         FVector4 UUIDColor = GizmoComp->EncodeUUID() / 255.0f;
 
         FMatrix MVP = Model * ActiveViewport->GetViewMatrix() * ActiveViewport->GetProjectionMatrix();
 
         if (GizmoComp == World->GetPickingGizmo())
-            UpdateConstant(MVP, NormalMatrix, UUIDColor, true);
+            UpdateConstant(MVP, UUIDColor, true);
         else
-            UpdateConstant(MVP, NormalMatrix, UUIDColor, false);
+            UpdateConstant(MVP, UUIDColor, false);
 
         if (!GizmoComp->GetStaticMesh()) continue;
 
         OBJ::FStaticMeshRenderData* renderData = GizmoComp->GetStaticMesh()->GetRenderData();
         if (renderData == nullptr) continue;
 
-        RenderPrimitive(renderData, GizmoComp->GetStaticMesh()->GetMaterials(), GizmoComp->GetOverrideMaterials());
+        RenderPrimitive(renderData, GizmoComp->GetStaticMesh()->GetMaterials(), GizmoComp->GetOverrideMaterials(), 0);
     }
 
     Graphics->DeviceContext->RSSetState(Graphics->GetCurrentRasterizer());
@@ -1173,12 +1199,11 @@ void FRenderer::RenderBillboards(UWorld* World, std::shared_ptr<FEditorViewportC
 
         // 최종 MVP 행렬
         FMatrix MVP = Model * ActiveViewport->GetViewMatrix() * ActiveViewport->GetProjectionMatrix();
-        FMatrix NormalMatrix = FMatrix::Transpose(FMatrix::Inverse(Model));
         FVector4 UUIDColor = BillboardComp->EncodeUUID() / 255.0f;
         if (BillboardComp == World->GetPickingGizmo())
-            UpdateConstant(MVP, NormalMatrix, UUIDColor, true);
+            UpdateConstant(MVP, UUIDColor, true);
         else
-            UpdateConstant(MVP, NormalMatrix, UUIDColor, false);
+            UpdateConstant(MVP, UUIDColor, false);
 
         if (UParticleSubUVComp* SubUVParticle = Cast<UParticleSubUVComp>(BillboardComp))
         {
@@ -1203,6 +1228,41 @@ void FRenderer::RenderBillboards(UWorld* World, std::shared_ptr<FEditorViewportC
         }
     }
     PrepareShader();
+}
+
+void FRenderer::MaterialSorting()
+{
+    //임시로 오브젝트의 수가 변경했을 때만 정렬
+    if (StaticMeshObjs.Num() == PrevStaticMeshObjsNum) return;
+    PrevStaticMeshObjsNum = StaticMeshObjs.Num();
+
+    StaticMeshObjs.Sort([](const UStaticMeshComponent* A_ptr_ref, const UStaticMeshComponent* B_ptr_ref) {
+        // 참조에서 실제 포인터 값을 가져옵니다.
+        const UStaticMeshComponent* CompA = A_ptr_ref;
+        const UStaticMeshComponent* CompB = B_ptr_ref;
+
+        // 1. 컴포넌트 포인터 자체의 null 검사
+        if (!CompA && !CompB) return false; // 둘 다 null이면 순서 유지 (동등)
+        if (!CompA) return true;  // A만 null이면 A가 B보다 먼저 와야 함 (true 반환)
+        if (!CompB) return false; // B만 null이면 A는 B보다 나중에 와야 함 (false 반환)
+
+
+        const TArray<FStaticMaterial*>& MaterialsA = CompA->GetStaticMesh()->GetMaterials();
+        const TArray<FStaticMaterial*>& MaterialsB= CompB->GetStaticMesh()->GetMaterials();
+
+        // 3. 메테리얼 정보 포인터 null 검사
+        if (!MaterialsA[0] && !MaterialsB[0]) return false; // 둘 다 null이면 순서 유지
+        if (!MaterialsA[0]) return true;  // A만 null이면 A 우선
+        if (!MaterialsB[0]) return false; // B만 null이면 B 우선 (즉, A는 나중에)
+
+        // 4. 포인터 주소값 비교 (핵심)
+        // MatInfoA가 MatInfoB보다 "작으면" (메모리 주소가 앞서면) true 반환
+        return MaterialsA[0] < MaterialsB[0];
+
+        });
+    //std::sort(Materials.begin(), Materials.end(), [](const FMaterialInfo& a, const FMaterialInfo& b) {
+    //    return a.MaterialIndex < b.MaterialIndex;
+    //    });
 }
 
 void FRenderer::RenderLight(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)

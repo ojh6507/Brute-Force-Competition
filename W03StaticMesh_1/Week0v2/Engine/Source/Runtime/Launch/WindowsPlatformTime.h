@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "HAL/PlatformType.h"
 #include <atomic>
 
@@ -65,6 +65,11 @@ public:
     FScopeCycleCounter(TStatId StatId)
         : StartCycles(FPlatformTime::Cycles64())
         , UsedStatId(StatId)
+    {
+    }  
+    FScopeCycleCounter()
+        : StartCycles(FPlatformTime::Cycles64())
+        , UsedStatId{}
     {
     }
 

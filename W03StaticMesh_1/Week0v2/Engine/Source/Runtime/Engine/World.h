@@ -5,6 +5,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Container/Octree.h"
 
+#include "Components/PrimitiveComponent.h"
 class FObjectFactory;
 class AActor;
 class UObject;
@@ -56,6 +57,8 @@ private:
     TArray<AActor*> PendingBeginPlayActors;
 
     AActor* SelectedActor = nullptr;
+    UPrimitiveComponent* SelectedPrimitve = nullptr;
+
     FOctree* RootOctree = nullptr;
     
     USceneComponent* pickingGizmo = nullptr;
@@ -74,9 +77,14 @@ public:
 
     // EditorManager 같은데로 보내기
     AActor* GetSelectedActor() const { return SelectedActor; }
+    UPrimitiveComponent* GetSelectedComp() const { return SelectedPrimitve; }
     void SetPickedActor(AActor* InActor)
     {
         SelectedActor = InActor;
+    }
+    void SetPickedPrimitive(UPrimitiveComponent* InPrimitve)
+    {
+        SelectedPrimitve = InPrimitve;
     }
 
     UObject* GetWorldGizmo() const { return worldGizmo; }

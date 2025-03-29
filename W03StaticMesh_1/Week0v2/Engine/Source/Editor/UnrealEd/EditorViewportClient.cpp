@@ -291,48 +291,57 @@ void FEditorViewportClient::UpdateProjectionMatrix()
     }
 }
 
-void FEditorViewportClient::ExtractFrustumPlanes(const FMatrix& viewProj, Plane planes[6])
+// FEditorViewportClient 클래스 내부에 추가할 새로운 평면 추출 함수
+void FEditorViewportClient::ExtractFrustumPlanesDirect(Plane(&planes)[6])
 {
+    // 카메라 파라미터 추출
+    FVector camPos = ViewTransformPerspective.GetLocation();
+    FVector camForward = ViewTransformPerspective.GetForwardVector();
+    FVector camUp = ViewTransformPerspective.GetUpVector();
+    FVector camRight = ViewTransformPerspective.GetRightVector();
 
-    //// 왼쪽 평면: 행3 + 행0
-    //planes[0].a = viewProj.r[3].m128_f32[0] + viewProj.r[0].m128_f32[0];
-    //planes[0].b = viewProj.r[3].m128_f32[1] + viewProj.r[0].m128_f32[1];
-    //planes[0].c = viewProj.r[3].m128_f32[2] + viewProj.r[0].m128_f32[2];
-    //planes[0].d = viewProj.r[3].m128_f32[3] + viewProj.r[0].m128_f32[3];
+    // 근/원거리 평면 중심 계산
+    FVector nc = camPos + camForward * nearPlane;
+    FVector fc = camPos + camForward * farPlane;
 
-    //// 오른쪽 평면: 행3 - 행0
-    //planes[1].a = viewProj.r[3].m128_f32[0] - viewProj.r[0].m128_f32[0];
-    //planes[1].b = viewProj.r[3].m128_f32[1] - viewProj.r[0].m128_f32[1];
-    //planes[1].c = viewProj.r[3].m128_f32[2] - viewProj.r[0].m128_f32[2];
-    //planes[1].d = viewProj.r[3].m128_f32[3] - viewProj.r[0].m128_f32[3];
+    // 시야각(ViewFOV)은 일반적으로 도(degree) 단위이므로 라디안으로 변환 (예: 60도 -> 60 * PI/180)
+    float fovRad = ViewFOV * 3.141592f / 180.0f;
 
-    //// 상단 평면: 행3 - 행1
-    //planes[2].a = viewProj.r[3].m128_f32[0] - viewProj.r[1].m128_f32[0];
-    //planes[2].b = viewProj.r[3].m128_f32[1] - viewProj.r[1].m128_f32[1];
-    //planes[2].c = viewProj.r[3].m128_f32[2] - viewProj.r[1].m128_f32[2];
-    //planes[2].d = viewProj.r[3].m128_f32[3] - viewProj.r[1].m128_f32[3];
+    // 근/원거리 평면의 높이와 너비 계산
+    float nearHeight = nearPlane * tanf(fovRad * 0.5f);
+    float nearWidth = nearHeight * AspectRatio;
+    float farHeight = farPlane * tanf(fovRad * 0.5f);
+    float farWidth = farHeight * AspectRatio;
 
-    //// 하단 평면: 행3 + 행1
-    //planes[3].a = viewProj.r[3].m128_f32[0] + viewProj.r[1].m128_f32[0];
-    //planes[3].b = viewProj.r[3].m128_f32[1] + viewProj.r[1].m128_f32[1];
-    //planes[3].c = viewProj.r[3].m128_f32[2] + viewProj.r[1].m128_f32[2];
-    //planes[3].d = viewProj.r[3].m128_f32[3] + viewProj.r[1].m128_f32[3];
 
-    //// 근접 평면: 행2 (보통 이미 제대로 된 값이 계산되어 있음)
-    //planes[4].a = viewProj.r[2].m128_f32[0];
-    //planes[4].b = viewProj.r[2].m128_f32[1];
-    //planes[4].c = viewProj.r[2].m128_f32[2];
-    //planes[4].d = viewProj.r[2].m128_f32[3];
+    // 근거리 평면의 4개 꼭짓점 (월드 좌표)
+    FVector ntl = nc + (camUp * (nearHeight / 2)) - (camRight * (nearWidth / 2));
+    FVector ntr = nc + (camUp * (nearHeight / 2)) + (camRight * (nearWidth / 2));
+    FVector nbl = nc - (camUp * (nearHeight / 2)) - (camRight * (nearWidth / 2));
+    FVector nbr = nc - (camUp * (nearHeight / 2)) + (camRight * (nearWidth / 2));
 
-    //// 원거리 평면: 행3 - 행2
-    //planes[5].a = viewProj.r[3].m128_f32[0] - viewProj.r[2].m128_f32[0];
-    //planes[5].b = viewProj.r[3].m128_f32[1] - viewProj.r[2].m128_f32[1];
-    //planes[5].c = viewProj.r[3].m128_f32[2] - viewProj.r[2].m128_f32[2];
-    //planes[5].d = viewProj.r[3].m128_f32[3] - viewProj.r[2].m128_f32[3];
+    // 원거리 평면의 4개 꼭짓점
+    FVector ftl = fc + (camUp * (farHeight / 2)) - (camRight * (farWidth / 2));
+    FVector ftr = fc + (camUp * (farHeight / 2)) + (camRight * (farWidth / 2));
+    FVector fbl = fc - (camUp * (farHeight / 2)) - (camRight * (farWidth / 2));
+    FVector fbr = fc - (camUp * (farHeight / 2)) + (camRight * (farWidth / 2));
 
-    //// 각 평면을 정규화하는 과정을 추가하여 계산 결과를 안정적으로 사용할 수 있습니다.
 
+    // 평면 구성 (세 점의 순서에 따라 법선 방향이 결정됨)
+    // 왼쪽 평면: 카메라 위치, ntl, nbl
+    planes[0] = PlaneFromPoints(camPos, ntl, nbl);
+    // 오른쪽 평면: 카메라 위치, nbr, ntr
+    planes[1] = PlaneFromPoints(camPos, nbr, ntr);
+    // 아래쪽 평면: 카메라 위치, nbl, nbr
+    planes[2] = PlaneFromPoints(camPos, nbl, nbr);
+    // 위쪽 평면: 카메라 위치, ntr, ntl
+    planes[3] = PlaneFromPoints(camPos, ntr, ntl);
+    // 근접 평면: 근거리 평면의 코너들 (ntr, ntl, nbl)
+    planes[4] = PlaneFromPoints(ntr, ntl, nbl);
+    // 원거리 평면: 원거리 평면의 코너들 (ftl, ftr, fbr)
+    planes[5] = PlaneFromPoints(ftl, ftr, fbr);
 }
+
 
 bool FEditorViewportClient::IsOrtho() const
 {

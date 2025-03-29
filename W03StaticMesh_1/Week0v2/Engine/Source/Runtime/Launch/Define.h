@@ -21,7 +21,7 @@
 struct FVertexSimple
 {
     float x, y, z;    // Position
-    float u=0, v=0;
+    float u = 0, v = 0;
 };
 
 // Material Subset
@@ -47,16 +47,16 @@ struct FObjInfo
     FWString PathName; // OBJ File Paths
     FString DisplayName; // Display Name
     FString MatName; // OBJ MTL File Name
-    
+
     // Group
     uint32 NumOfGroup = 0; // token 'g' or 'o'
     TArray<FString> GroupName;
-    
+
     // Vertex, UV, Normal List
     TArray<FVector> Vertices;
     TArray<FVector> Normals;
     TArray<FVector2D> UVs;
-    
+
     // Faces
     TArray<int32> Faces;
 
@@ -64,7 +64,7 @@ struct FObjInfo
     TArray<uint32> VertexIndices;
     TArray<uint32> NormalIndices;
     TArray<uint32> TextureIndices;
-    
+
     // Material
     TArray<FMaterialSubset> MaterialSubsets;
 };
@@ -90,16 +90,16 @@ struct FObjMaterialInfo
     /* Texture */
     FString DiffuseTextureName;  // map_Kd : Diffuse texture
     FWString DiffuseTexturePath;
-    
+
     FString AmbientTextureName;  // map_Ka : Ambient texture
     FWString AmbientTexturePath;
-    
+
     FString SpecularTextureName; // map_Ks : Specular texture
     FWString SpecularTexturePath;
-    
+
     FString BumpTextureName;     // map_Bump : Bump texture
     FWString BumpTexturePath;
-    
+
     FString AlphaTextureName;    // map_d : Alpha texture
     FWString AlphaTexturePath;
 };
@@ -112,13 +112,13 @@ namespace OBJ
         FWString ObjectName;
         FWString PathName;
         FString DisplayName;
-        
+
         TArray<FVertexSimple> Vertices;
         TArray<UINT> Indices;
 
         ID3D11Buffer* VertexBuffer;
         ID3D11Buffer* IndexBuffer;
-        
+
         TArray<FObjMaterialInfo> Materials;
         TArray<FMaterialSubset> MaterialSubsets;
 
@@ -129,19 +129,19 @@ namespace OBJ
 
 struct FVertexTexture
 {
-	float x, y, z;    // Position
-	float u, v; // Texture
+    float x, y, z;    // Position
+    float u, v; // Texture
 };
 struct FGridParameters
 {
-	float gridSpacing;
-	int   numGridLines;
-	FVector gridOrigin;
-	float pad;
+    float gridSpacing;
+    int   numGridLines;
+    FVector gridOrigin;
+    float pad;
 };
 struct FSimpleVertex
 {
-	float dummy; // 내용은 사용되지 않음
+    float dummy; // 내용은 사용되지 않음
     float padding[11];
 };
 struct FOBB {
@@ -164,12 +164,12 @@ struct FPoint
 };
 struct FBoundingBox
 {
-    FBoundingBox(){}
+    FBoundingBox() {}
     FBoundingBox(FVector _min, FVector _max) : min(_min), max(_max) {}
-	FVector min; // Minimum extents
-	float pad;
-	FVector max; // Maximum extents
-	float pad1;
+    FVector min; // Minimum extents
+    float pad;
+    FVector max; // Maximum extents
+    float pad1;
     bool Intersect(const FVector& rayOrigin, const FVector& rayDir, float& outDistance)
     {
         float tmin = -FLT_MAX;
@@ -245,6 +245,24 @@ struct FBoundingBox
 
         return true;
     }
+    FBoundingBox TransformWorld(const FMatrix& worldMatrix) const
+    {
+        // 모델 공간 중심과 half-extents 계산
+        FVector center = (min + max) * 0.5f;
+        FVector extents = (max - min) * 0.5f;
+
+        // 점 변환 함수 TransformPoint는 worldMatrix를 사용해 center를 월드 좌표로 변환합니다.
+        FVector worldCenter = worldMatrix.TransformPosition(center);
+
+        FVector worldExtents;
+        worldExtents.x = fabs(worldMatrix.M[0][0]) * extents.x + fabs(worldMatrix.M[0][1]) * extents.y + fabs(worldMatrix.M[0][2]) * extents.z;
+        worldExtents.y = fabs(worldMatrix.M[1][0]) * extents.x + fabs(worldMatrix.M[1][1]) * extents.y + fabs(worldMatrix.M[1][2]) * extents.z;
+        worldExtents.z = fabs(worldMatrix.M[2][0]) * extents.x + fabs(worldMatrix.M[2][1]) * extents.y + fabs(worldMatrix.M[2][2]) * extents.z;
+
+        // 월드 AABB 생성
+        return FBoundingBox(worldCenter - worldExtents, worldCenter + worldExtents);
+    }
+
 
 };
 struct FCone
@@ -260,23 +278,23 @@ struct FCone
     float pad[3];
 
 };
-struct FPrimitiveCounts 
+struct FPrimitiveCounts
 {
-	int BoundingBoxCount;
-	int pad;
-	int ConeCount; 
-	int pad1;
+    int BoundingBoxCount;
+    int pad;
+    int ConeCount;
+    int pad1;
 };
 struct FLighting
 {
-	float lightDirX, lightDirY, lightDirZ; // 조명 방향
-	float pad1;                      // 16바이트 정렬용 패딩
-	float lightColorX, lightColorY, lightColorZ;    // 조명 색상
-	float pad2;                      // 16바이트 정렬용 패딩
-	float AmbientFactor;             // ambient 계수
-	float pad3; // 16바이트 정렬 맞춤 추가 패딩
-	float pad4; // 16바이트 정렬 맞춤 추가 패딩
-	float pad5; // 16바이트 정렬 맞춤 추가 패딩
+    float lightDirX, lightDirY, lightDirZ; // 조명 방향
+    float pad1;                      // 16바이트 정렬용 패딩
+    float lightColorX, lightColorY, lightColorZ;    // 조명 색상
+    float pad2;                      // 16바이트 정렬용 패딩
+    float AmbientFactor;             // ambient 계수
+    float pad3; // 16바이트 정렬 맞춤 추가 패딩
+    float pad4; // 16바이트 정렬 맞춤 추가 패딩
+    float pad5; // 16바이트 정렬 맞춤 추가 패딩
 };
 
 struct FMaterialConstants {
@@ -292,9 +310,11 @@ struct FMaterialConstants {
 
 struct FConstants {
     FMatrix MVP;      // 모델
+    int IsSelected;
 };
 struct FConstantsXM {
-   DirectX::XMFLOAT4X4 MVP;      // 모델
+    DirectX::XMFLOAT4X4 MVP;      // 모델
+    int IsSelected;      // 모델
 };
 struct FLitUnlitConstants {
     int isLit; // 1 = Lit, 0 = Unlit 
