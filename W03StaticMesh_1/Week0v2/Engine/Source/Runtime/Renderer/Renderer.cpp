@@ -1002,8 +1002,6 @@ void FRenderer::RenderBatch(
 
 void FRenderer::PrepareRender()
 {
-    FOctree* tempOct = nullptr;
-
     if (bIsDirtyRenderObj == true)
     {
         for (const auto iter : TObjectRange<UStaticMeshComponent>())
@@ -1021,10 +1019,6 @@ void FRenderer::PrepareRender()
         CurrentViewport->CollectIntersectingComponents();
         bIsDirtyRenderObj = false;
     }
-    if (tempOct != nullptr)
-    {
-        TArray<FOctree*> tmp = tempOct->GetValidLeafNodes();
-    }
 }
 
 void FRenderer::ClearRenderArr()
@@ -1039,11 +1033,12 @@ void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewp
 {
     CurrentViewport = ActiveViewport;
     Graphics->DeviceContext->RSSetViewports(1, &ActiveViewport->GetD3DViewport());
+    Graphics->ChangeRasterizer(ActiveViewport->GetViewMode());
+    Graphics->PrepareOnce();
 }
 
 void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
-    Graphics->ChangeRasterizer(ActiveViewport->GetViewMode());
     // ChangeViewMode(ActiveViewport->GetViewMode());
 
     UPrimitiveBatch::GetInstance().RenderBatch(ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix());
@@ -1052,7 +1047,7 @@ void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> Act
     {
         RenderStaticMeshes(World, ActiveViewport);
     }
-    ClearRenderArr();
+    // ClearRenderArr();
 }
 
 void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
