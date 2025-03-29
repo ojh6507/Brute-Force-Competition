@@ -79,11 +79,9 @@ void FOctree::SubDivide()
 int FOctree::CalculteChildIndex(FVector Pos)
 {
     int ReturnIndex = 0;
-    // x: 0x4, y: 0x2, z: 0x1 순서로 일관되게 처리
-    ReturnIndex += Pos.x > (BoundingBox.min.x + HalfSize.x) ? 4 : 0;
-    ReturnIndex += Pos.y > (BoundingBox.min.y + HalfSize.y) ? 2 : 0;
-    ReturnIndex += Pos.z > (BoundingBox.min.z + HalfSize.z) ? 1 : 0;
-
+    ReturnIndex |= Pos.x > (BoundingBox.min.x + HalfSize.x) ? 1 : 0;
+    ReturnIndex |= Pos.y > (BoundingBox.min.y + HalfSize.y) ? 2 : 0;
+    ReturnIndex |= Pos.z > (BoundingBox.min.z + HalfSize.z) ? 4 : 0;
 
     return ReturnIndex;
 }
@@ -116,12 +114,33 @@ void FOctree::CollectIntersectingComponents(const Plane frustumPlanes[6], TArray
     );
 }
 
+TArray<FOctree*> FOctree::GetValidLeafNodes()
+{
+    TArray<FOctree*> ValidLeafNodes;
+
+    if (IsLeapNode())
+    {
+        if (PrimitiveComponents.Num() > 0)
+        {
+            ValidLeafNodes.Add(this);
+        }
+    }else
+    {
+        for (auto& Child : Children)
+        {
+            ValidLeafNodes.Append(Child->GetValidLeafNodes());
+        }
+    }
+
+    return ValidLeafNodes;
+}
+
 FBoundingBox FOctree::CalculateChildBoundingBox(int index)
 {
-    int offsetX = (index & 0x4) ? 1 : 0; // index의 3번째 비트 (4의 자리)
-    int offsetY = (index & 0x2) ? 1 : 0; // index의 2번째 비트 (2의 자리)
-    int offsetZ = (index & 0x1) ? 1 : 0; // index의 1번째 비트 (1의 자리)
-
+    //0이면 min~mid 1이면 mid~max
+    int OffsetX = index & 1;
+    int OffsetY = index & 2;
+    int OffsetZ = index & 4;
     
     FBoundingBox childBox;
     childBox.min.x = BoundingBox.min.x + HalfSize.x * offsetX;

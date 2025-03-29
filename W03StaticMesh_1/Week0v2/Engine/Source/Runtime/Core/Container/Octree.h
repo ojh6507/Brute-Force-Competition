@@ -8,7 +8,6 @@ class UStaticMeshComponent;
 class FOctree
 {
 public:
-    FOctree() = default;
     FOctree(const FBoundingBox& InBoundingBox);
     ~FOctree();
     void AddComponent(UStaticMeshComponent* InComponent);
@@ -18,6 +17,7 @@ public:
 
     bool IsLeafNode(){ return Children.Num() == 0; }
     FBoundingBox CalculateChildBoundingBox(int index);
+    TArray<FOctree*> GetValidLeafNodes();
     void CollectIntersectingComponents(const Plane frustumPlanes[6], TArray<UStaticMeshComponent*>& OutComponents);
 
 private:

@@ -510,6 +510,47 @@ void FRenderer::UpdateMaterial(const FObjMaterialInfo& MaterialInfo) const
         Graphics->DeviceContext->PSSetSamplers(0, 1, nullSampler);
     }
 }
+//
+//void FRenderer::UpdateLitUnlitConstant(int isLit) const
+//{
+//    if (FlagBuffer)
+//    {
+//        D3D11_MAPPED_SUBRESOURCE constantbufferMSR; // GPU �� �޸� �ּ� ����
+//        Graphics->DeviceContext->Map(FlagBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
+//        auto constants = static_cast<FLitUnlitConstants*>(constantbufferMSR.pData); //GPU �޸� ���� ����
+//        {
+//            constants->isLit = isLit;
+//        }
+//        Graphics->DeviceContext->Unmap(FlagBuffer, 0);
+//    }
+//}
+//
+//void FRenderer::UpdateSubMeshConstant(bool isSelected) const
+//{
+//    if (SubMeshConstantBuffer) {
+//        D3D11_MAPPED_SUBRESOURCE constantbufferMSR; // GPU �� �޸� �ּ� ����
+//        Graphics->DeviceContext->Map(SubMeshConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
+//        FSubMeshConstants* constants = (FSubMeshConstants*)constantbufferMSR.pData; //GPU �޸� ���� ����
+//        {
+//            constants->isSelectedSubMesh = isSelected;
+//        }
+//        Graphics->DeviceContext->Unmap(SubMeshConstantBuffer, 0);
+//    }
+//}
+//
+//void FRenderer::UpdateTextureConstant(float UOffset, float VOffset)
+//{
+//    if (TextureConstantBufer) {
+//        D3D11_MAPPED_SUBRESOURCE constantbufferMSR; // GPU �� �޸� �ּ� ����
+//        Graphics->DeviceContext->Map(TextureConstantBufer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
+//        FTextureConstants* constants = (FTextureConstants*)constantbufferMSR.pData; //GPU �޸� ���� ����
+//        {
+//            constants->UOffset = UOffset;
+//            constants->VOffset = VOffset;
+//        }
+//        Graphics->DeviceContext->Unmap(TextureConstantBufer, 0);
+//    }
+//}
 
 void FRenderer::CreateTextureShader()
 {
@@ -961,6 +1002,8 @@ void FRenderer::RenderBatch(
 
 void FRenderer::PrepareRender()
 {
+    FOctree* tempOct = nullptr;
+
     if (bIsDirtyRenderObj == true)
     {
         for (const auto iter : TObjectRange<UStaticMeshComponent>())
@@ -973,11 +1016,13 @@ void FRenderer::PrepareRender()
                     pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree()->AddComponent(pStaticMeshComp);
                 }
             }
-            
-            
         }
 
         bIsDirtyRenderObj = false;
+    }
+    if (tempOct != nullptr)
+    {
+        TArray<FOctree*> tmp = tempOct->GetValidLeafNodes();
     }
 }
 
@@ -997,13 +1042,15 @@ void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewp
 
 void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
-    //Graphics->ChangeRasterizer(ActiveViewport->GetViewMode());
+    Graphics->ChangeRasterizer(ActiveViewport->GetViewMode());
     // ChangeViewMode(ActiveViewport->GetViewMode());
 
     UPrimitiveBatch::GetInstance().RenderBatch(ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix());
 
-    RenderStaticMeshes(World, ActiveViewport);
-
+    if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_Primitives))
+    {
+        RenderStaticMeshes(World, ActiveViewport);
+    }
     ClearRenderArr();
 }
 
