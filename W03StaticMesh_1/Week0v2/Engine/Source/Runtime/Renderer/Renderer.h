@@ -8,6 +8,7 @@
 #include "EngineBaseTypes.h"
 #include "Define.h"
 #include "Container/Set.h"
+#include "Container/Map.h"
 
 class ULightComponentBase;
 class UWorld;
@@ -50,7 +51,7 @@ public:
     //Render
     void RenderPrimitive(ID3D11Buffer* pBuffer, UINT numVertices) const;
     void RenderPrimitive(ID3D11Buffer* pVertexBuffer, UINT numVertices, ID3D11Buffer* pIndexBuffer, UINT numIndices) const;
-    void RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<FStaticMaterial*> materials, TArray<UMaterial*> overrideMaterial, int selectedSubMeshIndex) const;
+    void RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<FStaticMaterial*> materials, TArray<UMaterial*> overrideMaterial, int selectedSubMeshIndex);
    
     void RenderTexturedModelPrimitive(ID3D11Buffer* pVertexBuffer, UINT numVertices, ID3D11Buffer* pIndexBuffer, UINT numIndices, ID3D11ShaderResourceView* InTextureSRV, ID3D11SamplerState* InSamplerState) const;
     //Release
@@ -146,11 +147,20 @@ public: // line shader
     void RenderGizmos(const UWorld* World, const std::shared_ptr<FEditorViewportClient>& ActiveViewport);
     void RenderLight(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport);
     void RenderBillboards(UWorld* World,std::shared_ptr<FEditorViewportClient> ActiveViewport);
+
+    void MaterialSorting();
+
 private:
     TArray<UStaticMeshComponent*> StaticMeshObjs;
+    int PrevStaticMeshObjsNum = 0;
+    class UMaterial* CurrentMaterial = nullptr;
+    bool bIsDirtyRenderObj = true;
+
+    //TMap<FName, TArray<UStaticMeshComponent>> StaticMeshObjsSorting;
     TArray<UGizmoBaseComponent*> GizmoObjs;
     TArray<UBillboardComponent*> BillboardObjs;
     TArray<ULightComponentBase*> LightObjs;
+
 
 public:
     ID3D11VertexShader* VertexLineShader = nullptr;
