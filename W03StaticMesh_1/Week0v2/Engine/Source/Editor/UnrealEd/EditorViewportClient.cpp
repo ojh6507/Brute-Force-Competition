@@ -110,9 +110,8 @@ void FEditorViewportClient::Input(float DeltaTime)
         {
             CameraMoveUp(-1.f * DeltaTime);
         }
-        UpdateViewMatrix();
-        UpdateProjectionMatrix();
-        ExtractFrustumPlanesDirect(frustumPlanes);
+        UpdateMatrix();
+        CollectIntersectingComponents();
     }
     else
     {
@@ -170,6 +169,10 @@ bool FEditorViewportClient::IsSelected(POINT point)
         return true;
     }
     return false;
+}
+void FEditorViewportClient::CollectIntersectingComponents()
+{
+    GEngineLoop.GetWorld()->GetRootOctree()->CollectIntersectingComponents(frustumPlanes, VisibleStaticMeshs);
 }
 D3D11_VIEWPORT& FEditorViewportClient::GetD3DViewport()
 {
@@ -293,7 +296,7 @@ void FEditorViewportClient::UpdateProjectionMatrix()
 }
 
 // FEditorViewportClient 클래스 내부에 추가할 새로운 평면 추출 함수
-void FEditorViewportClient::ExtractFrustumPlanesDirect(Plane(&planes)[6])
+void FEditorViewportClient::ExtractFrustumPlanesDirect()
 {
     // 카메라 파라미터 추출
     FVector camPos = ViewTransformPerspective.GetLocation();
@@ -330,17 +333,18 @@ void FEditorViewportClient::ExtractFrustumPlanesDirect(Plane(&planes)[6])
 
     // 평면 구성 (세 점의 순서에 따라 법선 방향이 결정됨)
     // 왼쪽 평면: 카메라 위치, ntl, nbl
-    planes[0] = PlaneFromPoints(camPos, ntl, nbl);
+    frustumPlanes[0] = PlaneFromPoints(camPos, ntl, nbl);
     // 오른쪽 평면: 카메라 위치, nbr, ntr
-    planes[1] = PlaneFromPoints(camPos, nbr, ntr);
+    frustumPlanes[1] = PlaneFromPoints(camPos, nbr, ntr);
     // 아래쪽 평면: 카메라 위치, nbl, nbr
-    planes[2] = PlaneFromPoints(camPos, nbl, nbr);
+    frustumPlanes[2] = PlaneFromPoints(camPos, nbl, nbr);
     // 위쪽 평면: 카메라 위치, ntr, ntl
-    planes[3] = PlaneFromPoints(camPos, ntr, ntl);
+    frustumPlanes[3] = PlaneFromPoints(camPos, ntr, ntl);
     // 근접 평면: 근거리 평면의 코너들 (ntr, ntl, nbl)
-    planes[4] = PlaneFromPoints(ntr, ntl, nbl);
+    frustumPlanes[4] = PlaneFromPoints(ntr, ntl, nbl);
     // 원거리 평면: 원거리 평면의 코너들 (ftl, ftr, fbr)
-    planes[5] = PlaneFromPoints(ftl, ftr, fbr);
+    frustumPlanes[5] = PlaneFromPoints(ftl, ftr, fbr);
+
 }
 
 
@@ -422,7 +426,7 @@ void FEditorViewportClient::UpdateMatrix()
 {
     UpdateViewMatrix();
     UpdateProjectionMatrix();
-    ExtractFrustumPlanesDirect(frustumPlanes);
+    ExtractFrustumPlanesDirect();
 }
 
 void FEditorViewportClient::SetOthoSize(float _Value)

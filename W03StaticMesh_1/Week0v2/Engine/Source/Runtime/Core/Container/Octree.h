@@ -19,7 +19,8 @@ public:
     FBoundingBox CalculateChildBoundingBox(int index);
     TArray<FOctree*> GetValidLeafNodes();
     void CollectIntersectingComponents(const Plane frustumPlanes[6], TArray<UStaticMeshComponent*>& OutComponents);
-
+    TArray<UStaticMeshComponent*>& GetPrimitiveComponents() { return PrimitiveComponents; }
+    void DebugBoundingBox();
 private:
     FBoundingBox BoundingBox;
     FVector HalfSize;

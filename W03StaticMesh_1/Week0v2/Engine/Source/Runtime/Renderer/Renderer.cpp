@@ -1012,12 +1012,13 @@ void FRenderer::PrepareRender()
             {
                 if (!Cast<UGizmoBaseComponent>(iter))
                 {
-                    StaticMeshObjs.Add(pStaticMeshComp);
+                    //StaticMeshObjs.Add(pStaticMeshComp);
                     pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree()->AddComponent(pStaticMeshComp);
+                   
                 }
             }
         }
-
+        CurrentViewport->CollectIntersectingComponents();
         bIsDirtyRenderObj = false;
     }
     if (tempOct != nullptr)
@@ -1036,7 +1037,7 @@ void FRenderer::ClearRenderArr()
 
 void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
-
+    CurrentViewport = ActiveViewport;
     Graphics->DeviceContext->RSSetViewports(1, &ActiveViewport->GetD3DViewport());
 }
 
@@ -1063,9 +1064,9 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
  
     Plane frustumPlanes[6];
     memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
-
+    ActiveViewport->GetVisibleStaticMesh(StaticMeshObjs);
+    //World->GetRootOctree()->CollectIntersectingComponents(frustumPlanes, StaticMeshObjs);
    // MaterialSorting();
-    World->GetRootOctree()->CollectIntersectingComponents(frustumPlanes, StaticMeshObjs);
     for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
     {
         FVector objectLocation = StaticMeshComp->GetWorldLocation();

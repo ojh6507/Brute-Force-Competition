@@ -153,6 +153,7 @@ public: // line shader
     void MaterialSorting();
 
 private:
+    std::shared_ptr<FEditorViewportClient> CurrentViewport;
     TArray<UStaticMeshComponent*> StaticMeshObjs;
     int PrevStaticMeshObjsNum = 0;
     class UMaterial* CurrentMaterial = nullptr;

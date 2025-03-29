@@ -101,27 +101,23 @@ int FOctree::CalculteChildIndex(FVector Pos)
     return ReturnIndex;
 }
 void FOctree::CollectIntersectingComponents(const Plane frustumPlanes[6], TArray<UStaticMeshComponent*>& OutComponents)
-{
-    // 현재 노드의 경계 상자가 절두체와 겹치는지 체크
-    if (!BoundingBox.IsIntersectingFrustum(frustumPlanes)) {
-        return;
-    }
+{  
+   
+    OutComponents.Empty();
+    for (FOctree*& leaf : GetValidLeafNodes()) {
+        if (!leaf->BoundingBox.IsIntersectingFrustum(frustumPlanes)) {
+            continue;
+        }
 
-    // 리프 노드인 경우 해당 컴포넌트를 결과에 추가
-    if (IsLeafNode()) {
-        for (UStaticMeshComponent* Component : PrimitiveComponents) {
-         /*   FMatrix model = JungleMath::CreateModelMatrix(Component->GetWorldLocation(), Component->GetWorldRotation(), Component->GetWorldScale());
-            if (Component->GetBoundingBox().TransformWorld(model).IsIntersectingFrustum(frustumPlanes)) {
-                OutComponents.Add(Component);
-            }*/
+        for (auto& Comp : leaf->GetPrimitiveComponents()) {
+            OutComponents.Add(Comp);
         }
     }
-    else {
-        // 자식 노드에 대해 재귀 호출
-        for (FOctree* Child : Children) {
-            Child->CollectIntersectingComponents(frustumPlanes, OutComponents);
-        }
-    }
+    
+}
+
+void FOctree::DebugBoundingBox()
+{
     UPrimitiveBatch::GetInstance().RenderAABB(
         BoundingBox,
         (0, 0, 0),
@@ -158,9 +154,9 @@ FBoundingBox FOctree::CalculateChildBoundingBox(int index)
     int OffsetZ = (index & 0x4) ? 1 : 0; // index의 1번째 비트 (1의 자리)
     
     FBoundingBox childBox;
-    childBox.min.x = BoundingBox.min.x + HalfSize.x * offsetX;
-    childBox.min.y = BoundingBox.min.y + HalfSize.y * offsetY;
-    childBox.min.z = BoundingBox.min.z + HalfSize.z * offsetZ;
+    childBox.min.x = BoundingBox.min.x + HalfSize.x * OffsetX;
+    childBox.min.y = BoundingBox.min.y + HalfSize.y * OffsetY;
+    childBox.min.z = BoundingBox.min.z + HalfSize.z * OffsetZ;
 
     childBox.max.x = childBox.min.x + HalfSize.x;
     childBox.max.y = childBox.min.y + HalfSize.y;

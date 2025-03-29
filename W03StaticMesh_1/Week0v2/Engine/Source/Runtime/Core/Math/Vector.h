@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <DirectXMath.h>
 
@@ -71,7 +71,9 @@ struct FVector
     FVector operator*(float scalar) const {
         return FVector(x * scalar, y * scalar, z * scalar);
     }
-
+    FVector operator/(float scalar) const {
+        return FVector(x / scalar, y / scalar, z / scalar);
+    }
     bool operator==(const FVector& other) const {
         return (x == other.x && y == other.y && z == other.z);
     }

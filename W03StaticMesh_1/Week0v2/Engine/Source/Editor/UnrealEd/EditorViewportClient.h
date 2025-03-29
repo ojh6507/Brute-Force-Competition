@@ -97,6 +97,8 @@ public:
     void ResizeViewport(FRect Top, FRect Bottom, FRect Left, FRect Right);
 
     bool IsSelected(POINT point);
+    void CollectIntersectingComponents();
+    void GetVisibleStaticMesh(TArray<UStaticMeshComponent*>& Outter) { Outter = VisibleStaticMeshs; }
 protected:
     /** Camera speed setting */
     int32 CameraSpeedSetting = 1;
@@ -110,7 +112,7 @@ public:
     int32 ViewportIndex;
     FViewport* GetViewport() { return Viewport; }
     D3D11_VIEWPORT& GetD3DViewport();
-
+    TArray<UStaticMeshComponent*> VisibleStaticMeshs;
 
 public:
     //카메라
@@ -154,7 +156,7 @@ public: //Camera Movement
         return Plane(normal.x, normal.y, normal.z, d);
     }
 
-    void ExtractFrustumPlanesDirect(Plane(&planes)[6]);
+    void ExtractFrustumPlanesDirect();
 
     bool IsOrtho() const;
     bool IsPerspective() const;
