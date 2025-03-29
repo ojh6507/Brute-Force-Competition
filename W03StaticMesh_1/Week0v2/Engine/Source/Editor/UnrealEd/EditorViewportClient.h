@@ -13,11 +13,6 @@
 
 extern FEngineLoop GEngineLoop;
 
-
-struct Plane {
-    float a, b, c, d; // 평면 방정식: ax + by + cz + d = 0
-};
-
 struct FViewportCameraTransform
 {
 private:
@@ -160,53 +155,6 @@ public: //Camera Movement
         return Plane(normal.x, normal.y, normal.z, d);
     }
     void ExtractFrustumPlanesDirect(Plane(&planes)[6]);
-    // AABB의 8개 꼭짓점을 구하는 헬퍼 함수
-    void GetAABBVertices(const FBoundingBox& box, FVector vertices[8])
-    {
-        vertices[0] = FVector(box.min.x, box.min.y, box.min.z);
-        vertices[1] = FVector(box.max.x, box.min.y, box.min.z);
-        vertices[2] = FVector(box.min.x, box.max.y, box.min.z);
-        vertices[3] = FVector(box.min.x, box.min.y, box.max.z);
-        vertices[4] = FVector(box.max.x, box.max.y, box.min.z);
-        vertices[5] = FVector(box.min.x, box.max.y, box.max.z);
-        vertices[6] = FVector(box.max.x, box.min.y, box.max.z);
-        vertices[7] = FVector(box.max.x, box.max.y, box.max.z);
-    }
-    void GetBoundingSphere(const FBoundingBox& box, FVector& outCenter, float& outRadius)
-    {
-        outCenter.x = (box.min.x + box.max.x) * 0.5f;
-        outCenter.y = (box.min.y + box.max.y) * 0.5f;
-        outCenter.z = (box.min.z + box.max.z) * 0.5f;
-
-        // AABB의 한 꼭짓점과 중심 사이의 거리로 반지름 결정
-        FVector diff = box.max - outCenter;
-        outRadius = (diff.x * diff.x + diff.y * diff.y + diff.z * diff.z);
-    }
-    bool IsSphereInsideFrustum(const Plane planes[6], const FVector& center, float radius)
-    {
-        for (int i = 0; i < 6; ++i)
-        {
-            // 평면 방정식: ax + by + cz + d
-            float ddistance = planes[i].a * center.x +
-                planes[i].b * center.y +
-                planes[i].c * center.z +
-                planes[i].d;
-
-            // 거리가 -radius보다 작으면 구가 평면 밖에 있음
-            if (ddistance < -radius)
-                return false;
-        }
-        return true;
-    }
-
-    bool IsAABBVisible(const Plane planes[6], const FBoundingBox& box)
-    {
-        FVector center;
-        float radius;
-        GetBoundingSphere(box, center, radius);
-
-        return IsSphereInsideFrustum(planes, center, radius);
-    }
 
     bool IsOrtho() const;
     bool IsPerspective() const;

@@ -969,7 +969,7 @@ void FRenderer::PrepareRender()
             {
                 if (!Cast<UGizmoBaseComponent>(iter))
                 {
-                    StaticMeshObjs.Add(pStaticMeshComp);
+                    //StaticMeshObjs.Add(pStaticMeshComp);
                     pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree()->AddComponent(pStaticMeshComp);
                 }
             }
@@ -1013,11 +1013,13 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
     FVector cameraLocation = ActiveViewport->ViewTransformPerspective.GetLocation();
     FVector CameraForward = ActiveViewport->ViewTransformPerspective.GetForwardVector();
     float cullDistance = 80;
+ 
+    //
     Plane frustumPlanes[6];
     ActiveViewport->ExtractFrustumPlanesDirect(frustumPlanes);
 
-    MaterialSorting();
-
+   // MaterialSorting();
+    World->GetRootOctree()->CollectIntersectingComponents(frustumPlanes, StaticMeshObjs);
     for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
     {
         FVector objectLocation = StaticMeshComp->GetWorldLocation();
@@ -1038,10 +1040,9 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         );
 
         // 최종 MVP 행렬
+        //
         FMatrix MVP = Model * ActiveViewport->GetViewMatrix() * ActiveViewport->GetProjectionMatrix();
-        bool ac = ActiveViewport->IsAABBVisible(frustumPlanes, StaticMeshComp->GetBoundingBox().TransformWorld(MVP));
-        if (!ac) continue;
-
+      
 
 
         FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
