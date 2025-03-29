@@ -3,7 +3,9 @@
 #include <complex.h>
 
 #include "Components/PrimitiveComponent.h"
-
+#include "Components/StaticMeshComponent.h"
+#include "UnrealEd/PrimitiveBatch.h"
+#include "Math/JungleMath.h"
 FOctree::FOctree(const FBoundingBox& InBoundingBox){
     BoundingBox = InBoundingBox;
     
@@ -20,9 +22,9 @@ FOctree::~FOctree()
     }
 }
 
-void FOctree::AddComponent(UPrimitiveComponent* InComponent)
+void FOctree::AddComponent(UStaticMeshComponent* InComponent)
 {
-    if (IsLeapNode())
+    if (IsLeafNode())
     {
         PrimitiveComponents.Add(InComponent);
 
@@ -69,6 +71,38 @@ int FOctree::CalculteChildIndex(FVector Pos)
     ReturnIndex |= Pos.z > (BoundingBox.min.z + HalfSize.z) ? 4 : 0;
 
     return ReturnIndex;
+}
+void FOctree::CollectIntersectingComponents(const Plane frustumPlanes[6], TArray<UStaticMeshComponent*>& OutComponents)
+{
+   
+  
+    // 현재 노드의 경계 상자가 절두체와 겹치는지 체크
+    if (!BoundingBox.IsIntersectingFrustum(frustumPlanes)) {
+        return;
+    }
+
+    // 리프 노드인 경우 해당 컴포넌트를 결과에 추가
+    if (IsLeafNode()) {
+        for (UStaticMeshComponent* Component : PrimitiveComponents) {
+            // 컴포넌트의 경계 상자도 체크 (필요한 경우)
+            /*FMatrix model = JungleMath::CreateModelMatrix(Component->GetWorldLocation(), Component->GetWorldRotation(), Component->GetWorldScale());
+
+            if (Component->GetBoundingBox().TransformWorld(model).IsIntersectingFrustum(frustumPlanes)) {
+                OutComponents.Add(Component);
+            }*/
+        }
+    }
+    else {
+        // 자식 노드에 대해 재귀 호출
+        for (FOctree* Child : Children) {
+            Child->CollectIntersectingComponents(frustumPlanes, OutComponents);
+        }
+    }
+    UPrimitiveBatch::GetInstance().RenderAABB(
+        BoundingBox,
+        (0, 0, 0),
+        FMatrix::Identity
+    );
 }
 
 TArray<FOctree*> FOctree::GetValidLeafNodes()

@@ -138,7 +138,7 @@ namespace OBJ
         FVector BoundingBoxMin;
         FVector BoundingBoxMax;
     };
-  
+
 
     struct MergedMeshData
     {
@@ -184,6 +184,12 @@ struct FPoint
 
     float x, y;
 };
+
+
+struct Plane {
+    float a, b, c, d;
+};
+
 struct FBoundingBox
 {
     FBoundingBox() {}
@@ -284,9 +290,45 @@ struct FBoundingBox
         // 월드 AABB 생성
         return FBoundingBox(worldCenter - worldExtents, worldCenter + worldExtents);
     }
+  
+    void GetBoundingSphere( FVector& outCenter, float& outRadius)
+    {
+        outCenter.x = (min.x + max.x) * 0.5f;
+        outCenter.y = (min.y + max.y) * 0.5f;
+        outCenter.z = (min.z + max.z) * 0.5f;
 
+        // AABB의 한 꼭짓점과 중심 사이의 거리로 반지름 결정
+        FVector diff = max - outCenter;
+        outRadius = (diff.x * diff.x + diff.y * diff.y + diff.z * diff.z);
+    }
+
+    bool IsSphereInsideFrustum(const Plane planes[6], const FVector& center, float radius)
+    {
+        for (int i = 0; i < 6; ++i)
+        {
+            // 평면 방정식: ax + by + cz + d
+            float ddistance = planes[i].a * center.x +
+                planes[i].b * center.y +
+                planes[i].c * center.z +
+                planes[i].d;
+
+            // 거리가 -radius보다 작으면 구가 평면 밖에 있음
+            if (ddistance < -radius)
+                return false;
+        }
+        return true;
+    }
+
+    bool IsIntersectingFrustum(const Plane planes[6]) {
+
+        FVector center;
+        float radius;
+        GetBoundingSphere(center, radius);
+        return IsSphereInsideFrustum(planes, center, radius);
+    }
 
 };
+;
 struct FCone
 {
     FVector ConeApex; // 원뿔의 꼭짓점
@@ -354,3 +396,4 @@ struct FTextureConstants {
     float pad0;
     float pad1;
 };
+

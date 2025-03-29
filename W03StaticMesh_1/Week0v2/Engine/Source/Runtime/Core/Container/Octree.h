@@ -3,28 +3,32 @@
 #include "Define.h"
 
 class UPrimitiveComponent;
+class UStaticMeshComponent;
 
 class FOctree
 {
 public:
     FOctree(const FBoundingBox& InBoundingBox);
     ~FOctree();
-    void AddComponent(UPrimitiveComponent* InComponent);
+    void AddComponent(UStaticMeshComponent* InComponent);
     void SetDepth(int InDepth) {Depth = InDepth;}
     void SubDivide();
     int CalculteChildIndex(FVector Pos);
 
-    bool IsLeapNode(){ return Children.Num() == 0; }
+    bool IsLeafNode(){ return Children.Num() == 0; }
     FBoundingBox CalculateChildBoundingBox(int index);
     TArray<FOctree*> GetValidLeafNodes();
+    void CollectIntersectingComponents(const Plane frustumPlanes[6], TArray<UStaticMeshComponent*>& OutComponents);
 
 private:
     FBoundingBox BoundingBox;
     FVector HalfSize;
     TArray<FOctree*> Children;
-    TArray<UPrimitiveComponent*> PrimitiveComponents;
+    TArray<UStaticMeshComponent*> PrimitiveComponents;
 
     int DivideThreshold = 100;
     int Depth = 0;
     int MaxDepth = 10;
 };
+// leaf가 0일 수도 쩔수
+// 무조건 모든 컴포넌트는 leaf에만
