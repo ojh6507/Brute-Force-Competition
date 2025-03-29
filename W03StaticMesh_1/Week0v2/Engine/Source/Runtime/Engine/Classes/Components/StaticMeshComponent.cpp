@@ -63,51 +63,99 @@ void UStaticMeshComponent::GetUsedMaterials(TArray<UMaterial*>& Out) const
     }
 }
 
-int UStaticMeshComponent::CheckRayIntersection(FVector& rayOrigin, FVector& rayDirection, float& pfNearHitDistance)
+int UStaticMeshComponent::CheckRayIntersection(
+    FVector& rayOrigin,
+    FVector& rayDirection,
+    float& pfNearHitDistance)
 {
-    if (!AABB.Intersect(rayOrigin, rayDirection, pfNearHitDistance)) return 0;
-    int nIntersections = 0;
+    // 먼저 AABB로 광선-바운딩 박스를 체크하여,
+    // 아예 교차가 없으면 삼각형 검사 자체를 스킵
+    if (!AABB.Intersect(rayOrigin, rayDirection, pfNearHitDistance))
+    {
+        return 0;
+    }
+
     if (staticMesh == nullptr) return 0;
 
     OBJ::FStaticMeshRenderData* renderData = staticMesh->GetRenderData();
-
     FVertexSimple* vertices = renderData->Vertices.GetData();
-    int vCount = renderData->Vertices.Num();
     UINT* indices = renderData->Indices.GetData();
-    int iCount = renderData->Indices.Num();
 
     if (!vertices) return 0;
-    BYTE* pbPositions = reinterpret_cast<BYTE*>(renderData->Vertices.GetData());
 
-    int nPrimitives = (!indices) ? (vCount / 3) : (iCount / 3);
+    // stride 사전 계산
+    const uint32 stride = sizeof(FVertexSimple);
+
+    // 결과 변수
+    int nIntersections = 0;
     float fNearHitDistance = FLT_MAX;
-    for (int i = 0; i < nPrimitives; i++) {
-        int idx0, idx1, idx2;
-        if (!indices) {
-            idx0 = i * 3;
-            idx1 = i * 3 + 1;
-            idx2 = i * 3 + 2;
-        }
-        else {
-            idx0 = indices[i * 3];
-            idx2 = indices[i * 3 + 1];
-            idx1 = indices[i * 3 + 2];
-        }
 
-        // 각 삼각형의 버텍스 위치를 FVector로 불러옵니다.
-        uint32 stride = sizeof(FVertexSimple);
-        FVector v0 = *reinterpret_cast<FVector*>(pbPositions + idx0 * stride);
-        FVector v1 = *reinterpret_cast<FVector*>(pbPositions + idx1 * stride);
-        FVector v2 = *reinterpret_cast<FVector*>(pbPositions + idx2 * stride);
+    // 인덱스 없는 경우와 있는 경우를 분기
+    if (!indices)
+    {
+        // 인덱스 없이 (vCount / 3) 삼각형
+        int vCount = renderData->Vertices.Num();
+        int nPrimitives = vCount / 3;
 
-        float fHitDistance;
-        if (IntersectRayTriangle(rayOrigin, rayDirection, v0, v1, v2, fHitDistance)) {
-            if (fHitDistance < fNearHitDistance) {
-                pfNearHitDistance = fNearHitDistance = fHitDistance;
+        for (int i = 0; i < nPrimitives; i++)
+        {
+            int idx0 = i * 3;
+            int idx1 = i * 3 + 1;
+            int idx2 = i * 3 + 2;
+
+            // 포인터 계산 최소화
+            uint32 base0 = idx0 * stride;
+            uint32 base1 = idx1 * stride;
+            uint32 base2 = idx2 * stride;
+
+            const FVector& v0 = *reinterpret_cast<FVector*>(reinterpret_cast<BYTE*>(vertices) + base0);
+            const FVector& v1 = *reinterpret_cast<FVector*>(reinterpret_cast<BYTE*>(vertices) + base1);
+            const FVector& v2 = *reinterpret_cast<FVector*>(reinterpret_cast<BYTE*>(vertices) + base2);
+
+            float fHitDistance;
+            if (IntersectRayTriangle(rayOrigin, rayDirection, v0, v1, v2, fHitDistance))
+            {
+                if (fHitDistance < fNearHitDistance)
+                {
+                    pfNearHitDistance = fNearHitDistance = fHitDistance;
+                }
+                ++nIntersections;
             }
-            nIntersections++;
         }
-
     }
+    else
+    {
+        // 인덱스가 있는 경우 (iCount / 3) 삼각형
+        int iCount = renderData->Indices.Num();
+        int nPrimitives = iCount / 3;
+
+        BYTE* pbPositions = reinterpret_cast<BYTE*>(vertices);
+
+        for (int i = 0; i < nPrimitives; i++)
+        {
+            int idx0 = indices[i * 3];
+            int idx1 = indices[i * 3 + 1];
+            int idx2 = indices[i * 3 + 2];
+
+            uint32 base0 = idx0 * stride;
+            uint32 base1 = idx1 * stride;
+            uint32 base2 = idx2 * stride;
+
+            const FVector& v0 = *reinterpret_cast<FVector*>(pbPositions + base0);
+            const FVector& v1 = *reinterpret_cast<FVector*>(pbPositions + base1);
+            const FVector& v2 = *reinterpret_cast<FVector*>(pbPositions + base2);
+
+            float fHitDistance;
+            if (IntersectRayTriangle(rayOrigin, rayDirection, v0, v1, v2, fHitDistance))
+            {
+                if (fHitDistance < fNearHitDistance)
+                {
+                    pfNearHitDistance = fNearHitDistance = fHitDistance;
+                }
+                ++nIntersections;
+            }
+        }
+    }
+
     return nIntersections;
 }

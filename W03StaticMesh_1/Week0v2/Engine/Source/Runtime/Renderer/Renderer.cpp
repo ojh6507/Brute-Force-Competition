@@ -212,7 +212,7 @@ void FRenderer::RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<F
 
             CurrentMaterial = materials[materialIndex]->Material;
         }
-        
+
         if (renderData->IndexBuffer)
         {
             // index draw
@@ -1014,7 +1014,7 @@ void FRenderer::PrepareRender()
                 {
                     //StaticMeshObjs.Add(pStaticMeshComp);
                     pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree()->AddComponent(pStaticMeshComp);
-                   
+
                 }
             }
         }
@@ -1057,28 +1057,12 @@ void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> Act
 
 void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
-    PrepareShader();
-    FVector cameraLocation = ActiveViewport->ViewTransformPerspective.GetLocation();
-    FVector CameraForward = ActiveViewport->ViewTransformPerspective.GetForwardVector();
-    float cullDistance = 80;
- 
-    Plane frustumPlanes[6];
-    memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
+    PrepareShader(); 
     ActiveViewport->GetVisibleStaticMesh(StaticMeshObjs);
-    //World->GetRootOctree()->CollectIntersectingComponents(frustumPlanes, StaticMeshObjs);
-   // MaterialSorting();
+
     for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
     {
-        FVector objectLocation = StaticMeshComp->GetWorldLocation();
-        FVector dir = (objectLocation - cameraLocation);
-
-        // 거리 계산 (벡터 차의 길이)
-        float dist = objectLocation.Distance(cameraLocation);
-        FVector DirNorm = dir.Normalize();
-        float dotVal = DirNorm.Dot(CameraForward);
-
-       if (dotVal < 0) continue;
-      
+       
         FMatrix Model = JungleMath::CreateModelMatrix(
             StaticMeshComp->GetWorldLocation(),
             StaticMeshComp->GetWorldRotation(),
@@ -1087,9 +1071,6 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
 
         // 최종 MVP 행렬
         FMatrix MVP = Model * ActiveViewport->GetViewMatrix() * ActiveViewport->GetProjectionMatrix();
-        bool bFrustum =StaticMeshComp->GetBoundingBox().TransformWorld(Model).IsIntersectingFrustum(frustumPlanes);
-        if (!bFrustum) continue;
-
         FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
         if (World->GetSelectedComp() == StaticMeshComp)
         {
@@ -1238,7 +1219,7 @@ void FRenderer::MaterialSorting()
 
 
         const TArray<FStaticMaterial*>& MaterialsA = CompA->GetStaticMesh()->GetMaterials();
-        const TArray<FStaticMaterial*>& MaterialsB= CompB->GetStaticMesh()->GetMaterials();
+        const TArray<FStaticMaterial*>& MaterialsB = CompB->GetStaticMesh()->GetMaterials();
 
         // 3. 메테리얼 정보 포인터 null 검사
         if (!MaterialsA[0] && !MaterialsB[0]) return false; // 둘 다 null이면 순서 유지

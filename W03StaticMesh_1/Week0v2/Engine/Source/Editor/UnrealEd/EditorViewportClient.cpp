@@ -7,7 +7,7 @@
 #include "UnrealClient.h"
 #include "World.h"
 #include "GameFramework/Actor.h"
-
+#include "Components/StaticMeshComponent.h"
 FVector FEditorViewportClient::Pivot = FVector(0.0f, 0.0f, 0.0f);
 float FEditorViewportClient::orthoSize = 10.0f;
 FEditorViewportClient::FEditorViewportClient()
@@ -38,7 +38,26 @@ void FEditorViewportClient::Initialize(int32 viewportIndex)
 void FEditorViewportClient::Tick(float DeltaTime)
 {
     Input(DeltaTime);
+    FrustumStaticMeshs.Empty();
+    for (UStaticMeshComponent* StaticMeshComp : VisibleStaticMeshs) {
+        FVector objectLocation = StaticMeshComp->GetWorldLocation();
+        FVector dir = (objectLocation - ViewTransformPerspective.GetLocation());
+        FVector DirNorm = dir.Normalize();
 
+        float dotVal = DirNorm.Dot(ViewTransformPerspective.GetForwardVector());
+        //if (dotVal < 0) continue;
+
+    FMatrix Model = JungleMath::CreateModelMatrix(
+            StaticMeshComp->GetWorldLocation(),
+            StaticMeshComp->GetWorldRotation(),
+            StaticMeshComp->GetWorldScale()
+        );
+
+
+        bool bFrustum = StaticMeshComp->GetBoundingBox().TransformWorld(Model).IsIntersectingFrustum(frustumPlanes);
+        if (bFrustum)
+            FrustumStaticMeshs.Add(StaticMeshComp);
+    }
 }
 
 void FEditorViewportClient::Release()
@@ -112,6 +131,7 @@ void FEditorViewportClient::Input(float DeltaTime)
         }
         UpdateMatrix();
         CollectIntersectingComponents();
+
     }
     else
     {
@@ -173,6 +193,11 @@ bool FEditorViewportClient::IsSelected(POINT point)
 void FEditorViewportClient::CollectIntersectingComponents()
 {
     GEngineLoop.GetWorld()->GetRootOctree()->CollectIntersectingComponents(frustumPlanes, VisibleStaticMeshs);
+}
+void FEditorViewportClient::GetVisibleStaticMesh(TArray<UStaticMeshComponent*>& Outter)
+{
+    Outter = FrustumStaticMeshs;
+  
 }
 D3D11_VIEWPORT& FEditorViewportClient::GetD3DViewport()
 {
@@ -305,30 +330,30 @@ void FEditorViewportClient::ExtractFrustumPlanesDirect()
     FVector camRight = ViewTransformPerspective.GetRightVector();
 
     // 근/원거리 평면 중심 계산
-    FVector nc = camPos + camForward * nearPlane;
+    FVector nc = camPos + camForward * (nearPlane + 0.05);
     FVector fc = camPos + camForward * farPlane;
 
     // 시야각(ViewFOV)은 일반적으로 도(degree) 단위이므로 라디안으로 변환 (예: 60도 -> 60 * PI/180)
     float fovRad = ViewFOV * 3.141592f / 180.0f;
 
     // 근/원거리 평면의 높이와 너비 계산
-    float nearHeight = nearPlane * tanf(fovRad * 0.5f);
+    float nearHeight = (nearPlane + 0.05)* tanf(fovRad * 0.5f);
     float nearWidth = nearHeight * AspectRatio;
     float farHeight = farPlane * tanf(fovRad * 0.5f);
     float farWidth = farHeight * AspectRatio;
 
 
     // 근거리 평면의 4개 꼭짓점 (월드 좌표)
-    FVector ntl = nc + (camUp * (nearHeight / 2)) - (camRight * (nearWidth / 2));
-    FVector ntr = nc + (camUp * (nearHeight / 2)) + (camRight * (nearWidth / 2));
-    FVector nbl = nc - (camUp * (nearHeight / 2)) - (camRight * (nearWidth / 2));
-    FVector nbr = nc - (camUp * (nearHeight / 2)) + (camRight * (nearWidth / 2));
+    FVector ntl = nc + (camUp * (nearHeight)) - (camRight * (nearWidth));
+    FVector ntr = nc + (camUp * (nearHeight)) + (camRight * (nearWidth));
+    FVector nbl = nc - (camUp * (nearHeight)) - (camRight * (nearWidth));
+    FVector nbr = nc - (camUp * (nearHeight)) + (camRight * (nearWidth));
 
     // 원거리 평면의 4개 꼭짓점
-    FVector ftl = fc + (camUp * (farHeight / 2)) - (camRight * (farWidth / 2));
-    FVector ftr = fc + (camUp * (farHeight / 2)) + (camRight * (farWidth / 2));
-    FVector fbl = fc - (camUp * (farHeight / 2)) - (camRight * (farWidth / 2));
-    FVector fbr = fc - (camUp * (farHeight / 2)) + (camRight * (farWidth / 2));
+    FVector ftl = fc + (camUp * (farHeight)) - (camRight * (farWidth));
+    FVector ftr = fc + (camUp * (farHeight)) + (camRight * (farWidth));
+    FVector fbl = fc - (camUp * (farHeight)) - (camRight * (farWidth));
+    FVector fbr = fc - (camUp * (farHeight)) + (camRight * (farWidth));
 
 
     // 평면 구성 (세 점의 순서에 따라 법선 방향이 결정됨)
@@ -346,7 +371,6 @@ void FEditorViewportClient::ExtractFrustumPlanesDirect()
     frustumPlanes[5] = PlaneFromPoints(ftl, ftr, fbr);
 
 }
-
 
 bool FEditorViewportClient::IsOrtho() const
 {

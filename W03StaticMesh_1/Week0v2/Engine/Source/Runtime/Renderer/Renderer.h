@@ -152,6 +152,7 @@ public: // line shader
 
     void MaterialSorting();
 
+    TArray<UStaticMeshComponent*> CameraInStaticMeshObjs;
 private:
     std::shared_ptr<FEditorViewportClient> CurrentViewport;
     TArray<UStaticMeshComponent*> StaticMeshObjs;

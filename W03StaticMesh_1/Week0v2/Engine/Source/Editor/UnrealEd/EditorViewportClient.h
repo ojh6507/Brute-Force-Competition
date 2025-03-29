@@ -98,7 +98,7 @@ public:
 
     bool IsSelected(POINT point);
     void CollectIntersectingComponents();
-    void GetVisibleStaticMesh(TArray<UStaticMeshComponent*>& Outter) { Outter = VisibleStaticMeshs; }
+    void GetVisibleStaticMesh(TArray<UStaticMeshComponent*>& Outter);
 protected:
     /** Camera speed setting */
     int32 CameraSpeedSetting = 1;
@@ -113,6 +113,7 @@ public:
     FViewport* GetViewport() { return Viewport; }
     D3D11_VIEWPORT& GetD3DViewport();
     TArray<UStaticMeshComponent*> VisibleStaticMeshs;
+    TArray<UStaticMeshComponent*> FrustumStaticMeshs;
 
 public:
     //카메라
@@ -147,7 +148,7 @@ public: //Camera Movement
     void UpdateViewMatrix();
     void UpdateProjectionMatrix();
 
- 
+
     Plane PlaneFromPoints(const FVector& p0, const FVector& p1, const FVector& p2)
     {
         FVector normal = (p1 - p0).Cross(p2 - p0);

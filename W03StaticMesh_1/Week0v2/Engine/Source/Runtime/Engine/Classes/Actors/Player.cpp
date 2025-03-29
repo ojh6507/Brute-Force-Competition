@@ -42,21 +42,21 @@ void AEditorPlayer::Input()
             GetCursorPos(&mousePos);
             GetCursorPos(&m_LastMousePos);
 
-            uint32 UUID = GetEngine().graphicDevice.GetPixelUUID(mousePos);
-            // TArray<UObject*> objectArr = GetWorld()->GetObjectArr();
-            for (const auto obj : TObjectRange<USceneComponent>())
-            {
-                if (obj->GetUUID() != UUID) continue;
+            //uint32 UUID = GetEngine().graphicDevice.GetPixelUUID(mousePos);
+            //// TArray<UObject*> objectArr = GetWorld()->GetObjectArr();
+            //for (const auto obj : TObjectRange<USceneComponent>())
+            //{
+            //    if (obj->GetUUID() != UUID) continue;
 
-                UE_LOG(LogLevel::Display, *obj->GetName());
-            }
+            //}
             ScreenToClient(GetEngine().hWnd, &mousePos);
 
             FVector pickPosition;
 
             const auto& ActiveViewport = GetEngine().GetLevelEditor()->GetActiveViewportClient();
+
             ScreenToViewSpace(mousePos.x, mousePos.y, ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix(), pickPosition);
-            PickActor(pickPosition);
+            PickActor(pickPosition, ActiveViewport);
 
         }
     }
@@ -123,123 +123,36 @@ void AEditorPlayer::Input()
     }
 }
 
-bool AEditorPlayer::PickGizmo(FVector& pickPosition)
-{
-    bool isPickedGizmo = false;
-    if (GetWorld()->GetSelectedActor())
-    {
-        if (cMode == CM_TRANSLATION)
-        {
-            for (auto iter : GetWorld()->LocalGizmo->GetArrowArr())
-            {
-                int maxIntersect = 0;
-                float minDistance = FLT_MAX;
-                float Distance = 0.0f;
-                int currentIntersectCount = 0;
-                if (!iter) continue;
-                if (RayIntersectsObject(pickPosition, iter, Distance, currentIntersectCount))
-                {
-                    if (Distance < minDistance)
-                    {
-                        minDistance = Distance;
-                        maxIntersect = currentIntersectCount;
-                        GetWorld()->SetPickingGizmo(iter);
-                        isPickedGizmo = true;
-                    }
-                    else if (abs(Distance - minDistance) < FLT_EPSILON && currentIntersectCount > maxIntersect)
-                    {
-                        maxIntersect = currentIntersectCount;
-                        GetWorld()->SetPickingGizmo(iter);
-                        isPickedGizmo = true;
-                    }
-                }
-            }
-        }
-        else if (cMode == CM_ROTATION)
-        {
-            for (auto iter : GetWorld()->LocalGizmo->GetDiscArr())
-            {
-                int maxIntersect = 0;
-                float minDistance = FLT_MAX;
-                float Distance = 0.0f;
-                int currentIntersectCount = 0;
-                //UPrimitiveComponent* localGizmo = dynamic_cast<UPrimitiveComponent*>(GetWorld()->LocalGizmo[i]);
-                if (!iter) continue;
-                if (RayIntersectsObject(pickPosition, iter, Distance, currentIntersectCount))
-                {
-                    if (Distance < minDistance)
-                    {
-                        minDistance = Distance;
-                        maxIntersect = currentIntersectCount;
-                        GetWorld()->SetPickingGizmo(iter);
-                        isPickedGizmo = true;
-                    }
-                    else if (abs(Distance - minDistance) < FLT_EPSILON && currentIntersectCount > maxIntersect)
-                    {
-                        maxIntersect = currentIntersectCount;
-                        GetWorld()->SetPickingGizmo(iter);
-                        isPickedGizmo = true;
-                    }
-                }
-            }
-        }
-        else if (cMode == CM_SCALE)
-        {
-            for (auto iter : GetWorld()->LocalGizmo->GetScaleArr())
-            {
-                int maxIntersect = 0;
-                float minDistance = FLT_MAX;
-                float Distance = 0.0f;
-                int currentIntersectCount = 0;
-                if (!iter) continue;
-                if (RayIntersectsObject(pickPosition, iter, Distance, currentIntersectCount))
-                {
-                    if (Distance < minDistance)
-                    {
-                        minDistance = Distance;
-                        maxIntersect = currentIntersectCount;
-                        GetWorld()->SetPickingGizmo(iter);
-                        isPickedGizmo = true;
-                    }
-                    else if (abs(Distance - minDistance) < FLT_EPSILON && currentIntersectCount > maxIntersect)
-                    {
-                        maxIntersect = currentIntersectCount;
-                        GetWorld()->SetPickingGizmo(iter);
-                        isPickedGizmo = true;
-                    }
-                }
-            }
-        }
-    }
-    return isPickedGizmo;
-}
-
-void AEditorPlayer::PickActor(const FVector& pickPosition)
+void AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
     if (!(ShowFlags::GetInstance().currentFlags & EEngineShowFlags::SF_Primitives)) return;
 
     FScopeCycleCounter pickCounter;
+
     ++TotalPickCount;
+    TArray<UStaticMeshComponent*> StaticMeshCompArray;
     UPrimitiveComponent* Possible = nullptr;
     int maxIntersect = 0;
     float minDistance = FLT_MAX;
-    for (const auto iter : TObjectRange<UStaticMeshComponent>())
+    ActiveViewport->GetVisibleStaticMesh(StaticMeshCompArray);
+
+    for (const auto& comp : StaticMeshCompArray)
     {
 
         float Distance = 0.0f;
         int currentIntersectCount = 0;
-        if (RayIntersectsObject(pickPosition, iter, Distance, currentIntersectCount))
+       if (RayIntersectsObject(pickPosition, comp, Distance, currentIntersectCount))
         {
             if (Distance < minDistance)
             {
                 minDistance = Distance;
                 maxIntersect = currentIntersectCount;
-                Possible = iter;
+                Possible = comp;
             }
             else if (abs(Distance - minDistance) < FLT_EPSILON && currentIntersectCount > maxIntersect)
             {
                 maxIntersect = currentIntersectCount;
-                Possible = iter;
+                Possible = comp;
             }
         }
 
@@ -295,45 +208,20 @@ int AEditorPlayer::RayIntersectsObject(const FVector& pickPosition, USceneCompon
     );
 
     FMatrix translationMatrix = FMatrix::CreateTranslationMatrix(obj->GetWorldLocation());
-
-    // ���� ��ȯ ���
     FMatrix worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
     FMatrix viewMatrix = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->GetViewMatrix();
 
-    bool bIsOrtho = GetEngine().GetLevelEditor()->GetActiveViewportClient()->IsOrtho();
 
-
-    if (bIsOrtho)
-    {
-        // 오쏘 모드: ScreenToViewSpace()에서 계산된 pickPosition이 클립/뷰 좌표라고 가정
-        FMatrix inverseView = FMatrix::Inverse(viewMatrix);
-        // pickPosition을 월드 좌표로 변환
-        FVector worldPickPos = inverseView.TransformPosition(pickPosition);
-        // 오쏘에서는 픽킹 원점은 unproject된 픽셀의 위치
-        FVector rayOrigin = worldPickPos;
-        // 레이 방향은 카메라의 정면 방향 (평행)
-        FVector orthoRayDir = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->ViewTransformOrthographic.GetForwardVector().Normalize();
-
-        // 객체의 로컬 좌표계로 변환
-        FMatrix localMatrix = FMatrix::Inverse(worldMatrix);
-        FVector localRayOrigin = localMatrix.TransformPosition(rayOrigin);
-        FVector localRayDir = (localMatrix.TransformPosition(rayOrigin + orthoRayDir) - localRayOrigin).Normalize();
-
-        intersectCount = obj->CheckRayIntersection(localRayOrigin, localRayDir, hitDistance);
-        return intersectCount;
-    }
-    else
-    {
-        FMatrix inverseMatrix = FMatrix::Inverse(worldMatrix * viewMatrix);
-        FVector cameraOrigin = { 0,0,0 };
-        FVector pickRayOrigin = inverseMatrix.TransformPosition(cameraOrigin);
-        // 퍼스펙티브 모드의 기존 로직 사용
-        FVector transformedPick = inverseMatrix.TransformPosition(pickPosition);
-        FVector rayDirection = (transformedPick - pickRayOrigin).Normalize();
-        intersectCount = obj->CheckRayIntersection(pickRayOrigin, rayDirection, hitDistance);
-        return intersectCount;
-    }
+    FMatrix inverseMatrix = FMatrix::Inverse(worldMatrix * viewMatrix);
+    FVector cameraOrigin = { 0,0,0 };
+    FVector pickRayOrigin = inverseMatrix.TransformPosition(cameraOrigin);
+    // 퍼스펙티브 모드의 기존 로직 사용
+    FVector transformedPick = inverseMatrix.TransformPosition(pickPosition);
+    FVector rayDirection = (transformedPick - pickRayOrigin).Normalize();
+    intersectCount = obj->CheckRayIntersection(pickRayOrigin, rayDirection, hitDistance);
+    return intersectCount;
 }
+
 
 void AEditorPlayer::PickedObjControl()
 {
