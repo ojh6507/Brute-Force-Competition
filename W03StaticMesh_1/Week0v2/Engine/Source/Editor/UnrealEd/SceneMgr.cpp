@@ -65,11 +65,11 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
             }
 
             USceneComponent* sceneComp = static_cast<USceneComponent*>(obj);
-            //Todo : 여기다가 Obj Maeh저장후 읽기
-            //if (value.contains("ObjStaticMeshAsset"))
+
             if (value.contains("Location"))
             {
                 sceneComp->SetLocation(FVector(value["Location"].get<std::vector<float>>()[0],
+
                 value["Location"].get<std::vector<float>>()[1],
                 value["Location"].get<std::vector<float>>()[2]));
 
@@ -105,6 +105,7 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
             }
             sceneData.Primitives[id] = sceneComp;
         }
+        //FManagerOBJ::CreateStaticMesh();
 
         sceneData.BoundingBox = WorldBoundingBox;
 

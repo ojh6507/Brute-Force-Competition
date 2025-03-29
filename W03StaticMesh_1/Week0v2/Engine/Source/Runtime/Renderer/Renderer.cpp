@@ -510,47 +510,6 @@ void FRenderer::UpdateMaterial(const FObjMaterialInfo& MaterialInfo) const
         Graphics->DeviceContext->PSSetSamplers(0, 1, nullSampler);
     }
 }
-//
-//void FRenderer::UpdateLitUnlitConstant(int isLit) const
-//{
-//    if (FlagBuffer)
-//    {
-//        D3D11_MAPPED_SUBRESOURCE constantbufferMSR; // GPU �� �޸� �ּ� ����
-//        Graphics->DeviceContext->Map(FlagBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
-//        auto constants = static_cast<FLitUnlitConstants*>(constantbufferMSR.pData); //GPU �޸� ���� ����
-//        {
-//            constants->isLit = isLit;
-//        }
-//        Graphics->DeviceContext->Unmap(FlagBuffer, 0);
-//    }
-//}
-//
-//void FRenderer::UpdateSubMeshConstant(bool isSelected) const
-//{
-//    if (SubMeshConstantBuffer) {
-//        D3D11_MAPPED_SUBRESOURCE constantbufferMSR; // GPU �� �޸� �ּ� ����
-//        Graphics->DeviceContext->Map(SubMeshConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
-//        FSubMeshConstants* constants = (FSubMeshConstants*)constantbufferMSR.pData; //GPU �޸� ���� ����
-//        {
-//            constants->isSelectedSubMesh = isSelected;
-//        }
-//        Graphics->DeviceContext->Unmap(SubMeshConstantBuffer, 0);
-//    }
-//}
-//
-//void FRenderer::UpdateTextureConstant(float UOffset, float VOffset)
-//{
-//    if (TextureConstantBufer) {
-//        D3D11_MAPPED_SUBRESOURCE constantbufferMSR; // GPU �� �޸� �ּ� ����
-//        Graphics->DeviceContext->Map(TextureConstantBufer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
-//        FTextureConstants* constants = (FTextureConstants*)constantbufferMSR.pData; //GPU �޸� ���� ����
-//        {
-//            constants->UOffset = UOffset;
-//            constants->VOffset = VOffset;
-//        }
-//        Graphics->DeviceContext->Unmap(TextureConstantBufer, 0);
-//    }
-//}
 
 void FRenderer::CreateTextureShader()
 {
@@ -1015,18 +974,7 @@ void FRenderer::PrepareRender()
                 }
             }
             
-            /*   if (UGizmoBaseComponent* pGizmoComp = Cast<UGizmoBaseComponent>(iter))
-               {
-                   GizmoObjs.Add(pGizmoComp);
-               }
-               if (UBillboardComponent* pBillboardComp = Cast<UBillboardComponent>(iter))
-               {
-                   BillboardObjs.Add(pBillboardComp);
-               }
-               if (ULightComponentBase* pLightComp = Cast<ULightComponentBase>(iter))
-               {
-                   LightObjs.Add(pLightComp);
-               }*/
+            
         }
 
         bIsDirtyRenderObj = false;
@@ -1049,15 +997,13 @@ void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewp
 
 void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
-    Graphics->ChangeRasterizer(ActiveViewport->GetViewMode());
+    //Graphics->ChangeRasterizer(ActiveViewport->GetViewMode());
     // ChangeViewMode(ActiveViewport->GetViewMode());
 
     UPrimitiveBatch::GetInstance().RenderBatch(ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix());
 
-    if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_Primitives))
-    {
-        RenderStaticMeshes(World, ActiveViewport);
-    }
+    RenderStaticMeshes(World, ActiveViewport);
+
     ClearRenderArr();
 }
 
@@ -1096,20 +1042,17 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         bool ac = ActiveViewport->IsAABBVisible(frustumPlanes, StaticMeshComp->GetBoundingBox().TransformWorld(MVP));
         if (!ac) continue;
 
-        if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB))
-        {
-            UPrimitiveBatch::GetInstance().RenderAABB(
-                StaticMeshComp->GetBoundingBox(),
-                StaticMeshComp->GetWorldLocation(),
-                Model
-            );
-        }
 
 
         FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
         if (World->GetSelectedComp() == StaticMeshComp)
         {
             UpdateConstant(MVP, UUIDColor, true);
+            UPrimitiveBatch::GetInstance().RenderAABB(
+                StaticMeshComp->GetBoundingBox(),
+                StaticMeshComp->GetWorldLocation(),
+                Model
+            );
         }
         else
             UpdateConstant(MVP, UUIDColor, false);
@@ -1117,7 +1060,7 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         //UpdateTextureConstant(0, 0);
 
 
-        if (!StaticMeshComp->GetStaticMesh()) continue;
+        //if (!StaticMeshComp->GetStaticMesh()) continue;
 
         OBJ::FStaticMeshRenderData* renderData = StaticMeshComp->GetStaticMesh()->GetRenderData();
         //if (renderData == nullptr) return;

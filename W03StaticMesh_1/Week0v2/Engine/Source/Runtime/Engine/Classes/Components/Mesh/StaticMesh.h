@@ -2,7 +2,10 @@
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
 #include "Components/Material/Material.h"
-#include "Define.h"
+
+namespace OBJ {
+    struct FStaticMeshRenderData;
+}
 
 class UStaticMesh : public UObject
 {
