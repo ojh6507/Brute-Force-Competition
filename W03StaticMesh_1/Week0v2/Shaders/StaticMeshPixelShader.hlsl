@@ -1,7 +1,7 @@
 Texture2D Textures : register(t0);
 SamplerState Sampler : register(s0);
 
-cbuffer MatrixConstants : register(b0 )
+cbuffer MatrixConstants : register(b0)
 {
     row_major float4x4 MVP;
     int isSelected;
@@ -76,13 +76,13 @@ PS_OUTPUT mainPS(PS_INPUT input)
     //    color = saturate(Material.DiffuseColor);
     //else
     //{
-      color = texColor;
+    color = texColor;
     //}
     if (isSelected)
     {
         color += float3(0.5f, 0.5f, 0.0f);
     }
-    output.color = float4(color,1);
+    output.color = float4(color, 1);
     return output;
     // 노란색 틴트로 하이라이트
     //    if (IsSelectedSubMesh)

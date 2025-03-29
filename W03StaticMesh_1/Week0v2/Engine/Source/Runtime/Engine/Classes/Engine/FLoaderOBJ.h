@@ -678,6 +678,7 @@ public:
     static UStaticMesh* CreateStaticMesh(FString filePath);
     static const TMap<FWString, UStaticMesh*>& GetStaticMeshes() { return staticMeshMap; }
     static UStaticMesh* GetStaticMesh(FWString name);
+    void MergeRenderData(const TArray<OBJ::FStaticMeshRenderData*>& renderDataArray);
     static int GetStaticMeshNum() { return staticMeshMap.Num(); }
 
 private:

@@ -1,7 +1,7 @@
 #include "StaticMesh.h"
 #include "Engine/FLoaderOBJ.h"
 #include "UObject/ObjectFactory.h"
-
+#include "Define.h"
 UStaticMesh::UStaticMesh()
 {
 
@@ -39,7 +39,6 @@ void UStaticMesh::GetUsedMaterials(TArray<UMaterial*>& Out) const
         Out.Emplace(Material->Material);
     }
 }
-
 void UStaticMesh::SetData(OBJ::FStaticMeshRenderData* renderData)
 {
     staticMeshRenderData = renderData;
