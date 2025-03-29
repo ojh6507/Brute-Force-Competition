@@ -69,7 +69,8 @@ public:
     UObject* worldGizmo = nullptr;
 
     const TSet<AActor*>& GetActors() const { return ActorsArray; }
-
+    FOctree* GetRootOctree() const { return RootOctree; }
+    
     UTransformGizmo* LocalGizmo = nullptr;
     UCameraComponent* GetCamera() const { return camera; }
     AEditorPlayer* GetEditorPlayer() const { return EditorPlayer; }

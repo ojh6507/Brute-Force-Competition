@@ -29,15 +29,6 @@ void FOctree::AddComponent(UPrimitiveComponent* InComponent)
         if (PrimitiveComponents.Num() > DivideThreshold)
         {
             SubDivide();
-
-            for (auto& Component: PrimitiveComponents)
-            {
-                int ChildBoundingBoxIndex = CalculteChildIndex(Component->GetWorldLocation());
-                Children[ChildBoundingBoxIndex]->AddComponent(Component);
-            }
-            
-            //Component들 자식에게 물려주고 클리어
-            PrimitiveComponents.Empty();
         }
     }else
     {
@@ -59,6 +50,15 @@ void FOctree::SubDivide()
         Children.Add(new FOctree(childBox));
         Children[i]->Depth = Depth + 1;
     }
+    
+    for (auto& Component: PrimitiveComponents)
+    {
+        int ChildBoundingBoxIndex = CalculteChildIndex(Component->GetWorldLocation());
+        Children[ChildBoundingBoxIndex]->AddComponent(Component);
+    }
+            
+    //Component들 자식에게 물려주고 클리어
+    PrimitiveComponents.Empty();
 }
 
 int FOctree::CalculteChildIndex(FVector Pos)
