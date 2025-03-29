@@ -58,36 +58,10 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
                     }
                 }
 
-                //if (TypeName == USphereComp::StaticClass()->GetName())
-                //{
-                //    obj = FObjectFactory::ConstructObject<USphereComp>();
-                //}
-                //else if (TypeName == UCubeComp::StaticClass()->GetName())
-                //{
-                //    obj = FObjectFactory::ConstructObject<UCubeComp>();
-                //}
-                //else if (TypeName == UGizmoArrowComponent::StaticClass()->GetName())
-                //{
-                //    obj = FObjectFactory::ConstructObject<UGizmoArrowComponent>();
-                //}
-                //else if (TypeName == UBillboardComponent::StaticClass()->GetName())
-                //{
-                //    obj = FObjectFactory::ConstructObject<UBillboardComponent>();
-                //}
-                //else if (TypeName == ULightComponentBase::StaticClass()->GetName())
-                //{
-                //    obj = FObjectFactory::ConstructObject<ULightComponentBase>();
-                //}
-                //else if (TypeName == USkySphereComponent::StaticClass()->GetName())
-                //{
-                //    obj = FObjectFactory::ConstructObject<USkySphereComponent>();
-                //    USkySphereComponent* skySphere = static_cast<USkySphereComponent*>(obj);
-                //}
             }
 
             USceneComponent* sceneComp = static_cast<USceneComponent*>(obj);
-            //Todo : 여기다가 Obj Maeh저장후 일기
-            //if (value.contains("ObjStaticMeshAsset"))
+            
             if (value.contains("Location")) sceneComp->SetLocation(FVector(value["Location"].get<std::vector<float>>()[0],
                 value["Location"].get<std::vector<float>>()[1],
                 value["Location"].get<std::vector<float>>()[2]));
@@ -109,6 +83,7 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
             }
             sceneData.Primitives[id] = sceneComp;
         }
+        //FManagerOBJ::CreateStaticMesh();
 
        // UCameraComponent* camera = GEngineLoop.GetWorld()->GetCamera();
         auto perspectiveCamera = j["PerspectiveCamera"];

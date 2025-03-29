@@ -107,6 +107,13 @@ struct FObjMaterialInfo
 // Cooked Data
 namespace OBJ
 {
+    struct FBatchInfo
+    {
+        UINT startIndex;
+        UINT indexCount;
+        int  materialIndex;
+    };
+
     struct FStaticMeshRenderData
     {
         FWString ObjectName;
@@ -116,16 +123,31 @@ namespace OBJ
         TArray<FVertexSimple> Vertices;
         TArray<UINT> Indices;
 
+        int TotalVertices;
+        int TotalIndices;
+
         ID3D11Buffer* VertexBuffer;
         ID3D11Buffer* IndexBuffer;
 
         TArray<FObjMaterialInfo> Materials;
         TArray<FMaterialSubset> MaterialSubsets;
 
+
+        TArray<FBatchInfo> Batches;
+
         FVector BoundingBoxMin;
         FVector BoundingBoxMax;
     };
-}
+  
+
+    struct MergedMeshData
+    {
+        ID3D11Buffer* VertexBuffer;
+        ID3D11Buffer* IndexBuffer;
+        TArray<FBatchInfo> Batches;
+    };
+
+};
 
 struct FVertexTexture
 {

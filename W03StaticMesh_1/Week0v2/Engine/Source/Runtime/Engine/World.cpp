@@ -59,11 +59,6 @@ void UWorld::CreateBaseObject()
         camera->SetLocation(FVector(8.0f, 8.0f, 8.f));
         camera->SetRotation(FVector(0.0f, 45.0f, -135.0f));
     }
-
-    if (LocalGizmo == nullptr)
-    {
-        LocalGizmo = FObjectFactory::ConstructObject<UTransformGizmo>();
-    }
 }
 
 void UWorld::ReleaseBaseObject()
@@ -98,7 +93,6 @@ void UWorld::Tick(float DeltaTime)
 {
     camera->TickComponent(DeltaTime);
     EditorPlayer->Tick(DeltaTime);
-    LocalGizmo->Tick(DeltaTime);
 }
 
 void UWorld::Release()

@@ -55,7 +55,6 @@ void UPrimitiveBatch::RenderBatch(const FMatrix& View, const FMatrix& Projection
     BoundingBoxes.Empty();
     Cones.Empty();
     OrientedBoundingBoxes.Empty();
-    FEngineLoop::renderer.PrepareShader();
 }
 void UPrimitiveBatch::InitializeVertexBuffer()
 {
