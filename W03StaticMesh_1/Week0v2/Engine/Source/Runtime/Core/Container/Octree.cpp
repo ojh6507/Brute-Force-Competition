@@ -24,6 +24,13 @@ FOctree::~FOctree()
 
 void FOctree::AddComponent(UStaticMeshComponent* InComponent)
 {
+    if (!InComponent)
+    {
+        return;
+    }
+
+    const FBoundingBox& ComponentBoundingBox = InComponent->GetBoundingBox();
+    
     if (IsLeafNode())
     {
         PrimitiveComponents.Add(InComponent);
@@ -34,14 +41,22 @@ void FOctree::AddComponent(UStaticMeshComponent* InComponent)
         }
     }else
     {
-        int ChildBoundingBoxIndex = CalculteChildIndex(InComponent->GetWorldLocation());
+        int ChildBoundingBoxIndex = CalculteChildIndex(InComponent->GetWorldLocation()); //position기준이 아니라 boundingbox로 포함하는애 전부 주기
         Children[ChildBoundingBoxIndex]->AddComponent(InComponent);
+        
+        // for (int i=0;i<8;i++) //각 옥트리 돌면서 바운딩박스 충돌검사
+        // {
+        //     if (Children[i]->BoundingBox.Intersects(ComponentBoundingBox))
+        //     {
+        //         Children[i]->AddComponent(InComponent);
+        //     }
+        // }
     }
 }
 
 void FOctree::SubDivide()
 {
-    if (Depth >= MaxDepth)
+    if (Depth >= MaxDepth || !IsLeafNode())
     {
         return;
     }
@@ -57,8 +72,17 @@ void FOctree::SubDivide()
     {
         int ChildBoundingBoxIndex = CalculteChildIndex(Component->GetWorldLocation());
         Children[ChildBoundingBoxIndex]->AddComponent(Component);
+        // const FBoundingBox ComponentBoundingBox = Component->GetBoundingBox();
+        //
+        // for (int i=0;i<8;i++)
+        // {
+        //     if (Children[i]->BoundingBox.Intersects(ComponentBoundingBox))
+        //     {
+        //         Children[i]->AddComponent(Component);
+        //     }
+        // }
     }
-            
+    
     //Component들 자식에게 물려주고 클리어
     PrimitiveComponents.Empty();
 }
@@ -109,7 +133,7 @@ TArray<FOctree*> FOctree::GetValidLeafNodes()
 {
     TArray<FOctree*> ValidLeafNodes;
 
-    if (IsLeapNode())
+    if (IsLeafNode())
     {
         if (PrimitiveComponents.Num() > 0)
         {
@@ -129,9 +153,9 @@ TArray<FOctree*> FOctree::GetValidLeafNodes()
 FBoundingBox FOctree::CalculateChildBoundingBox(int index)
 {
     //0이면 min~mid 1이면 mid~max
-    int OffsetX = index & 1;
-    int OffsetY = index & 2;
-    int OffsetZ = index & 4;
+    int OffsetX = (index & 0x1) ? 1 : 0; // index의 3번째 비트 (4의 자리)
+    int OffsetY = (index & 0x2) ? 1 : 0; // index의 2번째 비트 (2의 자리)
+    int OffsetZ = (index & 0x4) ? 1 : 0; // index의 1번째 비트 (1의 자리)
     
     FBoundingBox childBox;
     childBox.min.x = BoundingBox.min.x + (HalfSize.x * OffsetX);

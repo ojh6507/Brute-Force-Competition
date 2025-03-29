@@ -13,8 +13,6 @@ FVector4 JungleMath::ConvertV3ToV4(FVector vec3)
 	return newVec4;
 }
 
-
-
 FMatrix JungleMath::CreateModelMatrix(FVector translation, FVector rotation, FVector scale)
 {
     FMatrix Translation = FMatrix::CreateTranslationMatrix(translation);

@@ -1013,7 +1013,7 @@ void FRenderer::PrepareRender()
                 if (!Cast<UGizmoBaseComponent>(iter))
                 {
                     tempOct = pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree();
-                    //StaticMeshObjs.Add(pStaticMeshComp);
+                    StaticMeshObjs.Add(pStaticMeshComp);
                     pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree()->AddComponent(pStaticMeshComp);
                 }
             }
