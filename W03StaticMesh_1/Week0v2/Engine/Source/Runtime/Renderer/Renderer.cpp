@@ -1007,8 +1007,11 @@ void FRenderer::PrepareRender()
     {
         for (const auto iter : TObjectRange<UStaticMeshComponent>())
         {
-          
-             StaticMeshObjs.Add(iter);
+            if (UStaticMeshComponent* pStaticMeshComp = Cast<UStaticMeshComponent>(iter))
+            {
+                if (!Cast<UGizmoBaseComponent>(iter))
+                    StaticMeshObjs.Add(pStaticMeshComp);
+            }
             
             /*   if (UGizmoBaseComponent* pGizmoComp = Cast<UGizmoBaseComponent>(iter))
                {
