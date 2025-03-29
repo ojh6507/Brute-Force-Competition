@@ -10,7 +10,6 @@
 #include "Math/Vector4.h"
 #include "Math/Matrix.h"
 
-
 #define UE_LOG Console::GetInstance().AddLog
 
 #define _TCHAR_DEFINED
@@ -212,7 +211,72 @@ struct FBoundingBox
         // 모든 축에서 겹쳐야만 최종적으로 교차하는 것으로 판단합니다.
         return bOverlapX && bOverlapY && bOverlapZ;
     }
-    
+ 
+    bool IntersectsLocal(const FVector& localRayOrigin, const FVector& localRayDir,
+        const FVector& boxMin, const FVector& boxMax,
+        float& outDistance)
+    {
+        float tmin = -FLT_MAX;
+        float tmax = FLT_MAX;
+        const float epsilon = 1e-6f;
+
+        // X축 교차 검사
+        if (fabs(localRayDir.x) < epsilon)
+        {
+            if (localRayOrigin.x < boxMin.x || localRayOrigin.x > boxMax.x)
+                return false;
+        }
+        else
+        {
+            float t1 = (boxMin.x - localRayOrigin.x) / localRayDir.x;
+            float t2 = (boxMax.x - localRayOrigin.x) / localRayDir.x;
+            if (t1 > t2) std::swap(t1, t2);
+            tmin = (t1 > tmin) ? t1 : tmin;
+            tmax = (t2 < tmax) ? t2 : tmax;
+            if (tmin > tmax)
+                return false;
+        }
+
+        // Y축 교차 검사
+        if (fabs(localRayDir.y) < epsilon)
+        {
+            if (localRayOrigin.y < boxMin.y || localRayOrigin.y > boxMax.y)
+                return false;
+        }
+        else
+        {
+            float t1 = (boxMin.y - localRayOrigin.y) / localRayDir.y;
+            float t2 = (boxMax.y - localRayOrigin.y) / localRayDir.y;
+            if (t1 > t2) std::swap(t1, t2);
+            tmin = (t1 > tmin) ? t1 : tmin;
+            tmax = (t2 < tmax) ? t2 : tmax;
+            if (tmin > tmax)
+                return false;
+        }
+
+        // Z축 교차 검사
+        if (fabs(localRayDir.z) < epsilon)
+        {
+            if (localRayOrigin.z < boxMin.z || localRayOrigin.z > boxMax.z)
+                return false;
+        }
+        else
+        {
+            float t1 = (boxMin.z - localRayOrigin.z) / localRayDir.z;
+            float t2 = (boxMax.z - localRayOrigin.z) / localRayDir.z;
+            if (t1 > t2) std::swap(t1, t2);
+            tmin = (t1 > tmin) ? t1 : tmin;
+            tmax = (t2 < tmax) ? t2 : tmax;
+            if (tmin > tmax)
+                return false;
+        }
+
+        if (tmax < 0.0f)
+            return false;
+
+        outDistance = (tmin >= 0.0f) ? tmin : 0.0f;
+        return true;
+    }
     bool Intersect(const FVector& rayOrigin, const FVector& rayDir, float& outDistance)
     {
         float tmin = -FLT_MAX;
@@ -337,6 +401,7 @@ struct FBoundingBox
         GetBoundingSphere(center, radius);
         return IsSphereInsideFrustum(planes, center, radius);
     }
+    FMatrix CreateBoundingBoxTransform();
 
 };
 

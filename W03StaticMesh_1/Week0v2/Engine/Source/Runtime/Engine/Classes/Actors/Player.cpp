@@ -134,15 +134,17 @@ void AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEdit
     UPrimitiveComponent* Possible = nullptr;
     int maxIntersect = 0;
     float minDistance = FLT_MAX;
-    ActiveViewport->GetVisibleStaticMesh(StaticMeshCompArray);
 
-    for (const auto& comp : StaticMeshCompArray)
+
+
+    FMatrix viewMatrix = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->GetViewMatrix();
+    for (const auto& comp : GEngineLoop.GetWorld()->GetRootOctree()->CollectCandidateComponents(pickPosition, viewMatrix))
     {
 
         float Distance = 0.0f;
         int currentIntersectCount = 0;
-       if (RayIntersectsObject(pickPosition, comp, Distance, currentIntersectCount))
-        {
+        if (RayIntersectsObject(pickPosition, comp, Distance, currentIntersectCount))
+        { 
             if (Distance < minDistance)
             {
                 minDistance = Distance;

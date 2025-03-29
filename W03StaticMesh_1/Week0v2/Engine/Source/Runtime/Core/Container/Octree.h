@@ -18,13 +18,18 @@ public:
     bool IsLeafNode(){ return Children.Num() == 0; }
     FBoundingBox CalculateChildBoundingBox(int index);
     TArray<FOctree*> GetValidLeafNodes();
+    TArray<FOctree*> CollectCandidateNodes(const FVector& pickPos, const FMatrix& viewMatrix);
     void CollectIntersectingComponents(const Plane frustumPlanes[6], TArray<UStaticMeshComponent*>& OutComponents);
+    TArray<UStaticMeshComponent*> GetRayPossibleComp();
     TArray<UStaticMeshComponent*>& GetPrimitiveComponents() { return PrimitiveComponents; }
     void DebugBoundingBox();
+    TArray<UStaticMeshComponent*> CollectCandidateComponents(const FVector& pickPos, const FMatrix& viewMatrix);
+
 private:
     FBoundingBox BoundingBox;
     FVector HalfSize;
     TArray<FOctree*> Children;
+    FOctree* CurrentNode;
     TArray<UStaticMeshComponent*> PrimitiveComponents;
 
     int DivideThreshold = 100;

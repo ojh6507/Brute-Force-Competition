@@ -38,6 +38,9 @@ void FEditorViewportClient::Initialize(int32 viewportIndex)
 void FEditorViewportClient::Tick(float DeltaTime)
 {
     Input(DeltaTime);
+    UpdateMatrix();
+    CollectIntersectingComponents();
+
     FrustumStaticMeshs.Empty();
     for (UStaticMeshComponent* StaticMeshComp : VisibleStaticMeshs) {
         FVector objectLocation = StaticMeshComp->GetWorldLocation();
@@ -129,9 +132,6 @@ void FEditorViewportClient::Input(float DeltaTime)
         {
             CameraMoveUp(-1.f * DeltaTime);
         }
-        UpdateMatrix();
-        CollectIntersectingComponents();
-
     }
     else
     {
