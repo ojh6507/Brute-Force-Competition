@@ -7,6 +7,7 @@
 #include <d3d11.h>
 #include "EngineBaseTypes.h"
 #include "Define.h"
+#include "Container/Octree.h"
 #include "Container/Set.h"
 #include "Container/Map.h"
 
@@ -147,6 +148,7 @@ public: // line shader
     void RenderGizmos(const UWorld* World, const std::shared_ptr<FEditorViewportClient>& ActiveViewport);
     void RenderLight(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport);
     void RenderBillboards(UWorld* World,std::shared_ptr<FEditorViewportClient> ActiveViewport);
+    
 
     void MaterialSorting();
 
@@ -160,6 +162,7 @@ private:
     TArray<UGizmoBaseComponent*> GizmoObjs;
     TArray<UBillboardComponent*> BillboardObjs;
     TArray<ULightComponentBase*> LightObjs;
+    
 
 
 public:

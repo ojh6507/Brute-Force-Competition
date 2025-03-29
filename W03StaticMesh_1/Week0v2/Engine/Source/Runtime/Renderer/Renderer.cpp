@@ -961,7 +961,6 @@ void FRenderer::RenderBatch(
 
 void FRenderer::PrepareRender()
 {
-
     if (bIsDirtyRenderObj == true)
     {
         for (const auto iter : TObjectRange<UStaticMeshComponent>())
@@ -969,7 +968,10 @@ void FRenderer::PrepareRender()
             if (UStaticMeshComponent* pStaticMeshComp = Cast<UStaticMeshComponent>(iter))
             {
                 if (!Cast<UGizmoBaseComponent>(iter))
+                {
                     StaticMeshObjs.Add(pStaticMeshComp);
+                    pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree()->AddComponent(pStaticMeshComp);
+                }
             }
             
             
@@ -977,7 +979,6 @@ void FRenderer::PrepareRender()
 
         bIsDirtyRenderObj = false;
     }
-
 }
 
 void FRenderer::ClearRenderArr()

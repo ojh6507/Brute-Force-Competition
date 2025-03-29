@@ -13,6 +13,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include "Define.h"
 
 void UWorld::Initialize()
 {
@@ -20,37 +21,37 @@ void UWorld::Initialize()
     CreateBaseObject();
     //SpawnObject(OBJ_CUBE);
 
-//#if _DEBUG
-//    FString jsonContent = FSceneMgr::LoadSceneFromFile("Assets/Data/Default.scene");
-//    FSceneMgr::ParseSceneData(jsonContent);
-//
-//#else
+#if _DEBUG
+    FString jsonContent = FSceneMgr::LoadSceneFromFile("Assets/Data/Default.scene");
+    SceneData ParseSceneData = FSceneMgr::ParseSceneData(jsonContent);
+
+#else
+    char const* lFilterPatterns[1] = { "*.scene" };
+    const char* FileName = tinyfd_openFileDialog("Open Scene File", "", 1, lFilterPatterns, "Scene(.scene) file", 0);
+
+    if (FileName == nullptr)
     {
-        char const* lFilterPatterns[1] = { "*.scene" };
-        const char* FileName = tinyfd_openFileDialog("Open Scene File", "", 1, lFilterPatterns, "Scene(.scene) file", 0);
-
-        if (FileName == nullptr)
-        {
-            tinyfd_messageBox("Error", "파일을 불러올 수 없습니다.", "ok", "error", 1);
-            ImGui::End();
-            return;
-        }
-
-
-        FString jsonContent = FSceneMgr::LoadSceneFromFile(FileName);
-        FSceneMgr::ParseSceneData(jsonContent);
+        tinyfd_messageBox("Error", "파일을 불러올 수 없습니다.", "ok", "error", 1);
+        ImGui::End();
+        return;
     }
-//#endif
-    /* TODO: Scene Load
-    */
-
+    
+    FString jsonContent = FSceneMgr::LoadSceneFromFile(FileName);
+    SceneData ParseSceneData = FSceneMgr::ParseSceneData(jsonContent);
+#endif
+    FBoundingBox WorldBoundingBox = FBoundingBox(ParseSceneData.BoundingBox.min - 1, ParseSceneData.BoundingBox.max + 1);
+    
+    if (RootOctree == nullptr)
+    {
+        RootOctree = new FOctree(WorldBoundingBox);
+    }
 }
 
 void UWorld::CreateBaseObject()
 {
     if (EditorPlayer == nullptr)
     {
-        EditorPlayer = FObjectFactory::ConstructObject<AEditorPlayer>();;
+        EditorPlayer = FObjectFactory::ConstructObject<AEditorPlayer>();
     }
 
     if (camera == nullptr)
