@@ -3,6 +3,7 @@
 #include "Container/Set.h"
 #include "UObject/ObjectFactory.h"
 #include "UObject/ObjectMacros.h"
+#include "Container/Octree.h"
 
 class FObjectFactory;
 class AActor;
@@ -13,14 +14,20 @@ class AEditorPlayer;
 class USceneComponent;
 class UTransformGizmo;
 
-
 class UWorld : public UObject
 {
     DECLARE_CLASS(UWorld, UObject)
 
 public:
     UWorld() = default;
-
+    ~UWorld()
+    {
+        if (RootOctree)
+        {
+            delete RootOctree;
+        }
+    }
+    
     void Initialize();
     void CreateBaseObject();
     void ReleaseBaseObject();
@@ -49,7 +56,8 @@ private:
     TArray<AActor*> PendingBeginPlayActors;
 
     AActor* SelectedActor = nullptr;
-
+    FOctree* RootOctree = nullptr;
+    
     USceneComponent* pickingGizmo = nullptr;
     UCameraComponent* camera = nullptr;
     AEditorPlayer* EditorPlayer = nullptr;

@@ -36,9 +36,14 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
             sceneData.NextUUID = j["NextUUID"].get<int>();
         }
 
+        FBoundingBox WorldBoundingBox;
+        WorldBoundingBox.max = FVector(-FLT_MAX, -FLT_MAX, -FLT_MAX); // float의 최소값으로 초기화
+        WorldBoundingBox.min = FVector(FLT_MAX, FLT_MAX, FLT_MAX);   // float의 최대값으로 초기화
+        
         // Primitives 처리 (C++14 스타일)
         auto primitives = j["Primitives"];
-        for (auto it = primitives.begin(); it != primitives.end(); ++it) {
+        for (auto it = primitives.begin(); it != primitives.end(); ++it)
+        {
             int id = std::stoi(it.key());  // Key는 문자열, 숫자로 변환
             const json& value = it.value();
             UObject* obj = nullptr;
@@ -57,46 +62,37 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
                         staticMeshComp->SetStaticMesh(Mesh);
                     }
                 }
-
-                //if (TypeName == USphereComp::StaticClass()->GetName())
-                //{
-                //    obj = FObjectFactory::ConstructObject<USphereComp>();
-                //}
-                //else if (TypeName == UCubeComp::StaticClass()->GetName())
-                //{
-                //    obj = FObjectFactory::ConstructObject<UCubeComp>();
-                //}
-                //else if (TypeName == UGizmoArrowComponent::StaticClass()->GetName())
-                //{
-                //    obj = FObjectFactory::ConstructObject<UGizmoArrowComponent>();
-                //}
-                //else if (TypeName == UBillboardComponent::StaticClass()->GetName())
-                //{
-                //    obj = FObjectFactory::ConstructObject<UBillboardComponent>();
-                //}
-                //else if (TypeName == ULightComponentBase::StaticClass()->GetName())
-                //{
-                //    obj = FObjectFactory::ConstructObject<ULightComponentBase>();
-                //}
-                //else if (TypeName == USkySphereComponent::StaticClass()->GetName())
-                //{
-                //    obj = FObjectFactory::ConstructObject<USkySphereComponent>();
-                //    USkySphereComponent* skySphere = static_cast<USkySphereComponent*>(obj);
-                //}
             }
 
             USceneComponent* sceneComp = static_cast<USceneComponent*>(obj);
-            //Todo : 여기다가 Obj Maeh저장후 일기
+            //Todo : 여기다가 Obj Maeh저장후 읽기
             //if (value.contains("ObjStaticMeshAsset"))
-            if (value.contains("Location")) sceneComp->SetLocation(FVector(value["Location"].get<std::vector<float>>()[0],
+            if (value.contains("Location"))
+            {
+                sceneComp->SetLocation(FVector(value["Location"].get<std::vector<float>>()[0],
                 value["Location"].get<std::vector<float>>()[1],
                 value["Location"].get<std::vector<float>>()[2]));
-            if (value.contains("Rotation")) sceneComp->SetRotation(FVector(value["Rotation"].get<std::vector<float>>()[0],
+
+                FVector SceneCompPos = sceneComp->GetWorldLocation();
+                
+                WorldBoundingBox.min.x = WorldBoundingBox.min.x > SceneCompPos.x ? SceneCompPos.x : WorldBoundingBox.min.x;
+                WorldBoundingBox.min.y = WorldBoundingBox.min.y > SceneCompPos.y ? SceneCompPos.y : WorldBoundingBox.min.y;
+                WorldBoundingBox.min.z = WorldBoundingBox.min.z > SceneCompPos.z ? SceneCompPos.z : WorldBoundingBox.min.z;
+                WorldBoundingBox.max.x = WorldBoundingBox.max.x < SceneCompPos.x ? SceneCompPos.x : WorldBoundingBox.max.x;
+                WorldBoundingBox.max.y = WorldBoundingBox.max.y < SceneCompPos.y ? SceneCompPos.y : WorldBoundingBox.max.y;
+                WorldBoundingBox.max.z = WorldBoundingBox.max.z < SceneCompPos.z ? SceneCompPos.z : WorldBoundingBox.max.z;
+            }
+            if (value.contains("Rotation"))
+            {
+                sceneComp->SetRotation(FVector(value["Rotation"].get<std::vector<float>>()[0],
                 value["Rotation"].get<std::vector<float>>()[1],
                 value["Rotation"].get<std::vector<float>>()[2]));
-            if (value.contains("Scale")) sceneComp->SetScale(FVector(value["Scale"].get<std::vector<float>>()[0],
+            }
+            if (value.contains("Scale")) {
+                sceneComp->SetScale(FVector(value["Scale"].get<std::vector<float>>()[0],
                 value["Scale"].get<std::vector<float>>()[1],
                 value["Scale"].get<std::vector<float>>()[2]));
+            }
             if (value.contains("Type")) {
                 UPrimitiveComponent* primitiveComp = Cast<UPrimitiveComponent>(sceneComp);
                 if (primitiveComp) {
@@ -109,6 +105,8 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
             }
             sceneData.Primitives[id] = sceneComp;
         }
+
+        sceneData.BoundingBox = WorldBoundingBox;
 
        // UCameraComponent* camera = GEngineLoop.GetWorld()->GetCamera();
         auto perspectiveCamera = j["PerspectiveCamera"];
@@ -128,43 +126,6 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
             ViewPort->nearPlane = (perspectiveCamera["NearClip"].get<std::vector<float>>()[0]);
         if (perspectiveCamera.contains("FarClip")) 
             ViewPort->farPlane = (perspectiveCamera["FarClip"].get<std::vector<float>>()[0]);
-
-        //for (auto it = perspectiveCamera.begin(); it != perspectiveCamera.end(); ++it) {
-        //    const json& value = it.value();
-        //    if (value.contains("Location")) camera->SetLocation(FVector(value["Location"].get<std::vector<float>>()[0],
-        //            value["Location"].get<std::vector<float>>()[1],
-        //            value["Location"].get<std::vector<float>>()[2]));
-        //    if (value.contains("Rotation")) camera->SetRotation(FVector(value["Rotation"].get<std::vector<float>>()[0],
-        //        value["Rotation"].get<std::vector<float>>()[1],
-        //        value["Rotation"].get<std::vector<float>>()[2]));
-        //    if (value.contains("FOV")) camera->SetFOV(value["FOV"].get<float>());
-        //    if (value.contains("NearClip")) camera->SetNearClip(value["NearClip"].get<float>());
-        //    if (value.contains("FarClip")) camera->SetNearClip(value["FarClip"].get<float>());
-            
-
-       // } 
-        //for (auto it = perspectiveCamera.begin(); it != perspectiveCamera.end(); ++it) {
-
-        //    int id = std::stoi(it.key());  // Key는 문자열, 숫자로 변환
-        //    const json& value = it.value();
-        //    UObject* obj = FObjectFactory::ConstructObject<UCameraComponent>();
-        //    UCameraComponent* camera = static_cast<UCameraComponent*>(obj);
-        //    if (value.contains("Location")) camera->SetLocation(FVector(value["Location"].get<std::vector<float>>()[0],
-        //            value["Location"].get<std::vector<float>>()[1],
-        //            value["Location"].get<std::vector<float>>()[2]));
-        //    if (value.contains("Rotation")) camera->SetRotation(FVector(value["Rotation"].get<std::vector<float>>()[0],
-        //        value["Rotation"].get<std::vector<float>>()[1],
-        //        value["Rotation"].get<std::vector<float>>()[2]));
-        //    if (value.contains("Rotation")) camera->SetRotation(FVector(value["Rotation"].get<std::vector<float>>()[0],
-        //        value["Rotation"].get<std::vector<float>>()[1],
-        //        value["Rotation"].get<std::vector<float>>()[2]));
-        //    if (value.contains("FOV")) camera->SetFOV(value["FOV"].get<float>());
-        //    if (value.contains("NearClip")) camera->SetNearClip(value["NearClip"].get<float>());
-        //    if (value.contains("FarClip")) camera->SetNearClip(value["FarClip"].get<float>());
-        //    
-        //    
-        //    sceneData.Cameras[id] = camera;
-        //}
     }
     catch (const std::exception& e) {
         FString errorMessage = "Error parsing JSON: ";

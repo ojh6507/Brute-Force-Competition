@@ -1069,8 +1069,6 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         DirectX::XMMATRIX MVP =
             ModelMatrix * ActiveViewport->GetViewMatrix().ToXMMATRIX() * ActiveViewport->GetProjectionMatrix().ToXMMATRIX();
 
-      
-
         FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
         if (World->GetSelectedActor() == StaticMeshComp->GetOwner())
         {
