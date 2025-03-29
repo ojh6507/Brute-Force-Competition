@@ -20,11 +20,11 @@ void UWorld::Initialize()
     CreateBaseObject();
     //SpawnObject(OBJ_CUBE);
 
-#if _DEBUG
-    FString jsonContent = FSceneMgr::LoadSceneFromFile("Assets/Data/Default.scene");
-    FSceneMgr::ParseSceneData(jsonContent);
-
-#else
+//#if _DEBUG
+//    FString jsonContent = FSceneMgr::LoadSceneFromFile("Assets/Data/Default.scene");
+//    FSceneMgr::ParseSceneData(jsonContent);
+//
+//#else
     {
         char const* lFilterPatterns[1] = { "*.scene" };
         const char* FileName = tinyfd_openFileDialog("Open Scene File", "", 1, lFilterPatterns, "Scene(.scene) file", 0);
@@ -40,7 +40,7 @@ void UWorld::Initialize()
         FString jsonContent = FSceneMgr::LoadSceneFromFile(FileName);
         FSceneMgr::ParseSceneData(jsonContent);
     }
-#endif
+//#endif
     /* TODO: Scene Load
     */
 

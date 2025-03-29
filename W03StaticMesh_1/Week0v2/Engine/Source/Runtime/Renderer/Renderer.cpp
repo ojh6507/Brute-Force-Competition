@@ -182,7 +182,7 @@ void FRenderer::RenderPrimitive(ID3D11Buffer* pVertexBuffer, UINT numVertices, I
     Graphics->DeviceContext->DrawIndexed(numIndices, 0, 0);
 }
 
-void FRenderer::RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<FStaticMaterial*> materials, TArray<UMaterial*> overrideMaterial, int selectedSubMeshIndex = -1) const
+void FRenderer::RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<FStaticMaterial*> materials, TArray<UMaterial*> overrideMaterial, int selectedSubMeshIndex = -1)
 {
     UINT offset = 0;
     Graphics->DeviceContext->IASetVertexBuffers(0, 1, &renderData->VertexBuffer, &Stride, &offset);
@@ -202,9 +202,17 @@ void FRenderer::RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<F
 
         //subMeshIndex == selectedSubMeshIndex ? UpdateSubMeshConstant(true) : UpdateSubMeshConstant(false);
 
-        overrideMaterial[materialIndex] != nullptr ?
-            UpdateMaterial(overrideMaterial[materialIndex]->GetMaterialInfo()) : UpdateMaterial(materials[materialIndex]->Material->GetMaterialInfo());
 
+        //bool b = ;
+
+        if (materials[materialIndex]->Material != CurrentMaterial)
+        {
+            overrideMaterial[materialIndex] != nullptr ?
+                UpdateMaterial(overrideMaterial[materialIndex]->GetMaterialInfo()) : UpdateMaterial(materials[materialIndex]->Material->GetMaterialInfo());
+
+            CurrentMaterial = materials[materialIndex]->Material;
+        }
+        
         if (renderData->IndexBuffer)
         {
             // index draw
@@ -953,18 +961,28 @@ void FRenderer::RenderBatch(
 
 void FRenderer::PrepareRender()
 {
-    for (const auto iter : TObjectRange<UStaticMeshComponent>())
+
+    if (bIsDirtyRenderObj == true)
     {
-        StaticMeshObjs.Add(iter);
+        for (const auto iter : TObjectRange<UStaticMeshComponent>())
+        {
+          
+             StaticMeshObjs.Add(iter);
+            
+            
+        }
+
+        bIsDirtyRenderObj = false;
     }
+
 }
 
 void FRenderer::ClearRenderArr()
 {
-    StaticMeshObjs.Empty();
-    GizmoObjs.Empty();
-    BillboardObjs.Empty();
-    LightObjs.Empty();
+    //StaticMeshObjs.Empty();
+    //GizmoObjs.Empty();
+    //BillboardObjs.Empty();
+    //LightObjs.Empty();
 }
 
 void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewport)
@@ -993,6 +1011,9 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
     float cullDistance = 80;
     Plane frustumPlanes[6];
     ActiveViewport->ExtractFrustumPlanesDirect(frustumPlanes);
+
+    MaterialSorting();
+
     for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
     {
         FVector objectLocation = StaticMeshComp->GetWorldLocation();
@@ -1095,7 +1116,7 @@ void FRenderer::RenderGizmos(const UWorld* World, const std::shared_ptr<FEditorV
         OBJ::FStaticMeshRenderData* renderData = GizmoComp->GetStaticMesh()->GetRenderData();
         if (renderData == nullptr) continue;
 
-        RenderPrimitive(renderData, GizmoComp->GetStaticMesh()->GetMaterials(), GizmoComp->GetOverrideMaterials());
+        RenderPrimitive(renderData, GizmoComp->GetStaticMesh()->GetMaterials(), GizmoComp->GetOverrideMaterials(), 0);
     }
 
     Graphics->DeviceContext->RSSetState(Graphics->GetCurrentRasterizer());
@@ -1147,6 +1168,41 @@ void FRenderer::RenderBillboards(UWorld* World, std::shared_ptr<FEditorViewportC
         }
     }
     PrepareShader();
+}
+
+void FRenderer::MaterialSorting()
+{
+    //임시로 오브젝트의 수가 변경했을 때만 정렬
+    if (StaticMeshObjs.Num() == PrevStaticMeshObjsNum) return;
+    PrevStaticMeshObjsNum = StaticMeshObjs.Num();
+
+    StaticMeshObjs.Sort([](const UStaticMeshComponent* A_ptr_ref, const UStaticMeshComponent* B_ptr_ref) {
+        // 참조에서 실제 포인터 값을 가져옵니다.
+        const UStaticMeshComponent* CompA = A_ptr_ref;
+        const UStaticMeshComponent* CompB = B_ptr_ref;
+
+        // 1. 컴포넌트 포인터 자체의 null 검사
+        if (!CompA && !CompB) return false; // 둘 다 null이면 순서 유지 (동등)
+        if (!CompA) return true;  // A만 null이면 A가 B보다 먼저 와야 함 (true 반환)
+        if (!CompB) return false; // B만 null이면 A는 B보다 나중에 와야 함 (false 반환)
+
+
+        const TArray<FStaticMaterial*>& MaterialsA = CompA->GetStaticMesh()->GetMaterials();
+        const TArray<FStaticMaterial*>& MaterialsB= CompB->GetStaticMesh()->GetMaterials();
+
+        // 3. 메테리얼 정보 포인터 null 검사
+        if (!MaterialsA[0] && !MaterialsB[0]) return false; // 둘 다 null이면 순서 유지
+        if (!MaterialsA[0]) return true;  // A만 null이면 A 우선
+        if (!MaterialsB[0]) return false; // B만 null이면 B 우선 (즉, A는 나중에)
+
+        // 4. 포인터 주소값 비교 (핵심)
+        // MatInfoA가 MatInfoB보다 "작으면" (메모리 주소가 앞서면) true 반환
+        return MaterialsA[0] < MaterialsB[0];
+
+        });
+    //std::sort(Materials.begin(), Materials.end(), [](const FMaterialInfo& a, const FMaterialInfo& b) {
+    //    return a.MaterialIndex < b.MaterialIndex;
+    //    });
 }
 
 void FRenderer::RenderLight(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
