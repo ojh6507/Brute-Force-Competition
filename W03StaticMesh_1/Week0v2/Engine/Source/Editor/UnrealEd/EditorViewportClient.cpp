@@ -38,8 +38,6 @@ void FEditorViewportClient::Initialize(int32 viewportIndex)
 void FEditorViewportClient::Tick(float DeltaTime)
 {
     Input(DeltaTime);
-    UpdateViewMatrix();
-    UpdateProjectionMatrix();
 
 }
 
@@ -112,6 +110,9 @@ void FEditorViewportClient::Input(float DeltaTime)
         {
             CameraMoveUp(-1.f * DeltaTime);
         }
+        UpdateViewMatrix();
+        UpdateProjectionMatrix();
+        ExtractFrustumPlanesDirect(frustumPlanes);
     }
     else
     {
@@ -415,6 +416,13 @@ void FEditorViewportClient::UpdateOrthoCameraLoc()
     default:
         break;
     }
+}
+
+void FEditorViewportClient::UpdateMatrix()
+{
+    UpdateViewMatrix();
+    UpdateProjectionMatrix();
+    ExtractFrustumPlanesDirect(frustumPlanes);
 }
 
 void FEditorViewportClient::SetOthoSize(float _Value)

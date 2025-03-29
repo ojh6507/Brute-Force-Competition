@@ -338,7 +338,7 @@ void FRenderer::ReleaseBuffer(ID3D11Buffer*& Buffer) const
 void FRenderer::CreateConstantBuffer()
 {
     D3D11_BUFFER_DESC constantbufferdesc = {};
-    constantbufferdesc.ByteWidth = sizeof(FConstants) + 0xf & 0xfffffff0;
+    constantbufferdesc.ByteWidth = (sizeof(FConstants) + 0xf) & 0xfffffff0;
     constantbufferdesc.Usage = D3D11_USAGE_DYNAMIC;
     constantbufferdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     constantbufferdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -969,7 +969,7 @@ void FRenderer::PrepareRender()
             {
                 if (!Cast<UGizmoBaseComponent>(iter))
                 {
-                    //StaticMeshObjs.Add(pStaticMeshComp);
+                    StaticMeshObjs.Add(pStaticMeshComp);
                     pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree()->AddComponent(pStaticMeshComp);
                 }
             }
@@ -1014,9 +1014,8 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
     FVector CameraForward = ActiveViewport->ViewTransformPerspective.GetForwardVector();
     float cullDistance = 80;
  
-    //
     Plane frustumPlanes[6];
-    ActiveViewport->ExtractFrustumPlanesDirect(frustumPlanes);
+    memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
 
    // MaterialSorting();
     World->GetRootOctree()->CollectIntersectingComponents(frustumPlanes, StaticMeshObjs);
@@ -1030,9 +1029,8 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         FVector DirNorm = dir.Normalize();
         float dotVal = DirNorm.Dot(CameraForward);
 
-        if (dotVal < 0) continue;
-        if (dist > cullDistance) continue;
-
+       if (dotVal < 0) continue;
+      
         FMatrix Model = JungleMath::CreateModelMatrix(
             StaticMeshComp->GetWorldLocation(),
             StaticMeshComp->GetWorldRotation(),
@@ -1040,10 +1038,9 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         );
 
         // 최종 MVP 행렬
-        //
         FMatrix MVP = Model * ActiveViewport->GetViewMatrix() * ActiveViewport->GetProjectionMatrix();
-      
-
+        bool bFrustum =StaticMeshComp->GetBoundingBox().TransformWorld(Model).IsIntersectingFrustum(frustumPlanes);
+        if (!bFrustum) continue;
 
         FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
         if (World->GetSelectedComp() == StaticMeshComp)

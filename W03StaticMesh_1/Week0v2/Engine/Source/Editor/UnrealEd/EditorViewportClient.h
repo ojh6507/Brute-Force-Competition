@@ -105,6 +105,7 @@ protected:
     float GridSize;
 
 public:
+    Plane frustumPlanes[6]{};
     FViewport* Viewport;
     int32 ViewportIndex;
     FViewport* GetViewport() { return Viewport; }
@@ -147,13 +148,12 @@ public: //Camera Movement
  
     Plane PlaneFromPoints(const FVector& p0, const FVector& p1, const FVector& p2)
     {
-        // 두 벡터의 외적을 이용해 법선 구하기
         FVector normal = (p1 - p0).Cross(p2 - p0);
         normal.Normalize();
-        // 평면 방정식: ax + by + cz + d = 0, d = -n·p0
         float d = -normal.Dot(p0);
         return Plane(normal.x, normal.y, normal.z, d);
     }
+
     void ExtractFrustumPlanesDirect(Plane(&planes)[6]);
 
     bool IsOrtho() const;
@@ -166,7 +166,7 @@ public: //Camera Movement
     uint64 GetShowFlag() { return ShowFlag; }
     void SetShowFlag(uint64 newMode) { ShowFlag = newMode; }
     bool GetIsOnRBMouseClick() { return bRightMouseDown; }
-
+    void UpdateMatrix();
     //Flag Test Code
     static void SetOthoSize(float _Value);
 private: // Input

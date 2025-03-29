@@ -127,6 +127,9 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
             ViewPort->nearPlane = (perspectiveCamera["NearClip"].get<std::vector<float>>()[0]);
         if (perspectiveCamera.contains("FarClip")) 
             ViewPort->farPlane = (perspectiveCamera["FarClip"].get<std::vector<float>>()[0]);
+
+        ViewPort->UpdateMatrix();
+
     }
     catch (const std::exception& e) {
         FString errorMessage = "Error parsing JSON: ";

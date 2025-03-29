@@ -291,29 +291,25 @@ struct FBoundingBox
         return FBoundingBox(worldCenter - worldExtents, worldCenter + worldExtents);
     }
   
-    void GetBoundingSphere( FVector& outCenter, float& outRadius)
+    void GetBoundingSphere(FVector& outCenter, float& outRadiusSquared)
     {
-        outCenter.x = (min.x + max.x) * 0.5f;
-        outCenter.y = (min.y + max.y) * 0.5f;
-        outCenter.z = (min.z + max.z) * 0.5f;
-
-        // AABB의 한 꼭짓점과 중심 사이의 거리로 반지름 결정
+        outCenter = (min + max) * 0.5f;
+        // AABB의 한 꼭짓점과 중심 사이의 거리의 제곱값 계산
         FVector diff = max - outCenter;
-        outRadius = (diff.x * diff.x + diff.y * diff.y + diff.z * diff.z);
+        outRadiusSquared = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
     }
 
-    bool IsSphereInsideFrustum(const Plane planes[6], const FVector& center, float radius)
+    bool IsSphereInsideFrustum(const Plane planes[6], const FVector& center, float radiusSquared)
     {
         for (int i = 0; i < 6; ++i)
         {
-            // 평면 방정식: ax + by + cz + d
+            // 평면 방정식: ax + by + cz + d (단, 평면의 법선은 단위벡터라고 가정)
             float ddistance = planes[i].a * center.x +
                 planes[i].b * center.y +
                 planes[i].c * center.z +
                 planes[i].d;
-
-            // 거리가 -radius보다 작으면 구가 평면 밖에 있음
-            if (ddistance < -radius)
+            // ddistance가 음수인 경우에만 검사
+            if (ddistance < 0 && (ddistance * ddistance) > radiusSquared)
                 return false;
         }
         return true;
@@ -328,7 +324,7 @@ struct FBoundingBox
     }
 
 };
-;
+
 struct FCone
 {
     FVector ConeApex; // 원뿔의 꼭짓점
