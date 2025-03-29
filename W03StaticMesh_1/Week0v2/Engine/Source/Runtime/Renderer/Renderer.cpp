@@ -1004,19 +1004,14 @@ void FRenderer::PrepareRender()
 {
     if (bIsDirtyRenderObj == true)
     {
-        int count = 0;
         for (const auto iter : TObjectRange<UStaticMeshComponent>())
         {
             if (UStaticMeshComponent* pStaticMeshComp = Cast<UStaticMeshComponent>(iter))
             {
                 if (!Cast<UGizmoBaseComponent>(iter))
                 {
-                    //StaticMeshObjs.Add(pStaticMeshComp);
+                    StaticMeshObjs.Add(pStaticMeshComp);
                     pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree()->AddComponent(pStaticMeshComp);
-                    if (count++ > 5000)
-                    {
-                        FOctree* oc = pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree();
-                    }
                 }
             }
         }
@@ -1057,8 +1052,9 @@ void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> Act
 void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
     PrepareShader(); 
-    ActiveViewport->GetVisibleStaticMesh(StaticMeshObjs);
-
+    Plane frustumPlanes[6];
+    memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
+    //ActiveViewport->GetVisibleStaticMesh(StaticMeshObjs);
     for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
     {
        
@@ -1068,6 +1064,9 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
             StaticMeshComp->GetWorldScale()
         );
 
+        bool bFrustum = StaticMeshComp->GetBoundingBox().TransformWorld(Model).IsIntersectingFrustum(frustumPlanes);
+        if (!bFrustum) continue;
+         
         // 최종 MVP 행렬
         FMatrix MVP = Model * ActiveViewport->GetViewMatrix() * ActiveViewport->GetProjectionMatrix();
         FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;

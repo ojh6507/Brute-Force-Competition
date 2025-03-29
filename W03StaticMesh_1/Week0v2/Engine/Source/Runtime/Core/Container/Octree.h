@@ -34,7 +34,7 @@ private:
 
     int DivideThreshold = 100;
     int Depth = 0;
-    int MaxDepth = 3;
+    int MaxDepth = 10;
 };
 // leaf가 0일 수도 쩔수
 // 무조건 모든 컴포넌트는 leaf에만
