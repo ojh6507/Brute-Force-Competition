@@ -198,6 +198,21 @@ struct FBoundingBox
     float pad;
     FVector max; // Maximum extents
     float pad1;
+    
+    bool Intersects(const FBoundingBox& OtherBox) const
+    {
+        bool bOverlapX = (min.x <= OtherBox.max.x) && (max.x >= OtherBox.min.x);
+
+        // 2. Y축에서 겹치는지 확인 (X축과 동일한 로직)
+        bool bOverlapY = (min.y <= OtherBox.max.y) && (max.y >= OtherBox.min.y);
+
+        // 3. Z축에서 겹치는지 확인 (X축과 동일한 로직)
+        bool bOverlapZ = (min.z <= OtherBox.max.z) && (max.z >= OtherBox.min.z);
+
+        // 모든 축에서 겹쳐야만 최종적으로 교차하는 것으로 판단합니다.
+        return bOverlapX && bOverlapY && bOverlapZ;
+    }
+    
     bool Intersect(const FVector& rayOrigin, const FVector& rayDir, float& outDistance)
     {
         float tmin = -FLT_MAX;

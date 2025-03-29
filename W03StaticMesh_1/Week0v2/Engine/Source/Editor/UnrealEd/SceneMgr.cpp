@@ -16,6 +16,8 @@
 #include "Editor/UnrealEd/EditorViewportClient.h"
 #include <Engine/FLoaderOBJ.h>
 
+#include "Math/JungleMath.h"
+
 using json = nlohmann::json;
 
 SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
@@ -39,6 +41,8 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
         FBoundingBox WorldBoundingBox;
         WorldBoundingBox.max = FVector(-FLT_MAX, -FLT_MAX, -FLT_MAX); // float의 최소값으로 초기화
         WorldBoundingBox.min = FVector(FLT_MAX, FLT_MAX, FLT_MAX);   // float의 최대값으로 초기화
+
+        int a=0;
         
         // Primitives 처리 (C++14 스타일)
         auto primitives = j["Primitives"];
@@ -47,6 +51,8 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
             int id = std::stoi(it.key());  // Key는 문자열, 숫자로 변환
             const json& value = it.value();
             UObject* obj = nullptr;
+            FBoundingBox LocalMeshBox;
+            
             if (value.contains("Type"))
             {
                 const FString TypeName = value["Type"].get<std::string>();
@@ -60,27 +66,22 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
                         FString  str = value["ObjStaticMeshAsset"].get<std::string>();
                         UStaticMesh* Mesh = FManagerOBJ::CreateStaticMesh(str);
                         staticMeshComp->SetStaticMesh(Mesh);
+                        
+                        LocalMeshBox = staticMeshComp->GetBoundingBox(); 
                     }
+
                 }
             }
 
             USceneComponent* sceneComp = static_cast<USceneComponent*>(obj);
+            sceneData.BoundingBox = WorldBoundingBox;
 
             if (value.contains("Location"))
             {
                 sceneComp->SetLocation(FVector(value["Location"].get<std::vector<float>>()[0],
-
                 value["Location"].get<std::vector<float>>()[1],
                 value["Location"].get<std::vector<float>>()[2]));
-
-                FVector SceneCompPos = sceneComp->GetWorldLocation();
                 
-                WorldBoundingBox.min.x = WorldBoundingBox.min.x > SceneCompPos.x ? SceneCompPos.x : WorldBoundingBox.min.x;
-                WorldBoundingBox.min.y = WorldBoundingBox.min.y > SceneCompPos.y ? SceneCompPos.y : WorldBoundingBox.min.y;
-                WorldBoundingBox.min.z = WorldBoundingBox.min.z > SceneCompPos.z ? SceneCompPos.z : WorldBoundingBox.min.z;
-                WorldBoundingBox.max.x = WorldBoundingBox.max.x < SceneCompPos.x ? SceneCompPos.x : WorldBoundingBox.max.x;
-                WorldBoundingBox.max.y = WorldBoundingBox.max.y < SceneCompPos.y ? SceneCompPos.y : WorldBoundingBox.max.y;
-                WorldBoundingBox.max.z = WorldBoundingBox.max.z < SceneCompPos.z ? SceneCompPos.z : WorldBoundingBox.max.z;
             }
             if (value.contains("Rotation"))
             {
@@ -104,12 +105,58 @@ SceneData FSceneMgr::ParseSceneData(const FString& jsonStr)
                 }
             }
             sceneData.Primitives[id] = sceneComp;
+
+            // 2. 월드 변환 행렬을 계산합니다.
+            FMatrix ModelMatrix = JungleMath::CreateModelMatrix(
+                sceneComp->GetWorldLocation(),
+                sceneComp->GetWorldRotation(),
+                sceneComp->GetWorldScale()
+            );
+
+            // 3. 로컬 바운딩 박스의 8개 꼭짓점을 계산합니다.
+            FVector LocalCorners[8];
+            LocalCorners[0] = FVector(LocalMeshBox.min.x, LocalMeshBox.min.y, LocalMeshBox.min.z);
+            LocalCorners[1] = FVector(LocalMeshBox.max.x, LocalMeshBox.min.y, LocalMeshBox.min.z);
+            LocalCorners[2] = FVector(LocalMeshBox.min.x, LocalMeshBox.max.y, LocalMeshBox.min.z);
+            LocalCorners[3] = FVector(LocalMeshBox.max.x, LocalMeshBox.max.y, LocalMeshBox.min.z);
+            LocalCorners[4] = FVector(LocalMeshBox.min.x, LocalMeshBox.min.y, LocalMeshBox.max.z);
+            LocalCorners[5] = FVector(LocalMeshBox.max.x, LocalMeshBox.min.y, LocalMeshBox.max.z);
+            LocalCorners[6] = FVector(LocalMeshBox.min.x, LocalMeshBox.max.y, LocalMeshBox.max.z);
+            LocalCorners[7] = FVector(LocalMeshBox.max.x, LocalMeshBox.max.y, LocalMeshBox.max.z);
+
+            // 4. 8개의 꼭짓점을 월드 좌표로 변환하고, 변환된 점들로부터 새로운 Min/Max를 찾습니다.
+            FVector TransformedCornersMin(FLT_MAX, FLT_MAX, FLT_MAX);
+            FVector TransformedCornersMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+            for (int i = 0; i < 8; ++i)
+            {
+                // 각 로컬 꼭짓점을 월드 좌표로 변환합니다.
+                // ModelMatrix에 TransformPosition 함수가 정의되어 있다고 가정합니다.
+                // (이전 질문에서 보여주신 함수 사용)
+                FVector WorldCorner = ModelMatrix.TransformPosition(LocalCorners[i]);
+
+                // 변환된 꼭짓점을 기준으로 Min/Max를 갱신합니다.
+                TransformedCornersMin.x = FMath::Min(TransformedCornersMin.x, WorldCorner.x);
+                TransformedCornersMin.y = FMath::Min(TransformedCornersMin.y, WorldCorner.y);
+                TransformedCornersMin.z = FMath::Min(TransformedCornersMin.z, WorldCorner.z);
+
+                TransformedCornersMax.x = FMath::Max(TransformedCornersMax.x, WorldCorner.x);
+                TransformedCornersMax.y = FMath::Max(TransformedCornersMax.y, WorldCorner.y);
+                TransformedCornersMax.z = FMath::Max(TransformedCornersMax.z, WorldCorner.z);
+            }
+
+            // 이제 TransformedCornersMin과 TransformedCornersMax가 이 컴포넌트의 정확한 월드 AABB입니다.
+
+            // 5. 이 컴포넌트의 월드 AABB를 사용하여 전체 월드 바운딩 박스를 확장합니다.
+            WorldBoundingBox.min.x = FMath::Min(WorldBoundingBox.min.x, TransformedCornersMin.x);
+            WorldBoundingBox.min.y = FMath::Min(WorldBoundingBox.min.y, TransformedCornersMin.y);
+            WorldBoundingBox.min.z = FMath::Min(WorldBoundingBox.min.z, TransformedCornersMin.z);
+
+            WorldBoundingBox.max.x = FMath::Max(WorldBoundingBox.max.x, TransformedCornersMax.x);
+            WorldBoundingBox.max.y = FMath::Max(WorldBoundingBox.max.y, TransformedCornersMax.y);
+            WorldBoundingBox.max.z = FMath::Max(WorldBoundingBox.max.z, TransformedCornersMax.z);
         }
-        //FManagerOBJ::CreateStaticMesh();
-
-        sceneData.BoundingBox = WorldBoundingBox;
-
-       // UCameraComponent* camera = GEngineLoop.GetWorld()->GetCamera();
+        
         auto perspectiveCamera = j["PerspectiveCamera"];
         std::shared_ptr<FEditorViewportClient> ViewPort = GEngineLoop.GetLevelEditor()->GetActiveViewportClient();
 
