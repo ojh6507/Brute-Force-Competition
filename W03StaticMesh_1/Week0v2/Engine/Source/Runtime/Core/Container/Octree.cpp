@@ -29,7 +29,6 @@ void FOctree::AddComponent(UStaticMeshComponent* InComponent)
         return;
     }
 
-    const FBoundingBox& ComponentBoundingBox = InComponent->GetBoundingBox();
 
     if (IsLeafNode())
     {
@@ -42,16 +41,17 @@ void FOctree::AddComponent(UStaticMeshComponent* InComponent)
     }
     else
     {
-        int ChildBoundingBoxIndex = CalculteChildIndex(InComponent->GetWorldLocation()); //position기준이 아니라 boundingbox로 포함하는애 전부 주기
-        Children[ChildBoundingBoxIndex]->AddComponent(InComponent);
+        // int ChildBoundingBoxIndex = CalculteChildIndex(InComponent->GetWorldLocation()); //position기준이 아니라 boundingbox로 포함하는애 전부 주기
+        // Children[ChildBoundingBoxIndex]->AddComponent(InComponent);
 
-        // for (int i=0;i<8;i++) //각 옥트리 돌면서 바운딩박스 충돌검사
-        // {
-        //     if (Children[i]->BoundingBox.Intersects(ComponentBoundingBox))
-        //     {
-        //         Children[i]->AddComponent(InComponent);
-        //     }
-        // }
+        const FBoundingBox& ComponentBoundingBox = InComponent->GetWorldBoundingBox();
+        for (int i=0;i<8;i++) //각 옥트리 돌면서 바운딩박스 충돌검사
+        {
+            if (Children[i]->BoundingBox.Intersects(ComponentBoundingBox))
+            {
+                Children[i]->AddComponent(InComponent);
+            }
+        }
     }
 }
 
@@ -75,17 +75,18 @@ void FOctree::SubDivide()
     // 기존 노드의 컴포넌트를 각 자식 노드로 분배
     for (UStaticMeshComponent* Component : PrimitiveComponents)
     {
-        int ChildBoundingBoxIndex = CalculteChildIndex(Component->GetWorldLocation());
-        Children[ChildBoundingBoxIndex]->AddComponent(Component);
-        // const FBoundingBox ComponentBoundingBox = Component->GetBoundingBox();
-        //
-        // for (int i=0;i<8;i++)
-        // {
-        //     if (Children[i]->BoundingBox.Intersects(ComponentBoundingBox))
-        //     {
-        //         Children[i]->AddComponent(Component);
-        //     }
-        // }
+        // int ChildBoundingBoxIndex = CalculteChildIndex(Component->GetWorldLocation());
+        // Children[ChildBoundingBoxIndex]->AddComponent(Component);
+        
+        const FBoundingBox ComponentBoundingBox = Component->GetWorldBoundingBox(); //World기준 BoundingBox 가져오기
+        
+        for (int i=0;i<8;i++)
+        {
+            if (Children[i]->BoundingBox.Intersects(ComponentBoundingBox))
+            {
+                Children[i]->AddComponent(Component);
+            }
+        }
     }
 
     //Component들 자식에게 물려주고 클리어

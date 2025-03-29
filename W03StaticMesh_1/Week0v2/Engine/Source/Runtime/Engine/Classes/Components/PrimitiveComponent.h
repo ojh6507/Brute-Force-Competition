@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Source/Runtime/Engine/Classes/Components/SceneComponent.h"
+#include "Math/JungleMath.h"
 
 class UPrimitiveComponent : public USceneComponent
 {
@@ -30,5 +31,14 @@ public:
         //staticMesh = FEngineLoop::resourceMgr.GetMesh(m_Type);
     }
     FBoundingBox GetBoundingBox() { return AABB; }
+    FBoundingBox GetWorldBoundingBox()
+    {
+        FMatrix Model = JungleMath::CreateModelMatrix(
+            GetWorldLocation(),
+            GetWorldRotation(),
+            GetWorldScale()
+        );
+        return GetBoundingBox().TransformWorld(Model);
+    }
 };
 

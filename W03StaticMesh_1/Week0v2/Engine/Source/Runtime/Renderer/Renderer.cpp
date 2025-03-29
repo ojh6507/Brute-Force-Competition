@@ -1004,6 +1004,7 @@ void FRenderer::PrepareRender()
 {
     if (bIsDirtyRenderObj == true)
     {
+        int count = 0;
         for (const auto iter : TObjectRange<UStaticMeshComponent>())
         {
             if (UStaticMeshComponent* pStaticMeshComp = Cast<UStaticMeshComponent>(iter))
@@ -1012,7 +1013,10 @@ void FRenderer::PrepareRender()
                 {
                     //StaticMeshObjs.Add(pStaticMeshComp);
                     pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree()->AddComponent(pStaticMeshComp);
-
+                    if (count++ > 5000)
+                    {
+                        FOctree* oc = pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree();
+                    }
                 }
             }
         }
