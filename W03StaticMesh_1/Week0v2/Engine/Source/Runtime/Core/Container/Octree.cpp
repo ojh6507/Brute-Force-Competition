@@ -64,19 +64,40 @@ void FOctree::SubDivide()
 int FOctree::CalculteChildIndex(FVector Pos)
 {
     int ReturnIndex = 0;
-    ReturnIndex += Pos.x > (BoundingBox.min.x + HalfSize.x) ? 2 : 0;
-    ReturnIndex += Pos.y > (BoundingBox.min.y + HalfSize.y) ? 1 : 0;
-    ReturnIndex += Pos.z > (BoundingBox.min.z + HalfSize.z) ? 4 : 0;
+    ReturnIndex |= Pos.x > (BoundingBox.min.x + HalfSize.x) ? 1 : 0;
+    ReturnIndex |= Pos.y > (BoundingBox.min.y + HalfSize.y) ? 2 : 0;
+    ReturnIndex |= Pos.z > (BoundingBox.min.z + HalfSize.z) ? 4 : 0;
 
     return ReturnIndex;
+}
+
+TArray<FOctree*> FOctree::GetValidLeafNodes()
+{
+    TArray<FOctree*> ValidLeafNodes;
+
+    if (IsLeapNode())
+    {
+        if (PrimitiveComponents.Num() > 0)
+        {
+            ValidLeafNodes.Add(this);
+        }
+    }else
+    {
+        for (auto& Child : Children)
+        {
+            ValidLeafNodes.Append(Child->GetValidLeafNodes());
+        }
+    }
+
+    return ValidLeafNodes;
 }
 
 FBoundingBox FOctree::CalculateChildBoundingBox(int index)
 {
     //0이면 min~mid 1이면 mid~max
-    int OffsetX = index / 4;
-    int OffsetY = index % 2;
-    int OffsetZ = (index % 4) / 2;
+    int OffsetX = index & 1;
+    int OffsetY = index & 2;
+    int OffsetZ = index & 4;
     
     FBoundingBox childBox;
     childBox.min.x = BoundingBox.min.x + (HalfSize.x * OffsetX);

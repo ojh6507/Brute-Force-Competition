@@ -7,7 +7,6 @@ class UPrimitiveComponent;
 class FOctree
 {
 public:
-    FOctree() = default;
     FOctree(const FBoundingBox& InBoundingBox);
     ~FOctree();
     void AddComponent(UPrimitiveComponent* InComponent);
@@ -17,6 +16,7 @@ public:
 
     bool IsLeapNode(){ return Children.Num() == 0; }
     FBoundingBox CalculateChildBoundingBox(int index);
+    TArray<FOctree*> GetValidLeafNodes();
 
 private:
     FBoundingBox BoundingBox;

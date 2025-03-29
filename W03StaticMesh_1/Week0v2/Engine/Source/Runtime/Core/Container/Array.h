@@ -51,6 +51,7 @@ public:
 
 	/** Element를 Number개 만큼 초기화 합니다. */
     void Init(const T& Element, SizeType Number);
+    void Append(const TArray<T, Allocator>& OtherArray);
     SizeType Add(const T& Item);
     SizeType Add(T&& Item);
     SizeType AddUnique(const T& Item);
@@ -183,6 +184,12 @@ template <typename T, typename Allocator>
 void TArray<T, Allocator>::Init(const T& Element, SizeType Number)
 {
     ContainerPrivate.assign(Number, Element);
+}
+
+template <typename T, typename Allocator>
+void TArray<T, Allocator>::Append(const TArray<T, Allocator>& OtherArray)
+{
+    ContainerPrivate.insert(ContainerPrivate.end(), OtherArray.ContainerPrivate.begin(), OtherArray.ContainerPrivate.end());
 }
 
 template <typename T, typename Allocator>
