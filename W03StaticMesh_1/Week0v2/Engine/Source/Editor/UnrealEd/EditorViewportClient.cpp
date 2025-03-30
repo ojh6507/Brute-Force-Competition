@@ -39,10 +39,10 @@ void FEditorViewportClient::Tick(float DeltaTime)
 {
     Input(DeltaTime);
     UpdateMatrix();
-   // CollectIntersectingComponents();
+    CollectIntersectingComponents();
 
-   // FrustumStaticMeshs.Empty();
-   /* for (UStaticMeshComponent* StaticMeshComp : VisibleStaticMeshs) {
+    FrustumStaticMeshs.Empty();
+    for (UStaticMeshComponent* StaticMeshComp : VisibleStaticMeshs) {
       
     FMatrix Model = JungleMath::CreateModelMatrix(
             StaticMeshComp->GetWorldLocation(),
@@ -54,7 +54,7 @@ void FEditorViewportClient::Tick(float DeltaTime)
         bool bFrustum = StaticMeshComp->GetBoundingBox().TransformWorld(Model).IsIntersectingFrustum(frustumPlanes);
         if (bFrustum)
             FrustumStaticMeshs.Add(StaticMeshComp);
-    }*/
+    }
 }
 
 void FEditorViewportClient::Release()

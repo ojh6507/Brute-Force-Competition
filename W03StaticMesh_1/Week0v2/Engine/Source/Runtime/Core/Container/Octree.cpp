@@ -5,13 +5,17 @@
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "UnrealEd/PrimitiveBatch.h"
-#include "Math/JungleMath.h"
-FOctree::FOctree(const FBoundingBox& InBoundingBox) {
+
+FOctree::FOctree(const FBoundingBox& InBoundingBox, int InNodeID) {
     BoundingBox = InBoundingBox;
 
     HalfSize.x = (BoundingBox.min.x + BoundingBox.max.x) / 2 - BoundingBox.min.x;
     HalfSize.y = (BoundingBox.min.y + BoundingBox.max.y) / 2 - BoundingBox.min.y;
     HalfSize.z = (BoundingBox.min.z + BoundingBox.max.z) / 2 - BoundingBox.min.z;
+
+    NodeID = InNodeID;
+    
+    SubDivide();
 }
 
 FOctree::~FOctree()
@@ -28,36 +32,39 @@ void FOctree::AddComponent(UStaticMeshComponent* InComponent)
     {
         return;
     }
-
-
+    
     if (IsLeafNode())
     {
         PrimitiveComponents.Add(InComponent);
-
+        
         if (PrimitiveComponents.Num() > DivideThreshold)
         {
-            SubDivide();
+            DivideComponent();
         }
     }
     else
     {
-        // int ChildBoundingBoxIndex = CalculteChildIndex(InComponent->GetWorldLocation()); //position기준이 아니라 boundingbox로 포함하는애 전부 주기
-        // Children[ChildBoundingBoxIndex]->AddComponent(InComponent);
-
-        const FBoundingBox& ComponentBoundingBox = InComponent->GetWorldBoundingBox();
-        for (int i=0;i<8;i++) //각 옥트리 돌면서 바운딩박스 충돌검사
-        {
-            if (Children[i]->BoundingBox.Intersects(ComponentBoundingBox))
-            {
-                Children[i]->AddComponent(InComponent);
-            }
-        }
+        int ChildBoundingBoxIndex = CalculteChildIndex(InComponent->GetWorldLocation()); //position기준이 아니라 boundingbox로 포함하는애 전부 주기
+        Children[ChildBoundingBoxIndex]->AddComponent(InComponent);
     }
+}
+
+int FOctree::GetDepth(int nodeID) {
+    if (nodeID < 0) {
+        throw std::invalid_argument("NodeID must be greater than or equal to 0.");
+    }
+
+    int depth = 0; // 루트 노드의 Depth는 0
+    while (nodeID > 0) {
+        nodeID = (nodeID - 1) / 8; // 부모 노드 ID 계산
+        depth++;
+    }
+    return depth;
 }
 
 void FOctree::SubDivide()
 {
-    if (Depth >= MaxDepth || !IsLeafNode())
+    if (GetDepth(NodeID) >= MaxDepth) //Depth를 위해 올림계산
     {
         return;
     }
@@ -67,41 +74,31 @@ void FOctree::SubDivide()
     for (int i = 0; i < 8; i++)
     {
         FBoundingBox childBox = CalculateChildBoundingBox(i);
-        FOctree* childNode = new FOctree(childBox);
-        childNode->Depth = Depth + 1;
+        FOctree* childNode = new FOctree(childBox, NodeID * 8 + i + 1);
         Children.Add(childNode);
     }
+}
 
+void FOctree::DivideComponent() //자기를 Internal로 만드는 동시에 분배진행
+{
+    if (Children.Num() == 0)
+    {
+        return;
+    }
+    
+    bIsLeap = false;
+    
     // 기존 노드의 컴포넌트를 각 자식 노드로 분배
     for (UStaticMeshComponent* Component : PrimitiveComponents)
     {
-        // int ChildBoundingBoxIndex = CalculteChildIndex(Component->GetWorldLocation());
-        // Children[ChildBoundingBoxIndex]->AddComponent(Component);
-        
-        const FBoundingBox ComponentBoundingBox = Component->GetWorldBoundingBox(); //World기준 BoundingBox 가져오기
-        
-        for (int i=0;i<8;i++)
-        {
-            if (Children[i]->BoundingBox.Intersects(ComponentBoundingBox))
-            {
-                Children[i]->AddComponent(Component);
-            }
-        }
+        int ChildBoundingBoxIndex = CalculteChildIndex(Component->GetWorldLocation());
+        Children[ChildBoundingBoxIndex]->AddComponent(Component);
     }
 
     //Component들 자식에게 물려주고 클리어
     PrimitiveComponents.Empty();
 }
 
-int FOctree::CalculteChildIndex(FVector Pos)
-{
-    int ReturnIndex = 0;
-    ReturnIndex |= Pos.x >= (BoundingBox.min.x + HalfSize.x) ? 1 : 0;
-    ReturnIndex |= Pos.y >= (BoundingBox.min.y + HalfSize.y) ? 2 : 0;
-    ReturnIndex |= Pos.z >= (BoundingBox.min.z + HalfSize.z) ? 4 : 0;
-
-    return ReturnIndex;
-}
 void FOctree::CollectIntersectingComponents(const Plane frustumPlanes[6], TArray<UStaticMeshComponent*>& OutComponents)
 {
 
@@ -116,9 +113,7 @@ void FOctree::CollectIntersectingComponents(const Plane frustumPlanes[6], TArray
             OutComponents.Add(Comp);
         }
     }
-
 }
-
 
 TArray<UStaticMeshComponent*> FOctree::GetRayPossibleComp()
 {
@@ -127,6 +122,7 @@ TArray<UStaticMeshComponent*> FOctree::GetRayPossibleComp()
     else
         return{};
 }
+
 void FOctree::DebugBoundingBox()
 {
     UPrimitiveBatch::GetInstance().RenderAABB(
@@ -196,6 +192,26 @@ TArray<FOctree*> FOctree::CollectCandidateNodes(const FVector& pickPos, const FM
     return CandidateNodes;
 }
 
+bool FOctree::CheckInBoundingBox(FVector Pos)
+{
+    if (BoundingBox.max.x < Pos.x || BoundingBox.min.x > Pos.x)
+    {
+        return false;
+    }
+
+    if (BoundingBox.max.y < Pos.y || BoundingBox.min.y > Pos.y)
+    {
+        return false;
+    }
+
+    if (BoundingBox.max.z < Pos.z || BoundingBox.min.z > Pos.z)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 FBoundingBox FOctree::CalculateChildBoundingBox(int index)
 {
     //0이면 min~mid 1이면 mid~max
@@ -211,7 +227,16 @@ FBoundingBox FOctree::CalculateChildBoundingBox(int index)
     childBox.max.x = childBox.min.x + HalfSize.x;
     childBox.max.y = childBox.min.y + HalfSize.y;
     childBox.max.z = childBox.min.z + HalfSize.z;
-
-
+    
     return childBox;
+}
+
+int FOctree::CalculteChildIndex(FVector Pos)
+{
+    int ReturnIndex = 0;
+    ReturnIndex |= Pos.x > (BoundingBox.min.x + HalfSize.x) ? 1 : 0;
+    ReturnIndex |= Pos.y > (BoundingBox.min.y + HalfSize.y) ? 2 : 0;
+    ReturnIndex |= Pos.z > (BoundingBox.min.z + HalfSize.z) ? 4 : 0;
+
+    return ReturnIndex;
 }

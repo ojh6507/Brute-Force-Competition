@@ -1054,10 +1054,12 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
     PrepareShader(); 
     Plane frustumPlanes[6];
     memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
-    //ActiveViewport->GetVisibleStaticMesh(StaticMeshObjs);
+
+    ActiveViewport->GetVisibleStaticMesh(StaticMeshObjs);
+    StaticMeshObjs.Empty(); //사과 안보이게하는거
+
     for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
     {
-       
         FMatrix Model = JungleMath::CreateModelMatrix(
             StaticMeshComp->GetWorldLocation(),
             StaticMeshComp->GetWorldRotation(),

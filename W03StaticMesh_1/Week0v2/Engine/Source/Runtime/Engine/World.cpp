@@ -39,11 +39,12 @@ void UWorld::Initialize()
     FString jsonContent = FSceneMgr::LoadSceneFromFile(FileName);
     SceneData ParseSceneData = FSceneMgr::ParseSceneData(jsonContent);
 #endif
+    
     FBoundingBox WorldBoundingBox = FBoundingBox(ParseSceneData.BoundingBox.min, ParseSceneData.BoundingBox.max);
     
     if (RootOctree == nullptr)
     {
-        RootOctree = new FOctree(WorldBoundingBox);
+        RootOctree = new FOctree(WorldBoundingBox, 0);
     }
 }
 
