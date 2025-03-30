@@ -39,6 +39,7 @@ void FEditorViewportClient::Tick(float DeltaTime)
 {
     Input(DeltaTime);
     UpdateMatrix();
+    UpdateCameraBuffer();
     CollectIntersectingComponents();
 
    /* FrustumStaticMeshs.Empty();
@@ -125,7 +126,7 @@ void FEditorViewportClient::Input(float DeltaTime)
             CameraMoveUp(-1.f * DeltaTime);
         }
        
-        UpdateCameraBuffer();
+       
     }
     else
     {
@@ -155,7 +156,6 @@ void FEditorViewportClient::ResizeViewport(const DXGI_SWAP_CHAIN_DESC& swapchain
     }
     AspectRatio = GEngineLoop.GetAspectRatio(GEngineLoop.graphicDevice.SwapChain);
     UpdateProjectionMatrix();
-    UpdateViewMatrix();
 }
 void FEditorViewportClient::ResizeViewport(FRect Top, FRect Bottom, FRect Left, FRect Right)
 {
@@ -167,7 +167,6 @@ void FEditorViewportClient::ResizeViewport(FRect Top, FRect Bottom, FRect Left, 
     }
     AspectRatio = GEngineLoop.GetAspectRatio(GEngineLoop.graphicDevice.SwapChain);
     UpdateProjectionMatrix();
-    UpdateViewMatrix();
 }
 bool FEditorViewportClient::IsSelected(POINT point)
 {
@@ -312,14 +311,14 @@ void FEditorViewportClient::ExtractFrustumPlanesDirect()
     FVector camRight = ViewTransformPerspective.GetRightVector();
 
     // 근/원거리 평면 중심 계산
-    FVector nc = camPos + camForward * (nearPlane + 0.05);
+    FVector nc = camPos + camForward * (nearPlane + 0.1);
     FVector fc = camPos + camForward * farPlane;
 
     // 시야각(ViewFOV)은 일반적으로 도(degree) 단위이므로 라디안으로 변환 (예: 60도 -> 60 * PI/180)
     float fovRad = ViewFOV * 3.141592f / 180.0f;
 
     // 근/원거리 평면의 높이와 너비 계산
-    float nearHeight = (nearPlane + 0.05)* tanf(fovRad * 0.5f);
+    float nearHeight = (nearPlane + 0.1)* tanf(fovRad * 0.5f);
     float nearWidth = nearHeight * AspectRatio;
     float farHeight = farPlane * tanf(fovRad * 0.5f);
     float farWidth = farHeight * AspectRatio;

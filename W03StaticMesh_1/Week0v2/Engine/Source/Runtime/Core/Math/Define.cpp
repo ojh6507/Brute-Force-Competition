@@ -141,11 +141,3 @@ FVector4 FMatrix::TransformVector(const FVector4& v, const FMatrix& m)
     out.a = DirectX::XMVectorGetW(result);
     return out;
 }
-
-FMatrix FBoundingBox::CreateBoundingBoxTransform()
-{
-    FVector Center = (min + max) * 0.5f;
-    FVector Scale = max - min;
-    FMatrix Transform = JungleMath::CreateModelMatrix(Center, FQuat(), Scale);
-    return Transform;
-}

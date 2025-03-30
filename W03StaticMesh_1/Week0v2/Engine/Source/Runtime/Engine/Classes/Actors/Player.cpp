@@ -39,15 +39,20 @@ void AEditorPlayer::Input()
             POINT mousePos;
             GetCursorPos(&mousePos);
             GetCursorPos(&m_LastMousePos);
-
             ScreenToClient(GetEngine().hWnd, &mousePos);
+
+            FScopeCycleCounter pickCounter;
+            ++TotalPickCount;
 
             FVector pickPosition;
 
             const auto& ActiveViewport = GetEngine().GetLevelEditor()->GetActiveViewportClient();
             ScreenToViewSpace(mousePos.x, mousePos.y, ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix(), pickPosition);
-            PickActor(pickPosition, ActiveViewport);
-
+            if (PickActor(pickPosition, ActiveViewport))
+            {
+                LastPickTime = pickCounter.Finish();
+                TotalPickTime += LastPickTime;
+            }
         }
     }
     else if (bLeftMouseDown)
@@ -66,54 +71,56 @@ void AEditorPlayer::Input()
         bRightMouseDown = false;
     }
 }
-
-void AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEditorViewportClient> ActiveViewport)
+bool AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
 
-    FScopeCycleCounter pickCounter;
-
-    ++TotalPickCount;
-    TArray<UStaticMeshComponent*> StaticMeshCompArray;
     UPrimitiveComponent* Possible = nullptr;
-    int maxIntersect = 0;
     float minDistance = FLT_MAX;
-
+    int maxIntersect = 0;
 
     FMatrix viewMatrix = ActiveViewport->GetViewMatrix();
-    Plane frustumPlanes[6];
-    memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
+    FMatrix invViewMatrix = FMatrix::Inverse(viewMatrix);
+    FVector pickRayOrigin = invViewMatrix.TransformPosition(FVector(0, 0, 0));
+    FVector transformedPick = invViewMatrix.TransformPosition(pickPosition);
+    FVector rayDirection = (transformedPick - pickRayOrigin).Normalize();
 
-    for (int maxDist = 10; maxDist <= ActiveViewport->farPlane; maxDist += 10) {
+    FVector CameraPos = ActiveViewport->ViewTransformPerspective.GetLocation();
 
-        auto candidates = GEngineLoop.GetWorld()->GetRootBVH()->CollectCandidateComponents(pickPosition, viewMatrix, ActiveViewport->ViewTransformPerspective.GetLocation(), maxDist);
-        for (const auto& comp : candidates)
+    TArray<std::pair<FBVH*, float>> hitLeaves;
+
+    GEngineLoop.GetWorld()->GetRootBVH()->RayCheck(pickRayOrigin, rayDirection, hitLeaves);
+
+    for (const TPair<FBVH*, float>& pair : hitLeaves)
+    {
+        FBVH* leaf = pair.Key;
+        TArray<UStaticMeshComponent*> comps = GEngineLoop.GetWorld()->GetRootBVH()->CollectCandidateComponentsByLeaf(leaf);
+
+        for (UStaticMeshComponent* comp : comps)
         {
             float Distance = 0.0f;
             int currentIntersectCount = 0;
+
             if (RayIntersectsObject(pickPosition, comp, Distance, currentIntersectCount))
             {
-                if (Distance < minDistance)
+                if (Distance < minDistance && currentIntersectCount > 0 ||
+                    (FMath::Abs(Distance - minDistance) < FLT_EPSILON && currentIntersectCount> 1))
                 {
                     minDistance = Distance;
-                    Possible = comp;
-                }
-                else if (abs(Distance - minDistance) < FLT_EPSILON && currentIntersectCount > maxIntersect)
-                {
                     maxIntersect = currentIntersectCount;
                     Possible = comp;
                 }
             }
-
         }
-
         if (Possible)
         {
             GetWorld()->SetPickedPrimitive(Possible);
-            LastPickTime = pickCounter.Finish();
-            TotalPickTime += LastPickTime;
-            return;
+            return true;
         }
     }
+
+   
+    return false;
+
 }
 
 void AEditorPlayer::AddControlMode()

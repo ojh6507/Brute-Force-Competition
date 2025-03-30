@@ -980,7 +980,7 @@ void FRenderer::RenderBatch(
     Graphics->DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
     UINT vertexCountPerInstance = 2;
-    UINT instanceCount = gridParam.numGridLines + 3 + (boundingBoxCount * 12) + (coneCount * (2 * coneSegmentCount)) + (12 * obbCount);
+    UINT instanceCount = gridParam.numGridLines + 3 + (boundingBoxCount * 12);
     Graphics->DeviceContext->DrawInstanced(vertexCountPerInstance, instanceCount, 0, 0);
     Graphics->DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
@@ -1040,6 +1040,7 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         if (World->GetSelectedComp() == StaticMeshComp)
         {
             UpdateConstant(StaticMeshComp->Model, {}, true);
+
             UPrimitiveBatch::GetInstance().RenderAABB(
                 StaticMeshComp->GetBoundingBox(),
                 StaticMeshComp->GetWorldLocation(),

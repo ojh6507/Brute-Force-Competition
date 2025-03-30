@@ -5,7 +5,7 @@ extern FEngineLoop GEngineLoop;
 
 UPrimitiveBatch::UPrimitiveBatch()
 {
-    GenerateGrid(5, 5000);
+    GenerateGrid(5, 1000);
 }
 
 UPrimitiveBatch::~UPrimitiveBatch()
@@ -29,7 +29,7 @@ void UPrimitiveBatch::Release()
 void UPrimitiveBatch::GenerateGrid(float spacing, int gridCount)
 {
     GridParam.gridSpacing = spacing;
-    GridParam.numGridLines = gridCount;
+    GridParam.numGridLines = 100;
     GridParam.gridOrigin = { 0,0,0 };
 }
 
@@ -39,18 +39,15 @@ void UPrimitiveBatch::RenderBatch(const FMatrix& View, const FMatrix& Projection
 
     InitializeVertexBuffer();
 
-    FMatrix MVP = FMatrix::Identity * View * Projection;
-    FEngineLoop::renderer.UpdateConstant(MVP, FVector4(0,0,0,0), false);
+    FEngineLoop::renderer.UpdateConstant(FMatrix::Identity, FVector4(0,0,0,0), false);
     FEngineLoop::renderer.UpdateGridConstantBuffer(GridParam);
 
     UpdateBoundingBoxResources();
     UpdateConeResources();
     UpdateOBBResources();
     int boundingBoxSize = static_cast<int>(BoundingBoxes.Num());
-    int coneSize = static_cast<int>(Cones.Num());
-    int obbSize = static_cast<int>(OrientedBoundingBoxes.Num());
-    FEngineLoop::renderer.UpdateLinePrimitveCountBuffer(boundingBoxSize, coneSize);
-    FEngineLoop::renderer.RenderBatch(GridParam, pVertexBuffer, boundingBoxSize, coneSize, ConeSegmentCount, obbSize);
+    FEngineLoop::renderer.UpdateLinePrimitveCountBuffer(boundingBoxSize, 0);
+    FEngineLoop::renderer.RenderBatch(GridParam, pVertexBuffer, boundingBoxSize, 0, 0, 0);
     BoundingBoxes.Empty();
     Cones.Empty();
     OrientedBoundingBoxes.Empty();
@@ -64,7 +61,7 @@ void UPrimitiveBatch::InitializeVertexBuffer()
 void UPrimitiveBatch::UpdateBoundingBoxResources()
 {
     if (BoundingBoxes.Num() > allocatedBoundingBoxCapacity) {
-        allocatedBoundingBoxCapacity = BoundingBoxes.Num();
+        allocatedBoundingBoxCapacity = BoundingBoxes.Num() * 10;
 
         ReleaseBoundingBoxResources();
 

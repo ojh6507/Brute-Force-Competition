@@ -16,6 +16,7 @@
 #include <d3d11.h>
 
 #include "UserInterface/Console.h"
+#include <stack>
 
 struct FVertexSimple
 {
@@ -189,6 +190,7 @@ struct Plane {
     float a, b, c, d;
 };
 
+
 struct FBoundingBox
 {
     FBoundingBox() {}
@@ -211,6 +213,7 @@ struct FBoundingBox
         // 모든 축에서 겹쳐야만 최종적으로 교차하는 것으로 판단합니다.
         return bOverlapX && bOverlapY && bOverlapZ;
     }
+
     FVector GetBoundingBoxCenter() {
         return (max - min) * 0.5f;
     }
@@ -327,80 +330,93 @@ struct FBoundingBox
         if (Point.z > max.z) max.z = Point.z;
     }
 
+    // branchless 절대값 계산: v의 비트 표현에서 부호 비트를 제거
+    FORCEINLINE float FastAbs(float v)
+    {
+        unsigned int iv;
+        memcpy(&iv, &v, sizeof(v));
+        iv &= 0x7FFFFFFF;
+        float absV;
+        memcpy(&absV, &iv, sizeof(absV));
+        return absV;
+    }
+
+    // branchless 안전한 역수 계산: v의 절대값이 epsilon 미만이면 FLT_MAX를 반환
+    FORCEINLINE float SafeInv(float v, float epsilon)
+    {
+        // v의 절대값과 epsilon의 비트 표현을 비교하여 mask 생성 (조건부 선택)
+        // 조건: FastAbs(v) < epsilon 인 경우, mask = 0, 아니면 mask = ~0
+        unsigned int iv;
+        memcpy(&iv, &v, sizeof(v));
+        iv &= 0x7FFFFFFF;
+        unsigned int eps;
+        memcpy(&eps, &epsilon, sizeof(epsilon));
+        // mask = 0xFFFFFFFF if iv >= eps, else 0
+        unsigned int mask = -(int)(iv >= eps);
+        // 두 값 중 선택: mask가 모두 1이면 1/v, 아니면 FLT_MAX
+        float inv;
+        float invVal = 1.0f / v;
+        // bit-level 선택: mask와 ~mask를 이용하여 선택 (비트별 AND, OR)
+        unsigned int* pInv = reinterpret_cast<unsigned int*>(&inv);
+        unsigned int invValBits;
+        memcpy(&invValBits, &invVal, sizeof(invValBits));
+        unsigned int fltMaxBits;
+        float maxValue = FLT_MAX;
+
+        memcpy(&fltMaxBits, &maxValue, sizeof(fltMaxBits));
+        // 선택: (mask & invValBits) | ((~mask) & fltMaxBits)
+        *pInv = (mask & invValBits) | ((~mask) & fltMaxBits);
+        return inv;
+    }
+
     bool Intersect(const FVector& rayOrigin, const FVector& rayDir, float& outDistance)
     {
-        float tmin = -FLT_MAX;
-        float tmax = FLT_MAX;
         const float epsilon = 1e-6f;
+        // 각 축별 안전한 역수 계산 (분기 없이)
+        float invDirX = SafeInv(rayDir.x, epsilon);
+        float invDirY = SafeInv(rayDir.y, epsilon);
+        float invDirZ = SafeInv(rayDir.z, epsilon);
 
-        // X축 처리
-        if (fabs(rayDir.x) < epsilon)
-        {
-            // 레이가 X축 방향으로 거의 평행한 경우,
-            // 원점의 x가 박스 [min.x, max.x] 범위 밖이면 교차 없음
-            if (rayOrigin.x < min.x || rayOrigin.x > max.x)
-                return false;
-        }
-        else
-        {
-            float t1 = (min.x - rayOrigin.x) / rayDir.x;
-            float t2 = (max.x - rayOrigin.x) / rayDir.x;
-            if (t1 > t2)  std::swap(t1, t2);
+        // X축 슬랩
+        float t1 = (min.x - rayOrigin.x) * invDirX;
+        float t2 = (max.x - rayOrigin.x) * invDirX;
+        float tmin = fminf(t1, t2);
+        float tmax = fmaxf(t1, t2);
 
-            // tmin은 "현재까지의 교차 구간 중 가장 큰 min"
-            tmin = (t1 > tmin) ? t1 : tmin;
-            // tmax는 "현재까지의 교차 구간 중 가장 작은 max"
-            tmax = (t2 < tmax) ? t2 : tmax;
-            if (tmin > tmax)
-                return false;
-        }
+        // Y축 슬랩
+        t1 = (min.y - rayOrigin.y) * invDirY;
+        t2 = (max.y - rayOrigin.y) * invDirY;
+        float tymin = fminf(t1, t2);
+        float tymax = fmaxf(t1, t2);
 
-        // Y축 처리
-        if (fabs(rayDir.y) < epsilon)
-        {
-            if (rayOrigin.y < min.y || rayOrigin.y > max.y)
-                return false;
-        }
-        else
-        {
-            float t1 = (min.y - rayOrigin.y) / rayDir.y;
-            float t2 = (max.y - rayOrigin.y) / rayDir.y;
-            if (t1 > t2)  std::swap(t1, t2);
+        // tmin, tmax 업데이트 (branchless: fmaxf/fminf는 대부분 인라인 처리됨)
+        tmin = fmaxf(tmin, tymin);
+        tmax = fminf(tmax, tymax);
 
-            tmin = (t1 > tmin) ? t1 : tmin;
-            tmax = (t2 < tmax) ? t2 : tmax;
-            if (tmin > tmax)
-                return false;
-        }
+        // Z축 슬랩
+        t1 = (min.z - rayOrigin.z) * invDirZ;
+        t2 = (max.z - rayOrigin.z) * invDirZ;
+        float tzmin = fminf(t1, t2);
+        float tzmax = fmaxf(t1, t2);
 
-        // Z축 처리
-        if (fabs(rayDir.z) < epsilon)
-        {
-            if (rayOrigin.z < min.z || rayOrigin.z > max.z)
-                return false;
-        }
-        else
-        {
-            float t1 = (min.z - rayOrigin.z) / rayDir.z;
-            float t2 = (max.z - rayOrigin.z) / rayDir.z;
-            if (t1 > t2)  std::swap(t1, t2);
+        tmin = fmaxf(tmin, tzmin);
+        tmax = fminf(tmax, tzmax);
 
-            tmin = (t1 > tmin) ? t1 : tmin;
-            tmax = (t2 < tmax) ? t2 : tmax;
-            if (tmin > tmax)
-                return false;
-        }
+        // 최종 교차 구간 조건 검사: (tmax < 0) 또는 (tmin > tmax)
+        // 이 두 조건은 부울 값로 계산하고, 최종 결과에 곱셈으로 반영 (0이면 false, 1이면 true)
+        // 아래는 if문 대신 bool값을 곱셈으로 사용한 예시
+        const int cond1 = (tmax < 0.0f);
+        const int cond2 = (tmin > tmax);
+        // cond1이나 cond2가 참이면 0, 아니면 1
+        int valid = !(cond1 | cond2);
 
-        // 여기까지 왔으면 교차 구간 [tmin, tmax]가 유효하다.
-        // tmax < 0 이면, 레이가 박스 뒤쪽에서 교차하므로 화면상 보기엔 교차 안 한다고 볼 수 있음
-        if (tmax < 0.0f)
-            return false;
+        // outDistance 계산: tmin가 음수이면 0, 아니면 tmin (삼항 대신 곱셈 사용)
+        // (tmin >= 0) ? tmin : 0 를, (tmin * (tmin >= 0))로 표현하면, (tmin >= 0) 평가가 0 또는 1가 되도록 강제해야 하는데,
+        // C++에서는 bool(true)=1, bool(false)=0가 된다.
+        outDistance = (tmin >= 0.0f) * tmin;
 
-        // outDistance = tmin이 0보다 크면 그게 레이가 처음으로 박스를 만나는 지점
-        // 만약 tmin < 0 이면, 레이의 시작점이 박스 내부에 있다는 의미이므로, 거리를 0으로 처리해도 됨.
-        outDistance = (tmin >= 0.0f) ? tmin : 0.0f;
-
-        return true;
+        // valid이 1이면 true, 0이면 false
+        return valid != 0;
     }
     bool IntersectSphere(
         const FVector& rayOrigin,
@@ -467,7 +483,7 @@ struct FBoundingBox
         // 월드 AABB 생성
         return FBoundingBox(worldCenter - worldExtents, worldCenter + worldExtents);
     }
-  
+
     void GetBoundingSphere(FVector& outCenter, float& outRadiusSquared)
     {
         outCenter = (min + max) * 0.5f;
@@ -499,9 +515,11 @@ struct FBoundingBox
         GetBoundingSphere(center, radius);
         return IsSphereInsideFrustum(planes, center, radius);
     }
-    FMatrix CreateBoundingBoxTransform();
+   
 
 };
+
+
 
 struct FCone
 {
@@ -570,3 +588,19 @@ struct FTextureConstants {
     float pad1;
 };
 
+struct Triangle {
+    FVector v0, v1, v2;
+    FBoundingBox bbox;
+
+    Triangle(const FVector& a, const FVector& b, const FVector& c)
+        : v0(a), v1(b), v2(c)
+    {
+        // 각 좌표별 최소, 최대값 계산
+        bbox.min.x = std::min({ a.x, b.x, c.x });
+        bbox.min.y = std::min({ a.y, b.y, c.y });
+        bbox.min.z = std::min({ a.z, b.z, c.z });
+        bbox.max.x = std::max({ a.x, b.x, c.x });
+        bbox.max.y = std::max({ a.y, b.y, c.y });
+        bbox.max.z = std::max({ a.z, b.z, c.z });
+    }
+};

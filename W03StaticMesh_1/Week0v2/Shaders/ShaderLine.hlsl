@@ -1,7 +1,12 @@
 
 cbuffer MatrixBuffer : register(b0)
 {
-    row_major float4x4 MVP;
+    row_major float4x4 Model;
+};
+
+cbuffer MatrixConstantBuffer : register(b6)
+{
+    row_major float4x4 VP;
 };
 
 cbuffer GridParametersData : register(b1)
@@ -283,30 +288,8 @@ PS_INPUT mainVS(VS_INPUT input)
         pos = ComputeBoundingBoxPosition(bbInstanceID, bbEdgeIndex, input.vertexID);
         color = float4(0.0, 0.0, 1.0, 1.0); // 노란색
     }
-    else if (input.instanceID < obbStart)
-    {
-        // 그 다음 콘(Cone) 구간
-        uint coneInstanceID = input.instanceID - coneInstanceStart;
-        pos = ComputeConePosition(coneInstanceID, input.vertexID);
-        int N = g_ConeData[0].ConeSegmentCount;
-        uint coneIndex = coneInstanceID / (2 * N);
-        
-        color = g_ConeData[coneIndex].Color;
-   
-        
-    }
-    else
-    {
-        uint obbLocalID = input.instanceID - obbStart;
-        uint obbIndex = obbLocalID / 12;
-        uint edgeIndex = obbLocalID % 12;
-
-        pos = ComputeOrientedBoxPosition(obbIndex, edgeIndex, input.vertexID);
-        color = float4(0.4, 1.0, 0.4, 1.0); // 예시: 연두색
-    }
-
     // 출력 변환
-    output.Position = mul(float4(pos, 1.0), MVP);
+    output.Position = mul(mul(float4(pos, 1.0), Model),VP);
     output.Color = color;
     return output;
 }

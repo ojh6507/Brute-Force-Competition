@@ -77,7 +77,7 @@ void TriangleBVH::BuildRecursive(const TArray<Triangle>& inTriangles, int depth)
 
 // 광선과 교차하는 후보 삼각형들을 수집 (루트 호출)
 void TriangleBVH::CollectCandidateTriangles(const FVector& rayOrigin, const FVector& rayDir, TArray<const Triangle*>& outTriangles) {
-    CollectCandidatesRecursive(rayOrigin, rayDir, outTriangles);
+    CollectCandidatesIterativeDFS(rayOrigin, rayDir, outTriangles);
 }
 
 void TriangleBVH::CollectCandidatesRecursive(const FVector& rayOrigin, const FVector& rayDir, TArray<const Triangle*>& outTriangles) {
@@ -97,6 +97,41 @@ void TriangleBVH::CollectCandidatesRecursive(const FVector& rayOrigin, const FVe
     // 자식 노드가 있으면 재귀적으로 탐색
     if (left)  left->CollectCandidatesRecursive(rayOrigin, rayDir, outTriangles);
     if (right) right->CollectCandidatesRecursive(rayOrigin, rayDir, outTriangles);
+}
+void TriangleBVH::CollectCandidatesIterativeDFS(const FVector& rayOrigin, const FVector& rayDir, TArray<const Triangle*>& outTriangles)
+{
+    // 최대 깊이가 크지 않다는 가정 하에 고정 크기 스택 사용 (충분히 큰 크기로 설정)
+    const int MAX_STACK_SIZE = 64;
+    TriangleBVH* stack[MAX_STACK_SIZE];
+    int stackIndex = 0;
+    stack[stackIndex++] = this;
+
+    while (stackIndex > 0)
+    {
+        TriangleBVH* node = stack[--stackIndex];
+
+        float t;
+        // 현재 노드의 AABB와 레이 교차 검사 (인라인 최적화를 기대)
+        if (!node->boundingBox.Intersect(rayOrigin, rayDir, t))
+            continue;
+
+        // 리프 노드인 경우 후보 삼각형들을 추가
+        if (node->IsLeaf())
+        {
+            for (const Triangle& tri : node->triangles)
+            {
+                outTriangles.Add(&tri);
+            }
+        }
+        else
+        {
+            // 오른쪽 자식부터 스택에 넣어, 왼쪽 자식을 먼저 처리하도록 함
+            if (node->right)
+                stack[stackIndex++] = node->right;
+            if (node->left)
+                stack[stackIndex++] = node->left;
+        }
+    }
 }
 
 // 디버깅: 현재 노드의 바운딩 박스 정보를 출력
