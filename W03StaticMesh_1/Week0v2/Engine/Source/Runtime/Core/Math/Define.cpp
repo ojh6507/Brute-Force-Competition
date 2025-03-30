@@ -1,5 +1,6 @@
 #include "Define.h"
 #include "Math//JungleMath.h"
+
 // 단위 행렬 정의
 const FMatrix FMatrix::Identity = { {
     {1, 0, 0, 0},
@@ -8,47 +9,51 @@ const FMatrix FMatrix::Identity = { {
     {0, 0, 0, 1}
 } };
 
-// 행렬 덧셈
+// 행렬 덧셈 (SIMD 버전)
 FMatrix FMatrix::operator+(const FMatrix& Other) const {
     FMatrix Result;
-    for (int32 i = 0; i < 4; i++)
-        for (int32 j = 0; j < 4; j++)
-            Result.M[i][j] = M[i][j] + Other.M[i][j];
+    Result.DirectXMatrix.r[0] = DirectX::XMVectorAdd(DirectXMatrix.r[0], Other.DirectXMatrix.r[0]);
+    Result.DirectXMatrix.r[1] = DirectX::XMVectorAdd(DirectXMatrix.r[1], Other.DirectXMatrix.r[1]);
+    Result.DirectXMatrix.r[2] = DirectX::XMVectorAdd(DirectXMatrix.r[2], Other.DirectXMatrix.r[2]);
+    Result.DirectXMatrix.r[3] = DirectX::XMVectorAdd(DirectXMatrix.r[3], Other.DirectXMatrix.r[3]);
     return Result;
 }
 
-// 행렬 뺄셈
+// 행렬 뺄셈 (SIMD 버전)
 FMatrix FMatrix::operator-(const FMatrix& Other) const {
     FMatrix Result;
-    for (int32 i = 0; i < 4; i++)
-        for (int32 j = 0; j < 4; j++)
-            Result.M[i][j] = M[i][j] - Other.M[i][j];
+    Result.DirectXMatrix.r[0] = DirectX::XMVectorSubtract(DirectXMatrix.r[0], Other.DirectXMatrix.r[0]);
+    Result.DirectXMatrix.r[1] = DirectX::XMVectorSubtract(DirectXMatrix.r[1], Other.DirectXMatrix.r[1]);
+    Result.DirectXMatrix.r[2] = DirectX::XMVectorSubtract(DirectXMatrix.r[2], Other.DirectXMatrix.r[2]);
+    Result.DirectXMatrix.r[3] = DirectX::XMVectorSubtract(DirectXMatrix.r[3], Other.DirectXMatrix.r[3]);
     return Result;
 }
 
-// 행렬 곱셈
+// 행렬 곱셈 (DirectXMath 제공)
 FMatrix FMatrix::operator*(const FMatrix& Other) const {
-
-    FMatrix Result = DirectX::XMMatrixMultiply(DirectXMatrix, Other.DirectXMatrix);
-
+    FMatrix Result;
+    Result.DirectXMatrix = DirectX::XMMatrixMultiply(DirectXMatrix, Other.DirectXMatrix);
     return Result;
 }
 
-// 스칼라 곱셈
+// 스칼라 곱셈 (SIMD 버전)
 FMatrix FMatrix::operator*(float Scalar) const {
     FMatrix Result;
-    for (int32 i = 0; i < 4; i++)
-        for (int32 j = 0; j < 4; j++)
-            Result.M[i][j] = M[i][j] * Scalar;
+    Result.DirectXMatrix.r[0] = DirectX::XMVectorScale(DirectXMatrix.r[0], Scalar);
+    Result.DirectXMatrix.r[1] = DirectX::XMVectorScale(DirectXMatrix.r[1], Scalar);
+    Result.DirectXMatrix.r[2] = DirectX::XMVectorScale(DirectXMatrix.r[2], Scalar);
+    Result.DirectXMatrix.r[3] = DirectX::XMVectorScale(DirectXMatrix.r[3], Scalar);
     return Result;
 }
 
-// 스칼라 나눗셈
+// 스칼라 나눗셈 (SIMD 버전)
 FMatrix FMatrix::operator/(float Scalar) const {
     FMatrix Result;
-    for (int32 i = 0; i < 4; i++)
-        for (int32 j = 0; j < 4; j++)
-            Result.M[i][j] = M[i][j] / Scalar;
+    float invScalar = 1.0f / Scalar;
+    Result.DirectXMatrix.r[0] = DirectX::XMVectorScale(DirectXMatrix.r[0], invScalar);
+    Result.DirectXMatrix.r[1] = DirectX::XMVectorScale(DirectXMatrix.r[1], invScalar);
+    Result.DirectXMatrix.r[2] = DirectX::XMVectorScale(DirectXMatrix.r[2], invScalar);
+    Result.DirectXMatrix.r[3] = DirectX::XMVectorScale(DirectXMatrix.r[3], invScalar);
     return Result;
 }
 
@@ -56,164 +61,89 @@ float* FMatrix::operator[](int row) {
     return M[row];
 }
 
-const float* FMatrix::operator[](int row) const
-{
+const float* FMatrix::operator[](int row) const {
     return M[row];
 }
 
-// 전치 행렬
+// 전치 행렬 (SIMD 버전)
 FMatrix FMatrix::Transpose(const FMatrix& Mat) {
     FMatrix Result;
-    for (int32 i = 0; i < 4; i++)
-        for (int32 j = 0; j < 4; j++)
-            Result.M[i][j] = Mat.M[j][i];
+    Result.DirectXMatrix = DirectX::XMMatrixTranspose(Mat.DirectXMatrix);
     return Result;
 }
 
-// 행렬식 계산 (라플라스 전개, 4x4 행렬)
+// 행렬식 계산 (DirectXMath 사용)
 float FMatrix::Determinant(const FMatrix& Mat) {
-    float det = 0.0f;
-    for (int32 i = 0; i < 4; i++) {
-        float subMat[3][3];
-        for (int32 j = 1; j < 4; j++) {
-            int32 colIndex = 0;
-            for (int32 k = 0; k < 4; k++) {
-                if (k == i) continue;
-                subMat[j - 1][colIndex] = Mat.M[j][k];
-                colIndex++;
-            }
-        }
-        float minorDet =
-            subMat[0][0] * (subMat[1][1] * subMat[2][2] - subMat[1][2] * subMat[2][1]) -
-            subMat[0][1] * (subMat[1][0] * subMat[2][2] - subMat[1][2] * subMat[2][0]) +
-            subMat[0][2] * (subMat[1][0] * subMat[2][1] - subMat[1][1] * subMat[2][0]);
-        det += (i % 2 == 0 ? 1 : -1) * Mat.M[0][i] * minorDet;
-    }
-    return det;
+    DirectX::XMVECTOR detVec = DirectX::XMMatrixDeterminant(Mat.DirectXMatrix);
+    return DirectX::XMVectorGetX(detVec);
 }
 
-// 역행렬 (가우스-조던 소거법)
+// 역행렬 (DirectXMath 사용)
 FMatrix FMatrix::Inverse(const FMatrix& Mat) {
-    float det = Determinant(Mat);
-    if (fabs(det) < 1e-6) {
-        return Identity;
-    }
-
     FMatrix Inv;
-    float invDet = 1.0f / det;
-
-    // 여인수 행렬 계산 후 전치하여 역행렬 계산
-    for (int32 i = 0; i < 4; i++) {
-        for (int32 j = 0; j < 4; j++) {
-            float subMat[3][3];
-            int32 subRow = 0;
-            for (int32 r = 0; r < 4; r++) {
-                if (r == i) continue;
-                int32 subCol = 0;
-                for (int32 c = 0; c < 4; c++) {
-                    if (c == j) continue;
-                    subMat[subRow][subCol] = Mat.M[r][c];
-                    subCol++;
-                }
-                subRow++;
-            }
-            float minorDet =
-                subMat[0][0] * (subMat[1][1] * subMat[2][2] - subMat[1][2] * subMat[2][1]) -
-                subMat[0][1] * (subMat[1][0] * subMat[2][2] - subMat[1][2] * subMat[2][0]) +
-                subMat[0][2] * (subMat[1][0] * subMat[2][1] - subMat[1][1] * subMat[2][0]);
-
-            Inv.M[j][i] = ((i + j) % 2 == 0 ? 1 : -1) * minorDet * invDet;
-        }
-    }
+    DirectX::XMVECTOR det;
+    Inv.DirectXMatrix = DirectX::XMMatrixInverse(&det, Mat.DirectXMatrix);
     return Inv;
 }
 
+// 회전 행렬 생성 (DirectXMath 사용)
 FMatrix FMatrix::CreateRotation(float roll, float pitch, float yaw)
 {
+    // 각도를 라디안으로 변환
     float radRoll = roll * (3.14159265359f / 180.0f);
     float radPitch = pitch * (3.14159265359f / 180.0f);
     float radYaw = yaw * (3.14159265359f / 180.0f);
 
-    float cosRoll = cos(radRoll), sinRoll = sin(radRoll);
-    float cosPitch = cos(radPitch), sinPitch = sin(radPitch);
-    float cosYaw = cos(radYaw), sinYaw = sin(radYaw);
-
-    // Z축 (Yaw) 회전
-    FMatrix rotationZ = { {
-        { cosYaw, sinYaw, 0, 0 },
-        { -sinYaw, cosYaw, 0, 0 },
-        { 0, 0, 1, 0 },
-        { 0, 0, 0, 1 }
-    } };
-
-    // Y축 (Pitch) 회전
-    FMatrix rotationY = { {
-        { cosPitch, 0, -sinPitch, 0 },
-        { 0, 1, 0, 0 },
-        { sinPitch, 0, cosPitch, 0 },
-        { 0, 0, 0, 1 }
-    } };
-
-    // X축 (Roll) 회전
-    FMatrix rotationX = { {
-        { 1, 0, 0, 0 },
-        { 0, cosRoll, sinRoll, 0 },
-        { 0, -sinRoll, cosRoll, 0 },
-        { 0, 0, 0, 1 }
-    } };
-
-    // DirectX 표준 순서: Z(Yaw) → Y(Pitch) → X(Roll)  
-    return rotationX * rotationY * rotationZ;  // 이렇게 하면  오른쪽 부터 적용됨
+    // DirectXMath의 XMMatrixRotationRollPitchYaw 함수는 (Pitch, Yaw, Roll) 순서로 매개변수를 받음
+    FMatrix rotation;
+    rotation.DirectXMatrix = DirectX::XMMatrixRotationRollPitchYaw(radPitch, radYaw, radRoll);
+    return rotation;
 }
 
-
-// 스케일 행렬 생성
+// 스케일 행렬 생성 (DirectXMath 사용)
 FMatrix FMatrix::CreateScale(float scaleX, float scaleY, float scaleZ)
 {
-    return { {
-        { scaleX, 0, 0, 0 },
-        { 0, scaleY, 0, 0 },
-        { 0, 0, scaleZ, 0 },
-        { 0, 0, 0, 1 }
-    } };
+    FMatrix scale;
+    scale.DirectXMatrix = DirectX::XMMatrixScaling(scaleX, scaleY, scaleZ);
+    return scale;
 }
 
+// 평행 이동 행렬 생성 (DirectXMath 사용)
 FMatrix FMatrix::CreateTranslationMatrix(const FVector& position)
 {
-    FMatrix translationMatrix = FMatrix::Identity;
-    translationMatrix.M[3][0] = position.x;
-    translationMatrix.M[3][1] = position.y;
-    translationMatrix.M[3][2] = position.z;
-    return translationMatrix;
+    FMatrix translation;
+    DirectX::XMVECTOR pos = DirectX::XMVectorSet(position.x, position.y, position.z, 1.0f);
+    translation.DirectXMatrix = DirectX::XMMatrixTranslationFromVector(pos);
+    return translation;
 }
 
+// FVector 변환 (방향 벡터, W=0 인 경우, DirectXMath의 XMVector3TransformNormal 사용)
 FVector FMatrix::TransformVector(const FVector& v, const FMatrix& m)
 {
-    FVector result;
-
-    // 4x4 행렬을 사용하여 벡터 변환 (W = 0으로 가정, 방향 벡터)
-    result.x = v.x * m.M[0][0] + v.y * m.M[1][0] + v.z * m.M[2][0] + 0.0f * m.M[3][0];
-    result.y = v.x * m.M[0][1] + v.y * m.M[1][1] + v.z * m.M[2][1] + 0.0f * m.M[3][1];
-    result.z = v.x * m.M[0][2] + v.y * m.M[1][2] + v.z * m.M[2][2] + 0.0f * m.M[3][2];
-
-
-    return result;
+    DirectX::XMVECTOR vec = DirectX::XMVectorSet(v.x, v.y, v.z, 0.0f);
+    DirectX::XMVECTOR result = DirectX::XMVector3TransformNormal(vec, m.DirectXMatrix);
+    FVector out;
+    out.x = DirectX::XMVectorGetX(result);
+    out.y = DirectX::XMVectorGetY(result);
+    out.z = DirectX::XMVectorGetZ(result);
+    return out;
 }
 
-// FVector4를 변환하는 함수
+// FVector4 변환 (DirectXMath 사용)
 FVector4 FMatrix::TransformVector(const FVector4& v, const FMatrix& m)
 {
-    FVector4 result;
-    result.x = v.x * m.M[0][0] + v.y * m.M[1][0] + v.z * m.M[2][0] + v.a * m.M[3][0];
-    result.y = v.x * m.M[0][1] + v.y * m.M[1][1] + v.z * m.M[2][1] + v.a * m.M[3][1];
-    result.z = v.x * m.M[0][2] + v.y * m.M[1][2] + v.z * m.M[2][2] + v.a * m.M[3][2];
-    result.a = v.x * m.M[0][3] + v.y * m.M[1][3] + v.z * m.M[2][3] + v.a * m.M[3][3];
-    return result;
+    DirectX::XMVECTOR vec = DirectX::XMVectorSet(v.x, v.y, v.z, v.a);
+    DirectX::XMVECTOR result = DirectX::XMVector4Transform(vec, m.DirectXMatrix);
+    FVector4 out;
+    out.x = DirectX::XMVectorGetX(result);
+    out.y = DirectX::XMVectorGetY(result);
+    out.z = DirectX::XMVectorGetZ(result);
+    out.a = DirectX::XMVectorGetW(result);
+    return out;
 }
 
 FMatrix FBoundingBox::CreateBoundingBoxTransform()
 {
-
     // 중앙 위치 계산
     FVector Center = (min + max) * 0.5f;
     // 스케일 계산 (박스의 크기)
@@ -221,5 +151,4 @@ FMatrix FBoundingBox::CreateBoundingBoxTransform()
 
     FMatrix Transform = JungleMath::CreateModelMatrix(Center, FQuat(), Scale);
     return Transform;
-
 }

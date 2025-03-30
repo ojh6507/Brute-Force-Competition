@@ -1033,6 +1033,7 @@ void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewp
     CurrentViewport = ActiveViewport;
     Graphics->DeviceContext->RSSetViewports(1, &ActiveViewport->GetD3DViewport());
     Graphics->ChangeRasterizer(ActiveViewport->GetViewMode());
+    MaterialSorting();
     Graphics->PrepareOnce();
 }
 

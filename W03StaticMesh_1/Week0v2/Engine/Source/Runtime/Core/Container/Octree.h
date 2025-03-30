@@ -5,36 +5,52 @@
 class UPrimitiveComponent;
 class UStaticMeshComponent;
 
-class FOctree
+#pragma once
+
+class FBVH
 {
 public:
-    FOctree(const FBoundingBox& InBoundingBox);
-    ~FOctree();
-    void AddComponent(UStaticMeshComponent* InComponent);
-    void SetDepth(int InDepth) {Depth = InDepth;}
-    void SubDivide();
-    int CalculteChildIndex(FVector Pos);
+    // 생성자: 초기 바운딩박스를 설정
+    FBVH(const FBoundingBox& InBoundingBox);
+    // 소멸자: 자식 노드 메모리 해제
+    ~FBVH();
 
-    bool IsLeafNode(){ return Children.Num() == 0; }
-    FBoundingBox CalculateChildBoundingBox(int index);
-    TArray<FOctree*> GetValidLeafNodes();
-    TArray<FOctree*> CollectCandidateNodes(const FVector& pickPos, const FMatrix& viewMatrix);
-    void CollectIntersectingComponents(const Plane frustumPlanes[6], TArray<UStaticMeshComponent*>& OutComponents);
-    TArray<UStaticMeshComponent*> GetRayPossibleComp();
-    TArray<UStaticMeshComponent*>& GetPrimitiveComponents() { return PrimitiveComponents; }
-    void DebugBoundingBox();
+    // 컴포넌트를 BVH 트리에 추가
+    void AddComponent(UStaticMeshComponent* InComponent);
+
+    // 픽킹 후보 컴포넌트를 수집 (pickPos, viewMatrix 기준)
     TArray<UStaticMeshComponent*> CollectCandidateComponents(const FVector& pickPos, const FMatrix& viewMatrix);
+
+    // 유효한 리프 노드들을 반환 (재귀적으로)
+    TArray<FBVH*> GetValidLeafNodes();
+
+    // 현재 리프 노드의 컴포넌트 리스트 반환
+    TArray<UStaticMeshComponent*> GetPrimitiveComponents() const;
+    
+    TArray<UStaticMeshComponent*>CollectIntersectingComponents(const Plane frustumPlanes[6]);
+
+    // 디버깅: 현재 노드의 바운딩박스를 렌더링
+    void DebugBoundingBox();
+
+    // 리프 노드 여부 판단
+    bool IsLeafNode() const { return (LeftChild == nullptr && RightChild == nullptr); }
+
+    // 현재 노드의 깊이 (분할 횟수)
+    int Depth = 0;
+
+    // 분할 임계치와 최대 깊이 (필요에 따라 조정)
+    static const int DivideThreshold = 50;
+    static const int MaxDepth = 10;
+
+private:
+    // 현재 노드를 두 개의 자식 노드로 분할하고 기존 컴포넌트를 재분배
+    void SubDivide();
 
 private:
     FBoundingBox BoundingBox;
+    // (필요 시 계산한 반 크기: 옥트리와 달리 BVH에서는 사용하지 않을 수 있음)
     FVector HalfSize;
-    TArray<FOctree*> Children;
-    FOctree* CurrentNode;
     TArray<UStaticMeshComponent*> PrimitiveComponents;
-
-    int DivideThreshold = 100;
-    int Depth = 0;
-    int MaxDepth = 10;
+    FBVH* LeftChild = nullptr;
+    FBVH* RightChild = nullptr;
 };
-// leaf가 0일 수도 쩔수
-// 무조건 모든 컴포넌트는 leaf에만

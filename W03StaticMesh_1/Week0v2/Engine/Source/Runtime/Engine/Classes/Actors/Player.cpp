@@ -144,14 +144,14 @@ void AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEdit
         float Distance = 0.0f;
         int currentIntersectCount = 0;
         if (RayIntersectsObject(pickPosition, comp, Distance, currentIntersectCount))
-        { 
+        {
             if (Distance < minDistance)
             {
                 minDistance = Distance;
                 maxIntersect = currentIntersectCount;
                 Possible = comp;
             }
-            else if (abs(Distance - minDistance) < FLT_EPSILON && currentIntersectCount > maxIntersect)
+            else if (abs(Distance - minDistance) < FLT_EPSILON)
             {
                 maxIntersect = currentIntersectCount;
                 Possible = comp;
@@ -186,14 +186,9 @@ void AEditorPlayer::ScreenToViewSpace(int screenX, int screenY, const FMatrix& v
 
     pickPosition.x = ((2.0f * viewportX / viewport.Width) - 1) / projectionMatrix[0][0];
     pickPosition.y = -((2.0f * viewportY / viewport.Height) - 1) / projectionMatrix[1][1];
-    if (GetEngine().GetLevelEditor()->GetActiveViewportClient()->IsOrtho())
-    {
-        pickPosition.z = 0.0f;  // 오쏘 모드에서는 unproject 시 near plane 위치를 기준
-    }
-    else
-    {
-        pickPosition.z = 1.0f;  // 퍼스펙티브 모드: near plane
-    }
+
+    pickPosition.z = 1.0f;  // 퍼스펙티브 모드: near plane
+
 }
 
 int AEditorPlayer::RayIntersectsObject(const FVector& pickPosition, USceneComponent* obj, float& hitDistance, int& intersectCount)

@@ -59,7 +59,7 @@ private:
     AActor* SelectedActor = nullptr;
     UPrimitiveComponent* SelectedPrimitve = nullptr;
 
-    FOctree* RootOctree = nullptr;
+    FBVH* RootOctree = nullptr;
     
     USceneComponent* pickingGizmo = nullptr;
     UCameraComponent* camera = nullptr;
@@ -69,7 +69,7 @@ public:
     UObject* worldGizmo = nullptr;
 
     const TSet<AActor*>& GetActors() const { return ActorsArray; }
-    FOctree* GetRootOctree() const { return RootOctree; }
+    FBVH* GetRootOctree() const { return RootOctree; }
     
     UTransformGizmo* LocalGizmo = nullptr;
     UCameraComponent* GetCamera() const { return camera; }

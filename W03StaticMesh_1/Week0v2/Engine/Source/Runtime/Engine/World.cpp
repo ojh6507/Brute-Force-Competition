@@ -43,7 +43,7 @@ void UWorld::Initialize()
     
     if (RootOctree == nullptr)
     {
-        RootOctree = new FOctree(WorldBoundingBox);
+        RootOctree = new FBVH(WorldBoundingBox);
     }
 }
 

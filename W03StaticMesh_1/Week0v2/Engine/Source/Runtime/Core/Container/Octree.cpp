@@ -6,138 +6,149 @@
 #include "Components/StaticMeshComponent.h"
 #include "UnrealEd/PrimitiveBatch.h"
 #include "Math/JungleMath.h"
-FOctree::FOctree(const FBoundingBox& InBoundingBox) {
+
+
+
+// 생성자: 초기 바운딩박스를 설정
+FBVH::FBVH(const FBoundingBox& InBoundingBox) {
     BoundingBox = InBoundingBox;
-
-    HalfSize.x = (BoundingBox.min.x + BoundingBox.max.x) / 2 - BoundingBox.min.x;
-    HalfSize.y = (BoundingBox.min.y + BoundingBox.max.y) / 2 - BoundingBox.min.y;
-    HalfSize.z = (BoundingBox.min.z + BoundingBox.max.z) / 2 - BoundingBox.min.z;
 }
 
-FOctree::~FOctree()
-{
-    for (FOctree* Child : Children)
-    {
-        delete Child;
+// 소멸자: 자식 노드 메모리 해제
+FBVH::~FBVH() {
+    if (LeftChild) {
+        delete LeftChild;
+    }
+    if (RightChild) {
+        delete RightChild;
     }
 }
 
-void FOctree::AddComponent(UStaticMeshComponent* InComponent)
-{
-    if (!InComponent)
-    {
+// 컴포넌트를 BVH 트리에 추가
+void FBVH::AddComponent(UStaticMeshComponent* InComponent) {
+    if (!InComponent) {
         return;
     }
 
+    // 컴포넌트의 월드 바운딩박스 획득
+    FBoundingBox ComponentBB = InComponent->GetWorldBoundingBox();
 
-    if (IsLeafNode())
-    {
-        PrimitiveComponents.Add(InComponent);
+    // 리프 노드인 경우
+    if (IsLeafNode()) {
+        // 현재 노드의 바운딩박스가 컴포넌트를 완전히 포함하는지 확인
+        if (BoundingBox.Intersects(ComponentBB)) {
+            PrimitiveComponents.Add(InComponent);
 
-        if (PrimitiveComponents.Num() > DivideThreshold)
-        {
-            SubDivide();
+            // 분할 임계치 초과 시 분할
+            if (PrimitiveComponents.Num() > DivideThreshold) {
+                SubDivide();
+            }
+        }
+        else {
+            // 현재 노드의 바운딩박스에 포함되지 않는 경우에도 추가
+            PrimitiveComponents.Add(InComponent);
         }
     }
-    else
-    {
-        // int ChildBoundingBoxIndex = CalculteChildIndex(InComponent->GetWorldLocation()); //position기준이 아니라 boundingbox로 포함하는애 전부 주기
-        // Children[ChildBoundingBoxIndex]->AddComponent(InComponent);
-
-        const FBoundingBox& ComponentBoundingBox = InComponent->GetWorldBoundingBox();
-        for (int i=0;i<8;i++) //각 옥트리 돌면서 바운딩박스 충돌검사
-        {
-            if (Children[i]->BoundingBox.Intersects(ComponentBoundingBox))
-            {
-                Children[i]->AddComponent(InComponent);
-            }
+    else {
+        bool bAdded = false;
+        // 자식 노드가 분할되어 있다면, 각 자식 노드의 바운딩박스가
+        // 컴포넌트를 완전히 포함하는지 확인하여 분배
+        if (LeftChild && LeftChild->BoundingBox.Intersects(ComponentBB)) {
+            LeftChild->AddComponent(InComponent);
+            bAdded = true;
+        }
+        if (RightChild && RightChild->BoundingBox.Intersects(ComponentBB)) {
+            RightChild->AddComponent(InComponent);
+            bAdded = true;
+        }
+        // 어느 자식 노드에도 완전히 포함되지 않으면 현재 노드에 보관
+        if (!bAdded) {
+            PrimitiveComponents.Add(InComponent);
         }
     }
 }
 
-void FOctree::SubDivide()
-{
-    if (Depth >= MaxDepth || !IsLeafNode())
-    {
+
+// 분할: 현재 노드를 두 개의 자식 노드로 나누고, 기존 컴포넌트를 재분배
+void FBVH::SubDivide() {
+    if (Depth >= MaxDepth || !IsLeafNode()) {
         return;
     }
 
-    // Children 배열에 공간 예약
-    Children.Reserve(8);
-    for (int i = 0; i < 8; i++)
-    {
-        FBoundingBox childBox = CalculateChildBoundingBox(i);
-        FOctree* childNode = new FOctree(childBox);
-        childNode->Depth = Depth + 1;
-        Children.Add(childNode);
-    }
+    // 분할 축 결정 (가장 긴 축)
+    FVector BoxSize = BoundingBox.max - BoundingBox.min;
+    int SplitAxis = 0;
+    if (BoxSize.y > BoxSize.x && BoxSize.y > BoxSize.z)
+        SplitAxis = 1;
+    else if (BoxSize.z > BoxSize.x)
+        SplitAxis = 2;
 
-    // 기존 노드의 컴포넌트를 각 자식 노드로 분배
-    for (UStaticMeshComponent* Component : PrimitiveComponents)
-    {
-        // int ChildBoundingBoxIndex = CalculteChildIndex(Component->GetWorldLocation());
-        // Children[ChildBoundingBoxIndex]->AddComponent(Component);
-        
-        const FBoundingBox ComponentBoundingBox = Component->GetWorldBoundingBox(); //World기준 BoundingBox 가져오기
-        
-        for (int i=0;i<8;i++)
-        {
-            if (Children[i]->BoundingBox.Intersects(ComponentBoundingBox))
-            {
-                Children[i]->AddComponent(Component);
-            }
+    // Pivot (중앙값) 계산
+    float Pivot = (BoundingBox.min[SplitAxis] + BoundingBox.max[SplitAxis]) * 0.5f;
+
+    // 자식 노드용 바운딩박스 생성 (Left: min ~ Pivot, Right: Pivot ~ max)
+    FBoundingBox LeftBox = BoundingBox;
+    FBoundingBox RightBox = BoundingBox;
+    LeftBox.max[SplitAxis] = Pivot;
+    RightBox.min[SplitAxis] = Pivot;
+
+    LeftChild = new FBVH(LeftBox);
+    LeftChild->Depth = Depth + 1;
+    RightChild = new FBVH(RightBox);
+    RightChild->Depth = Depth + 1;
+
+    // 기존 노드의 모든 컴포넌트를 분할 기준에 따라 자식 노드로 전달
+    for (UStaticMeshComponent* Component : PrimitiveComponents) {
+        const FBoundingBox ComponentBoundingBox = Component->GetWorldBoundingBox();
+        FVector Center = (ComponentBoundingBox.min + ComponentBoundingBox.max) * 0.5f;
+        if (Center[SplitAxis] < Pivot) {
+            LeftChild->AddComponent(Component);
+        }
+        else {
+            RightChild->AddComponent(Component);
         }
     }
 
-    //Component들 자식에게 물려주고 클리어
+    // 현재 노드는 자식에게 컴포넌트 목록을 위임하므로 비웁니다.
     PrimitiveComponents.Empty();
 }
 
-int FOctree::CalculteChildIndex(FVector Pos)
-{
-    int ReturnIndex = 0;
-    ReturnIndex |= Pos.x >= (BoundingBox.min.x + HalfSize.x) ? 1 : 0;
-    ReturnIndex |= Pos.y >= (BoundingBox.min.y + HalfSize.y) ? 2 : 0;
-    ReturnIndex |= Pos.z >= (BoundingBox.min.z + HalfSize.z) ? 4 : 0;
-
-    return ReturnIndex;
+// 현재 리프 노드의 컴포넌트들을 반환
+TArray<UStaticMeshComponent*> FBVH::GetPrimitiveComponents() const {
+    return PrimitiveComponents;
 }
-void FOctree::CollectIntersectingComponents(const Plane frustumPlanes[6], TArray<UStaticMeshComponent*>& OutComponents)
+TArray<UStaticMeshComponent*> FBVH::CollectIntersectingComponents(const Plane frustumPlanes[6])
 {
-
-    OutComponents.Empty();
-    for (FOctree*& leaf : GetValidLeafNodes()) {
-        leaf->DebugBoundingBox();
-        if (!leaf->BoundingBox.IsIntersectingFrustum(frustumPlanes)) {
-            continue;
-        }
-
-        for (auto& Comp : leaf->GetPrimitiveComponents()) {
-            OutComponents.Add(Comp);
-        }
+    TArray<UStaticMeshComponent*> OutComponents;
+    DebugBoundingBox();
+    // 현재 노드의 바운딩박스가 프러스텀과 교차하지 않으면 바로 반환
+    if (!BoundingBox.IsIntersectingFrustum(frustumPlanes))
+    {
+        return OutComponents;
     }
 
+    // 리프 노드라면 현재 노드의 컴포넌트를 모두 추가
+    if (IsLeafNode())
+    {
+        OutComponents.Append(PrimitiveComponents);
+        return OutComponents;
+    }
+
+    // 자식 노드가 있다면 재귀적으로 호출
+    if (LeftChild)
+    {
+        OutComponents.Append(LeftChild->CollectIntersectingComponents(frustumPlanes));
+    }
+    if (RightChild)
+    {
+        OutComponents.Append(RightChild->CollectIntersectingComponents(frustumPlanes));
+    }
+
+    return OutComponents;
 }
 
-
-TArray<UStaticMeshComponent*> FOctree::GetRayPossibleComp()
-{
-    if (CurrentNode)
-        return CurrentNode->PrimitiveComponents;
-    else
-        return{};
-}
-void FOctree::DebugBoundingBox()
-{
-    UPrimitiveBatch::GetInstance().RenderAABB(
-        BoundingBox,
-        (0, 0, 0),
-        FMatrix::Identity
-    );
-}
-
-TArray<UStaticMeshComponent*> FOctree::CollectCandidateComponents(const FVector& pickPos, const FMatrix& viewMatrix)
-{
+// 레이와 교차하는 후보 컴포넌트를 수집 (pickPos, viewMatrix 기준)
+TArray<UStaticMeshComponent*> FBVH::CollectCandidateComponents(const FVector& pickPos, const FMatrix& viewMatrix) {
     TArray<UStaticMeshComponent*> CandidateComponents;
     FVector cameraOrigin = { 0, 0, 0 };
     FMatrix inverseMatrix = FMatrix::Inverse(viewMatrix);
@@ -145,8 +156,8 @@ TArray<UStaticMeshComponent*> FOctree::CollectCandidateComponents(const FVector&
     FVector transformedPick = inverseMatrix.TransformPosition(pickPos);
     FVector rayDirection = (transformedPick - pickRayOrigin).Normalize();
 
-    // 유효한 leaf 노드를 검사하며 교차하는 경우 컴포넌트들을 추가
-    for (FOctree* leaf : GetValidLeafNodes()) {
+    // 유효한 리프 노드를 검사하며, 레이와 교차하는 경우 컴포넌트들을 추가
+    for (FBVH* leaf : GetValidLeafNodes()) {
         float dist = 0;
         if (leaf->BoundingBox.Intersect(pickRayOrigin, rayDirection, dist)) {
             for (UStaticMeshComponent* Comp : leaf->GetPrimitiveComponents()) {
@@ -157,61 +168,31 @@ TArray<UStaticMeshComponent*> FOctree::CollectCandidateComponents(const FVector&
     return CandidateComponents;
 }
 
-TArray<FOctree*> FOctree::GetValidLeafNodes()
-{
-    TArray<FOctree*> ValidLeafNodes;
+// 유효한 리프 노드들을 재귀적으로 수집
+TArray<FBVH*> FBVH::GetValidLeafNodes() {
+    TArray<FBVH*> ValidLeafNodes;          
 
-    if (IsLeafNode())
-    {
-        if (PrimitiveComponents.Num() > 0)
-        {
-            ValidLeafNodes.Add(this);
+    if (IsLeafNode()) {
+        if (PrimitiveComponents.Num() > 0) {
+            ValidLeafNodes.Add(const_cast<FBVH*>(this));
         }
     }
-    else
-    {
-        for (auto& Child : Children)
-        {
-            ValidLeafNodes.Append(Child->GetValidLeafNodes());
+    else {
+        if (LeftChild) {
+            ValidLeafNodes.Append(LeftChild->GetValidLeafNodes());
+        }
+        if (RightChild) {
+            ValidLeafNodes.Append(RightChild->GetValidLeafNodes());
         }
     }
     return ValidLeafNodes;
 }
-TArray<FOctree*> FOctree::CollectCandidateNodes(const FVector& pickPos, const FMatrix& viewMatrix)
-{
-    TArray<FOctree*> CandidateNodes;
-    FVector cameraOrigin = { 0, 0, 0 };
-    FMatrix inverseMatrix = FMatrix::Inverse(viewMatrix);
-    FVector pickRayOrigin = inverseMatrix.TransformPosition(cameraOrigin);
-    FVector transformedPick = inverseMatrix.TransformPosition(pickPos);
-    FVector rayDirection = (transformedPick - pickRayOrigin).Normalize();
 
-    // 유효한 leaf 노드들에 대해 ray와 교차하는지 검사
-    for (FOctree* leaf : GetValidLeafNodes()) {
-        float dist = 0;
-        if (leaf->BoundingBox.Intersect(pickRayOrigin, rayDirection, dist)) {
-            CandidateNodes.Add(leaf);
-        }
-    }
-    return CandidateNodes;
-}
-
-FBoundingBox FOctree::CalculateChildBoundingBox(int index)
-{
-    //0이면 min~mid 1이면 mid~max
-    int OffsetX = (index & 0x1) ? 1 : 0; // index의 3번째 비트 (4의 자리)
-    int OffsetY = (index & 0x2) ? 1 : 0; // index의 2번째 비트 (2의 자리)
-    int OffsetZ = (index & 0x4) ? 1 : 0; // index의 1번째 비트 (1의 자리)
-
-    FBoundingBox childBox;
-    childBox.min.x = BoundingBox.min.x + HalfSize.x * OffsetX;
-    childBox.min.y = BoundingBox.min.y + HalfSize.y * OffsetY;
-    childBox.min.z = BoundingBox.min.z + HalfSize.z * OffsetZ;
-
-    childBox.max.x = childBox.min.x + HalfSize.x;
-    childBox.max.y = childBox.min.y + HalfSize.y;
-    childBox.max.z = childBox.min.z + HalfSize.z;
-
-
-    return childBox;
+// 디버깅: 현재 노드의 바운딩박스를 렌더링
+void FBVH::DebugBoundingBox() {
+    UPrimitiveBatch::GetInstance().RenderAABB(
+        BoundingBox,
+        (0, 0, 0),
+        FMatrix::Identity
+    );
 }

@@ -16,14 +16,17 @@ FVector4 JungleMath::ConvertV3ToV4(FVector vec3)
 FMatrix JungleMath::CreateModelMatrix(FVector translation, FVector rotation, FVector scale)
 {
     FMatrix Translation = FMatrix::CreateTranslationMatrix(translation);
-
-    FMatrix Rotation = FMatrix::CreateRotation(rotation.x, rotation.y, rotation.z);
-    //FMatrix Rotation = JungleMath::EulerToQuaternion(rotation).ToMatrix();
-
+    // DirectXMath의 회전 행렬 함수를 사용 (각도를 라디안으로 변환)
+    FMatrix Rotation;
+    Rotation.DirectXMatrix = XMMatrixRotationRollPitchYaw(
+        XMConvertToRadians(rotation.x),
+        XMConvertToRadians(rotation.y),
+        XMConvertToRadians(rotation.z)
+    );
     FMatrix Scale = FMatrix::CreateScale(scale.x, scale.y, scale.z);
-
     return Scale * Rotation * Translation;
 }
+
 DirectX::XMMATRIX JungleMath::CreateModelXMMatrix(const FVector& translation, const FVector& rotation, const FVector& scale)
 {
     // 이동 행렬 생성
@@ -51,36 +54,20 @@ FMatrix JungleMath::CreateModelMatrix(FVector translation, FQuat rotation, FVect
 }
 FMatrix JungleMath::CreateViewMatrix(FVector eye, FVector target, FVector up)
 {
-    FVector zAxis = (target - eye).Normalize();  // DirectX는 LH이므로 -z가 아니라 +z 사용
-    FVector xAxis = (up.Cross(zAxis)).Normalize();
-    FVector yAxis = zAxis.Cross(xAxis);
+    XMVECTOR vEye = XMVectorSet(eye.x, eye.y, eye.z, 1.0f);
+    XMVECTOR vTarget = XMVectorSet(target.x, target.y, target.z, 1.0f);
+    XMVECTOR vUp = XMVectorSet(up.x, up.y, up.z, 0.0f);
 
-    FMatrix View;
-    View.M[0][0] = xAxis.x; View.M[0][1] = yAxis.x; View.M[0][2] = zAxis.x; View.M[0][3] = 0;
-    View.M[1][0] = xAxis.y; View.M[1][1] = yAxis.y; View.M[1][2] = zAxis.y; View.M[1][3] = 0;
-    View.M[2][0] = xAxis.z; View.M[2][1] = yAxis.z; View.M[2][2] = zAxis.z; View.M[2][3] = 0;
-    View.M[3][0] = -xAxis.Dot(eye);
-    View.M[3][1] = -yAxis.Dot(eye);
-    View.M[3][2] = -zAxis.Dot(eye);
-    View.M[3][3] = 1;
-
-    return View;
+    FMatrix view;
+    view.DirectXMatrix = XMMatrixLookAtLH(vEye, vTarget, vUp);
+    return view;
 }
 
 FMatrix JungleMath::CreateProjectionMatrix(float fov, float aspect, float nearPlane, float farPlane)
 {
-    float tanHalfFOV = tan(fov / 2.0f);
-    float depth = farPlane - nearPlane;
-
-    FMatrix Projection = {};
-    Projection.M[0][0] = 1.0f / (aspect * tanHalfFOV);
-    Projection.M[1][1] = 1.0f / tanHalfFOV;
-    Projection.M[2][2] = farPlane / depth;
-    Projection.M[2][3] = 1.0f;
-    Projection.M[3][2] = -(nearPlane * farPlane) / depth;
-    Projection.M[3][3] = 0.0f;  
-
-    return Projection;
+    FMatrix proj;
+    proj.DirectXMatrix = XMMatrixPerspectiveFovLH(fov, aspect, nearPlane, farPlane);
+    return proj;
 }
 
 FMatrix JungleMath::CreateOrthoProjectionMatrix(float width, float height, float nearPlane, float farPlane)

@@ -39,10 +39,10 @@ void FEditorViewportClient::Tick(float DeltaTime)
 {
     Input(DeltaTime);
     UpdateMatrix();
-   // CollectIntersectingComponents();
+    CollectIntersectingComponents();
 
-   // FrustumStaticMeshs.Empty();
-   /* for (UStaticMeshComponent* StaticMeshComp : VisibleStaticMeshs) {
+   /* FrustumStaticMeshs.Empty();
+    for (UStaticMeshComponent* StaticMeshComp : VisibleStaticMeshs) {
       
     FMatrix Model = JungleMath::CreateModelMatrix(
             StaticMeshComp->GetWorldLocation(),
@@ -186,7 +186,7 @@ bool FEditorViewportClient::IsSelected(POINT point)
 }
 void FEditorViewportClient::CollectIntersectingComponents()
 {
-    GEngineLoop.GetWorld()->GetRootOctree()->CollectIntersectingComponents(frustumPlanes, VisibleStaticMeshs);
+   VisibleStaticMeshs =  GEngineLoop.GetWorld()->GetRootOctree()->CollectIntersectingComponents(frustumPlanes);
 }
 void FEditorViewportClient::GetVisibleStaticMesh(TArray<UStaticMeshComponent*>& Outter)
 {
@@ -265,24 +265,9 @@ void FEditorViewportClient::PivotMoveUp(float _Value)
 
 void FEditorViewportClient::UpdateViewMatrix()
 {
-    if (IsPerspective()) {
-        View = JungleMath::CreateViewMatrix(ViewTransformPerspective.GetLocation(),
-            ViewTransformPerspective.GetLocation() + ViewTransformPerspective.GetForwardVector(),
-            FVector{ 0.0f,0.0f, 1.0f });
-    }
-    else
-    {
-        UpdateOrthoCameraLoc();
-        if (ViewportType == LVT_OrthoXY || ViewportType == LVT_OrthoNegativeXY) {
-            View = JungleMath::CreateViewMatrix(ViewTransformOrthographic.GetLocation(),
-                Pivot, FVector(0.0f, -1.0f, 0.0f));
-        }
-        else
-        {
-            View = JungleMath::CreateViewMatrix(ViewTransformOrthographic.GetLocation(),
-                Pivot, FVector(0.0f, 0.0f, 1.0f));
-        }
-    }
+    View = JungleMath::CreateViewMatrix(ViewTransformPerspective.GetLocation(),
+        ViewTransformPerspective.GetLocation() + ViewTransformPerspective.GetForwardVector(),
+        FVector{ 0.0f,0.0f, 1.0f });
 }
 
 void FEditorViewportClient::UpdateProjectionMatrix()

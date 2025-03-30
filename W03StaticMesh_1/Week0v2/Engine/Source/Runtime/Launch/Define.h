@@ -277,6 +277,27 @@ struct FBoundingBox
         outDistance = (tmin >= 0.0f) ? tmin : 0.0f;
         return true;
     }
+    void Expand(const FBoundingBox& Other)
+    {
+        min.x = (min.x < Other.min.x) ? min.x : Other.min.x;
+        min.y = (min.y < Other.min.y) ? min.y : Other.min.y;
+        min.z = (min.z < Other.min.z) ? min.z : Other.min.z;
+
+        max.x = (max.x > Other.max.x) ? max.x : Other.max.x;
+        max.y = (max.y > Other.max.y) ? max.y : Other.max.y;
+        max.z = (max.z > Other.max.z) ? max.z : Other.max.z;
+    }
+    void Expand(const FVector& Point)
+    {
+        if (Point.x < min.x) min.x = Point.x;
+        if (Point.y < min.y) min.y = Point.y;
+        if (Point.z < min.z) min.z = Point.z;
+
+        if (Point.x > max.x) max.x = Point.x;
+        if (Point.y > max.y) max.y = Point.y;
+        if (Point.z > max.z) max.z = Point.z;
+    }
+
     bool Intersect(const FVector& rayOrigin, const FVector& rayDir, float& outDistance)
     {
         float tmin = -FLT_MAX;

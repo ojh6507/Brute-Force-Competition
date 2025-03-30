@@ -132,12 +132,15 @@ struct FMatrix
 			M[0][3] * vector.x + M[1][3] * vector.y + M[2][3] * vector.z + M[3][3] * vector.a
 		);
 	}
-	FVector TransformPosition(const FVector& vector) const
-	{
-		float x = M[0][0] * vector.x + M[1][0] * vector.y + M[2][0] * vector.z + M[3][0];
-		float y = M[0][1] * vector.x + M[1][1] * vector.y + M[2][1] * vector.z + M[3][1];
-		float z = M[0][2] * vector.x + M[1][2] * vector.y + M[2][2] * vector.z + M[3][2];
-		float w = M[0][3] * vector.x + M[1][3] * vector.y + M[2][3] * vector.z + M[3][3];
-		return w != 0.0f ? FVector{ x / w, y / w, z / w } : FVector{ x, y, z };
-	}
+    FVector TransformPosition(const FVector& vector) const
+    {
+        DirectX::XMVECTOR vec = DirectX::XMVectorSet(vector.x, vector.y, vector.z, 1.0f);
+        DirectX::XMVECTOR result = DirectX::XMVector4Transform(vec, DirectXMatrix);
+        float x = DirectX::XMVectorGetX(result);
+        float y = DirectX::XMVectorGetY(result);
+        float z = DirectX::XMVectorGetZ(result);
+        float w = DirectX::XMVectorGetW(result);
+        return w != 0.0f ? FVector{ x / w, y / w, z / w } : FVector{ x, y, z };
+    }
+
 };

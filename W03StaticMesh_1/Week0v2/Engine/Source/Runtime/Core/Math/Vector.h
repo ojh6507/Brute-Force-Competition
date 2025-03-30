@@ -1,6 +1,7 @@
 #pragma once
 
 #include <DirectXMath.h>
+#include <stdexcept>
 
 struct FVector2D
 {
@@ -75,7 +76,26 @@ struct FVector
     bool operator==(const FVector& other) const {
         return (x == other.x && y == other.y && z == other.z);
     }
+    float& operator[](int index) {
+        switch (index) {
+        case 0: return x;
+        case 1: return y;
+        case 2: return z;
+        default:
+            throw std::out_of_range("FVector index out of range");
+        }
+    }
 
+    // const 객체를 위한 인덱스 연산자 (상수 참조 반환)
+    const float& operator[](int index) const {
+        switch (index) {
+        case 0: return x;
+        case 1: return y;
+        case 2: return z;
+        default:
+            throw std::out_of_range("FVector index out of range");
+        }
+    }
     float Distance(const FVector& other) const {
         // 두 벡터의 차 벡터의 크기를 계산
         return ((*this - other).Magnitude());

@@ -183,7 +183,7 @@ void FEngineLoop::Tick()
         UIMgr->BeginFrame();
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 5));
 
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoResize |
