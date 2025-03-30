@@ -32,7 +32,7 @@ public:
     ID3D11PixelShader* PixelShader = nullptr;
     ID3D11InputLayout* InputLayout = nullptr;
     ID3D11Buffer* ConstantBuffer = nullptr;
-    ID3D11Buffer* ConstantBufferXM = nullptr;
+    ID3D11Buffer* ConstantCameraBuffer = nullptr;
     ID3D11Buffer* LightingBuffer = nullptr;
     ID3D11Buffer* FlagBuffer = nullptr;
     ID3D11Buffer* MaterialConstantBuffer = nullptr;
@@ -82,7 +82,7 @@ public:
     // update
     void UpdateLightBuffer() const;
     void UpdateConstant(const FMatrix& MVP,  FVector4 UUIDColor, bool IsSelected) const;
-    void UpdateConstantXM(const DirectX::XMMATRIX& MVP, FVector4 UUIDColor, bool IsSelected) const;
+    void UpdateCameraConstant(const FMatrix& VP)  const;
    void UpdateMaterial(const FObjMaterialInfo& MaterialInfo) const;
    //void UpdateLitUnlitConstant(int isLit) const;
    //void UpdateSubMeshConstant(bool isSelected) const;

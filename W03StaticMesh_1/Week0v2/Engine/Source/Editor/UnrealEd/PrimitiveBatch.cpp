@@ -39,8 +39,7 @@ void UPrimitiveBatch::RenderBatch(const FMatrix& View, const FMatrix& Projection
 
     InitializeVertexBuffer();
 
-    FMatrix Model = FMatrix::Identity;
-    FMatrix MVP = Model * View * Projection;
+    FMatrix MVP = FMatrix::Identity * View * Projection;
     FEngineLoop::renderer.UpdateConstant(MVP, FVector4(0,0,0,0), false);
     FEngineLoop::renderer.UpdateGridConstantBuffer(GridParam);
 

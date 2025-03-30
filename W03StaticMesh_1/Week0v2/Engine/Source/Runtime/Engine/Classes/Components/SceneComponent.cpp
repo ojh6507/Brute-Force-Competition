@@ -9,7 +9,7 @@ USceneComponent::USceneComponent() :RelativeLocation(FVector(0.f, 0.f, 0.f)), Re
 
 USceneComponent::~USceneComponent()
 {
-	if (uuidText) delete uuidText;
+    if (uuidText) delete uuidText;
 }
 void USceneComponent::InitializeComponent()
 {
@@ -19,7 +19,7 @@ void USceneComponent::InitializeComponent()
 
 void USceneComponent::TickComponent(float DeltaTime)
 {
-	Super::TickComponent(DeltaTime);
+    Super::TickComponent(DeltaTime);
 }
 
 
@@ -31,83 +31,93 @@ int USceneComponent::CheckRayIntersection(FVector& rayOrigin, FVector& rayDirect
 
 FVector USceneComponent::GetForwardVector()
 {
-	FVector Forward = FVector(1.f, 0.f, 0.0f);
-	Forward = JungleMath::FVectorRotate(Forward, QuatRotation);
-	return Forward;
+    FVector Forward = FVector(1.f, 0.f, 0.0f);
+    Forward = JungleMath::FVectorRotate(Forward, QuatRotation);
+    return Forward;
 }
 
 FVector USceneComponent::GetRightVector()
 {
-	FVector Right = FVector(0.f, 1.f, 0.0f);
-	Right = JungleMath::FVectorRotate(Right, QuatRotation);
-	return Right;
+    FVector Right = FVector(0.f, 1.f, 0.0f);
+    Right = JungleMath::FVectorRotate(Right, QuatRotation);
+    return Right;
 }
 
 FVector USceneComponent::GetUpVector()
 {
-	FVector Up = FVector(0.f, 0.f, 1.0f);
-	Up = JungleMath::FVectorRotate(Up, QuatRotation);
-	return Up;
+    FVector Up = FVector(0.f, 0.f, 1.0f);
+    Up = JungleMath::FVectorRotate(Up, QuatRotation);
+    return Up;
 }
 
 
 void USceneComponent::AddLocation(FVector _added)
 {
-	RelativeLocation = RelativeLocation + _added;
+    RelativeLocation = RelativeLocation + _added;
 
 }
 
 void USceneComponent::AddRotation(FVector _added)
 {
-	RelativeRotation = RelativeRotation + _added;
+    RelativeRotation = RelativeRotation + _added;
 
 }
 
 void USceneComponent::AddScale(FVector _added)
 {
-	RelativeScale3D = RelativeScale3D + _added;
+    RelativeScale3D = RelativeScale3D + _added;
 
 }
 
 FVector USceneComponent::GetWorldRotation()
 {
-	if (AttachParent)
-	{
-		return FVector(AttachParent->GetLocalRotation() + GetLocalRotation());
-	}
-	else
-		return GetLocalRotation();
+    if (AttachParent)
+    {
+        return FVector(AttachParent->GetLocalRotation() + GetLocalRotation());
+    }
+    else
+        return GetLocalRotation();
 }
 
 FVector USceneComponent::GetWorldScale()
 {
-	if (AttachParent)
-	{
-		return FVector(AttachParent->GetWorldScale() + GetLocalScale());
-	}
-	else
-		return GetLocalScale();
+    if (AttachParent)
+    {
+        return FVector(AttachParent->GetWorldScale() + GetLocalScale());
+    }
+    else
+        return GetLocalScale();
 }
 
 FVector USceneComponent::GetWorldLocation()
 {
-	if (AttachParent)
-	{
-		return FVector(AttachParent->GetWorldLocation() + GetLocalLocation());
-	}
-	else
-		return GetLocalLocation();
+    if (AttachParent)
+    {
+        return FVector(AttachParent->GetWorldLocation() + GetLocalLocation());
+    }
+    else
+        return GetLocalLocation();
 }
 
 FVector USceneComponent::GetLocalRotation()
 {
-	return JungleMath::QuaternionToEuler(QuatRotation);
+    return JungleMath::QuaternionToEuler(QuatRotation);
+}
+
+void USceneComponent::UpdateMatrix()
+{
+    Model = JungleMath::CreateModelMatrix(
+        GetWorldLocation(),
+        GetWorldRotation(),
+        GetWorldScale()
+    );
 }
 
 void USceneComponent::SetRotation(FVector _newRot)
 {
-	RelativeRotation = _newRot;
-	QuatRotation = JungleMath::EulerToQuaternion(_newRot);
+    RelativeRotation = _newRot;
+    QuatRotation = JungleMath::EulerToQuaternion(_newRot);
+    UpdateMatrix();
 }
 
 void USceneComponent::SetupAttachment(USceneComponent* InParent)
@@ -119,8 +129,8 @@ void USceneComponent::SetupAttachment(USceneComponent* InParent)
         && (
             AttachParent == nullptr                               // AttachParent도 유효하며
             || !AttachParent->AttachChildren.Contains(this)  // 이미 AttachParent의 자식이 아닌 경우
-        ) 
-    ) {
+            )
+        ) {
         AttachParent = InParent;
         InParent->AttachChildren.AddUnique(this);
     }

@@ -53,6 +53,6 @@ private:
     TriangleBVH* left = nullptr;
     TriangleBVH* right = nullptr;
 
-    static const int DivideThreshold = 50; // 리프에 남길 삼각형 개수
+    static const int DivideThreshold = 40; // 리프에 남길 삼각형 개수
     static const int MaxDepth = 10;          // 최대 트리 깊이
 };

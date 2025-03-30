@@ -156,7 +156,7 @@ void FEngineLoop::Tick()
 
     uint64 StartTime, EndTime;
 
-    double elapsedTime = 1.0;
+    double elapsedTime = 0.0;
     float fps = 0.0f;
 
     while (bIsExit == false)
@@ -182,6 +182,17 @@ void FEngineLoop::Tick()
         Render();
         UIMgr->BeginFrame();
 
+        EndTime = FWindowsPlatformTime::Cycles64();
+        elapsedTime = FWindowsPlatformTime::ToMilliseconds(EndTime - StartTime);
+        if (elapsedTime > 0.0)
+        {
+            fps = static_cast<float>(1000.0 / elapsedTime);
+        }
+        else
+        {
+            fps = 0.0f;
+        }
+
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 5));
 
@@ -203,7 +214,8 @@ void FEngineLoop::Tick()
 
         // Picking 관련 UI 정보 출력
 
-        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Picking Time: %f ms : Num Attemps: %d : Accumlated Time: %f ms", FWindowsPlatformTime::ToMilliseconds( GWorld->GetEditorPlayer()->LastPickTime),
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Picking Time: %f ms : Num Attemps: %d : Accumlated Time: %f ms", 
+            FWindowsPlatformTime::ToMilliseconds(GWorld->GetEditorPlayer()->LastPickTime),
             GWorld->GetEditorPlayer()->TotalPickCount, FWindowsPlatformTime::ToMilliseconds(GWorld->GetEditorPlayer()->TotalPickTime));
         ImGui::SetWindowFontScale(1.0f);
 
@@ -215,18 +227,9 @@ void FEngineLoop::Tick()
 
         // Pending 처리된 오브젝트 제거
         GUObjectArray.ProcessPendingDestroyObjects();
-
         graphicDevice.SwapBuffer();
-        EndTime = FWindowsPlatformTime::Cycles64();
-        elapsedTime = FWindowsPlatformTime::ToMilliseconds(EndTime - StartTime);
-        if (elapsedTime > 0.0)
-        {
-            fps = static_cast<float>(1000.0 / elapsedTime);
-        }
-        else
-        {
-            fps = 0.0f;
-        }
+
+       
 
     }
 }

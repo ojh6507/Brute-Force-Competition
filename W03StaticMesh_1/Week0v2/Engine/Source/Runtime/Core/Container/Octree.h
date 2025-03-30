@@ -19,11 +19,10 @@ public:
     void AddComponent(UStaticMeshComponent* InComponent);
 
     // 픽킹 후보 컴포넌트를 수집 (pickPos, viewMatrix 기준)
-    TArray<UStaticMeshComponent*> CollectCandidateComponents(const FVector& pickPos, const FMatrix& viewMatrix);
+    TArray<UStaticMeshComponent*> CollectCandidateComponents(const FVector& pickPos, const FMatrix& viewMatrix, const FVector& CameraPos, float maxDist);
 
     // 유효한 리프 노드들을 반환 (재귀적으로)
-    TArray<FBVH*> GetValidLeafNodes();
-
+    void CollectValidLeafNodes(TArray<FBVH*>& OutLeaves);
     // 현재 리프 노드의 컴포넌트 리스트 반환
     TArray<UStaticMeshComponent*> GetPrimitiveComponents() const;
     

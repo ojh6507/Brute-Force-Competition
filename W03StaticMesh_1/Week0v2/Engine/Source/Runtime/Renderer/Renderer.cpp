@@ -102,10 +102,8 @@ void FRenderer::PrepareShader() const
         Graphics->DeviceContext->PSSetConstantBuffers(5, 1, &TextureConstantBufer);
 
     }
-    if (ConstantBufferXM) {
-
-        Graphics->DeviceContext->VSSetConstantBuffers(6, 1, &ConstantBufferXM);
-        Graphics->DeviceContext->PSSetConstantBuffers(6, 1, &ConstantBufferXM);
+    if (ConstantCameraBuffer) {
+        Graphics->DeviceContext->VSSetConstantBuffers(6, 1, &ConstantCameraBuffer);
     }
 
 }
@@ -260,10 +258,7 @@ ID3D11Buffer* FRenderer::CreateVertexBuffer(FVertexSimple* vertices, UINT byteWi
     ID3D11Buffer* vertexBuffer;
 
     HRESULT hr = Graphics->Device->CreateBuffer(&vertexbufferdesc, &vertexbufferSRD, &vertexBuffer);
-    if (FAILED(hr))
-    {
-        UE_LOG(LogLevel::Warning, "VertexBuffer Creation faild");
-    }
+
     return vertexBuffer;
 }
 
@@ -280,10 +275,7 @@ ID3D11Buffer* FRenderer::CreateVertexBuffer(const TArray<FVertexSimple>& vertice
     ID3D11Buffer* vertexBuffer;
 
     HRESULT hr = Graphics->Device->CreateBuffer(&vertexbufferdesc, &vertexbufferSRD, &vertexBuffer);
-    if (FAILED(hr))
-    {
-        UE_LOG(LogLevel::Warning, "VertexBuffer Creation faild");
-    }
+
     return vertexBuffer;
 }
 
@@ -299,10 +291,7 @@ ID3D11Buffer* FRenderer::CreateIndexBuffer(uint32* indices, UINT byteWidth) cons
     ID3D11Buffer* indexBuffer;
 
     HRESULT hr = Graphics->Device->CreateBuffer(&indexbufferdesc, &indexbufferSRD, &indexBuffer);
-    if (FAILED(hr))
-    {
-        UE_LOG(LogLevel::Warning, "IndexBuffer Creation faild");
-    }
+
     return indexBuffer;
 }
 
@@ -319,10 +308,7 @@ ID3D11Buffer* FRenderer::CreateIndexBuffer(const TArray<UINT>& indices, UINT byt
     ID3D11Buffer* indexBuffer;
 
     HRESULT hr = Graphics->Device->CreateBuffer(&indexbufferdesc, &indexbufferSRD, &indexBuffer);
-    if (FAILED(hr))
-    {
-        UE_LOG(LogLevel::Warning, "IndexBuffer Creation faild");
-    }
+
     return indexBuffer;
 }
 
@@ -344,8 +330,8 @@ void FRenderer::CreateConstantBuffer()
     constantbufferdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
     Graphics->Device->CreateBuffer(&constantbufferdesc, nullptr, &ConstantBuffer);
-    constantbufferdesc.ByteWidth = sizeof(FConstantsXM) + 0xf & 0xfffffff0;
-    Graphics->Device->CreateBuffer(&constantbufferdesc, nullptr, &ConstantBufferXM);
+    constantbufferdesc.ByteWidth = sizeof(FCameraConstants) + 0xf & 0xfffffff0;
+    Graphics->Device->CreateBuffer(&constantbufferdesc, nullptr, &ConstantCameraBuffer);
 
     constantbufferdesc.ByteWidth = sizeof(FSubUVConstant) + 0xf & 0xfffffff0;
     Graphics->Device->CreateBuffer(&constantbufferdesc, nullptr, &SubUVConstantBuffer);
@@ -459,19 +445,18 @@ void FRenderer::UpdateConstant(const FMatrix& MVP, FVector4 UUIDColor, bool IsSe
         Graphics->DeviceContext->Unmap(ConstantBuffer, 0); // GPU�� �ٽ� ��밡���ϰ� �����
     }
 }
-void FRenderer::UpdateConstantXM(const DirectX::XMMATRIX& MVP, FVector4 UUIDColor, bool IsSelected) const
+void FRenderer::UpdateCameraConstant(const FMatrix& VP) const
 {
-    if (ConstantBufferXM)
+    if (ConstantCameraBuffer)
     {
         D3D11_MAPPED_SUBRESOURCE ConstantBufferMSR; // GPU�� �޸� �ּ� ����
 
-        Graphics->DeviceContext->Map(ConstantBufferXM, 0, D3D11_MAP_WRITE_DISCARD, 0, &ConstantBufferMSR); // update constant buffer every frame
+        Graphics->DeviceContext->Map(ConstantCameraBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ConstantBufferMSR); // update constant buffer every frame
         {
-            FConstantsXM* constants = static_cast<FConstantsXM*>(ConstantBufferMSR.pData);
-            XMStoreFloat4x4(&constants->MVP, MVP);
-            constants->IsSelected = IsSelected;
+            FCameraConstants* constants = static_cast<FCameraConstants*>(ConstantBufferMSR.pData);
+            constants->VP = VP;
         }
-        Graphics->DeviceContext->Unmap(ConstantBufferXM, 0); // GPU�� �ٽ� ��밡���ϰ� �����
+        Graphics->DeviceContext->Unmap(ConstantCameraBuffer, 0); // GPU�� �ٽ� ��밡���ϰ� �����
     }
 }
 
@@ -619,10 +604,10 @@ void FRenderer::ReleaseTextureShader()
         ConstantBuffer->Release();
         ConstantBuffer = nullptr;
     }
-    if (ConstantBufferXM)
+    if (ConstantCameraBuffer)
     {
-        ConstantBufferXM->Release();
-        ConstantBufferXM = nullptr;
+        ConstantCameraBuffer->Release();
+        ConstantCameraBuffer = nullptr;
     }
 }
 
@@ -1006,16 +991,11 @@ void FRenderer::PrepareRender()
     {
         for (const auto iter : TObjectRange<UStaticMeshComponent>())
         {
-            if (UStaticMeshComponent* pStaticMeshComp = Cast<UStaticMeshComponent>(iter))
-            {
-                if (!Cast<UGizmoBaseComponent>(iter))
-                {
-                    StaticMeshObjs.Add(pStaticMeshComp);
-                    pStaticMeshComp->GetEngine().GetWorld()->GetRootOctree()->AddComponent(pStaticMeshComp);
-                }
-            }
+            StaticMeshObjs.Add(iter);
+            iter->GetEngine().GetWorld()->GetRootOctree()->AddComponent(iter);
         }
         CurrentViewport->CollectIntersectingComponents();
+        CurrentViewport->UpdateCameraBuffer();
         bIsDirtyRenderObj = false;
     }
 }
@@ -1039,57 +1019,39 @@ void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewp
 
 void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
-    // ChangeViewMode(ActiveViewport->GetViewMode());
-
     UPrimitiveBatch::GetInstance().RenderBatch(ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix());
-
-    if (ActiveViewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_Primitives))
-    {
-        RenderStaticMeshes(World, ActiveViewport);
-    }
-    // ClearRenderArr();
+    RenderStaticMeshes(World, ActiveViewport);
 }
 
 void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
-    PrepareShader(); 
+    PrepareShader();
     Plane frustumPlanes[6];
     memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
     //ActiveViewport->GetVisibleStaticMesh(StaticMeshObjs);
     for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
     {
-       
-        FMatrix Model = JungleMath::CreateModelMatrix(
-            StaticMeshComp->GetWorldLocation(),
-            StaticMeshComp->GetWorldRotation(),
-            StaticMeshComp->GetWorldScale()
-        );
 
-        bool bFrustum = StaticMeshComp->GetBoundingBox().TransformWorld(Model).IsIntersectingFrustum(frustumPlanes);
+        bool bFrustum = StaticMeshComp->GetWorldBoundingBox().IsIntersectingFrustum(frustumPlanes);
         if (!bFrustum) continue;
-         
+
         // 최종 MVP 행렬
-        FMatrix MVP = Model * ActiveViewport->GetViewMatrix() * ActiveViewport->GetProjectionMatrix();
-        FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
+       // FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
         if (World->GetSelectedComp() == StaticMeshComp)
         {
-            UpdateConstant(MVP, UUIDColor, true);
+            UpdateConstant(StaticMeshComp->Model, {}, true);
             UPrimitiveBatch::GetInstance().RenderAABB(
                 StaticMeshComp->GetBoundingBox(),
                 StaticMeshComp->GetWorldLocation(),
-                Model
+                StaticMeshComp->Model
             );
+
         }
         else
-            UpdateConstant(MVP, UUIDColor, false);
+            UpdateConstant(StaticMeshComp->Model, {}, false);
 
-        //UpdateTextureConstant(0, 0);
-
-
-        //if (!StaticMeshComp->GetStaticMesh()) continue;
 
         OBJ::FStaticMeshRenderData* renderData = StaticMeshComp->GetStaticMesh()->GetRenderData();
-        //if (renderData == nullptr) return;
 
         RenderPrimitive(renderData, StaticMeshComp->GetStaticMesh()->GetMaterials(), StaticMeshComp->GetOverrideMaterials(), StaticMeshComp->GetselectedSubMeshIndex());
     }

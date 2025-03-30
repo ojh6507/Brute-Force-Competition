@@ -63,10 +63,7 @@ void UStaticMeshComponent::GetUsedMaterials(TArray<UMaterial*>& Out) const
     }
 }
 
-int UStaticMeshComponent::CheckRayIntersection(
-    FVector& rayOrigin,
-    FVector& rayDirection,
-    float& pfNearHitDistance)
+int UStaticMeshComponent::CheckRayIntersection( FVector& rayOrigin, FVector& rayDirection, float& pfNearHitDistance)
 {
     // AABB 테스트로 초기 필터링
     if (!AABB.Intersect(rayOrigin, rayDirection, pfNearHitDistance))
@@ -74,10 +71,6 @@ int UStaticMeshComponent::CheckRayIntersection(
         return 0;
     }
 
-    // BVH가 미리 구축되어 있지 않으면 생성 (예: lazy initialization)
-   
-
-    // BVH를 통해 후보 삼각형 목록을 수집
     TArray <const Triangle*> candidateTriangles;
     pTriangleBVH->CollectCandidateTriangles(rayOrigin, rayDirection, candidateTriangles);
 

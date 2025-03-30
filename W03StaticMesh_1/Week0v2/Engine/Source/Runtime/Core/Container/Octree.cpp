@@ -120,72 +120,80 @@ TArray<UStaticMeshComponent*> FBVH::GetPrimitiveComponents() const {
 TArray<UStaticMeshComponent*> FBVH::CollectIntersectingComponents(const Plane frustumPlanes[6])
 {
     TArray<UStaticMeshComponent*> OutComponents;
-    DebugBoundingBox();
-    // 현재 노드의 바운딩박스가 프러스텀과 교차하지 않으면 바로 반환
-    if (!BoundingBox.IsIntersectingFrustum(frustumPlanes))
-    {
-        return OutComponents;
-    }
+    //DebugBoundingBox();
+    //// 현재 노드의 바운딩박스가 프러스텀과 교차하지 않으면 바로 반환
+    //if (!BoundingBox.IsIntersectingFrustum(frustumPlanes))
+    //{
+    //    return OutComponents;
+    //}
 
-    // 리프 노드라면 현재 노드의 컴포넌트를 모두 추가
-    if (IsLeafNode())
-    {
-        OutComponents.Append(PrimitiveComponents);
-        return OutComponents;
-    }
+    //// 리프 노드라면 현재 노드의 컴포넌트를 모두 추가
+    //if (IsLeafNode())
+    //{
+    //    OutComponents.Append(PrimitiveComponents);
+    //    return OutComponents;
+    //}
 
-    // 자식 노드가 있다면 재귀적으로 호출
-    if (LeftChild)
-    {
-        OutComponents.Append(LeftChild->CollectIntersectingComponents(frustumPlanes));
-    }
-    if (RightChild)
-    {
-        OutComponents.Append(RightChild->CollectIntersectingComponents(frustumPlanes));
-    }
+    //// 자식 노드가 있다면 재귀적으로 호출
+    //if (LeftChild)
+    //{
+    //    OutComponents.Append(LeftChild->CollectIntersectingComponents(frustumPlanes));
+    //}
+    //if (RightChild)
+    //{
+    //    OutComponents.Append(RightChild->CollectIntersectingComponents(frustumPlanes));
+    //}
 
-    return OutComponents;
+    return {};
 }
 
 // 레이와 교차하는 후보 컴포넌트를 수집 (pickPos, viewMatrix 기준)
-TArray<UStaticMeshComponent*> FBVH::CollectCandidateComponents(const FVector& pickPos, const FMatrix& viewMatrix) {
+TArray<UStaticMeshComponent*> FBVH::CollectCandidateComponents(const FVector& pickPos, const FMatrix& viewMatrix, const FVector& CameraPos, float maxDist)
+{
     TArray<UStaticMeshComponent*> CandidateComponents;
-    FVector cameraOrigin = { 0, 0, 0 };
     FMatrix inverseMatrix = FMatrix::Inverse(viewMatrix);
-    FVector pickRayOrigin = inverseMatrix.TransformPosition(cameraOrigin);
+    FVector pickRayOrigin = inverseMatrix.TransformPosition(FVector(0, 0, 0));
     FVector transformedPick = inverseMatrix.TransformPosition(pickPos);
     FVector rayDirection = (transformedPick - pickRayOrigin).Normalize();
 
-    // 유효한 리프 노드를 검사하며, 레이와 교차하는 경우 컴포넌트들을 추가
-    for (FBVH* leaf : GetValidLeafNodes()) {
+    TArray<FBVH*> validLeaves;
+    CollectValidLeafNodes(validLeaves);
+
+    const float maxDistSq = maxDist * maxDist;
+    for (FBVH* leaf : validLeaves)
+    {
         float dist = 0;
-        if (leaf->BoundingBox.Intersect(pickRayOrigin, rayDirection, dist)) {
-            for (UStaticMeshComponent* Comp : leaf->GetPrimitiveComponents()) {
-                CandidateComponents.Add(Comp);
+        if (leaf->BoundingBox.Intersect(pickRayOrigin, rayDirection, dist))
+        {
+            for (UStaticMeshComponent* Comp : leaf->GetPrimitiveComponents())
+            {
+                float ddist = Comp->GetWorldLocation().DistanceSq(CameraPos);
+                if (ddist < maxDistSq)
+                {
+                    CandidateComponents.Add(Comp);
+                }
             }
         }
     }
     return CandidateComponents;
 }
 
-// 유효한 리프 노드들을 재귀적으로 수집
-TArray<FBVH*> FBVH::GetValidLeafNodes() {
-    TArray<FBVH*> ValidLeafNodes;          
 
+// 유효한 리프 노드들을 재귀적으로 수집
+void FBVH::CollectValidLeafNodes(TArray<FBVH*>& OutLeaves) {
     if (IsLeafNode()) {
         if (PrimitiveComponents.Num() > 0) {
-            ValidLeafNodes.Add(const_cast<FBVH*>(this));
+            OutLeaves.Add(this);
         }
     }
     else {
         if (LeftChild) {
-            ValidLeafNodes.Append(LeftChild->GetValidLeafNodes());
+            LeftChild->CollectValidLeafNodes(OutLeaves);
         }
         if (RightChild) {
-            ValidLeafNodes.Append(RightChild->GetValidLeafNodes());
+            RightChild->CollectValidLeafNodes(OutLeaves);
         }
     }
-    return ValidLeafNodes;
 }
 
 // 디버깅: 현재 노드의 바운딩박스를 렌더링

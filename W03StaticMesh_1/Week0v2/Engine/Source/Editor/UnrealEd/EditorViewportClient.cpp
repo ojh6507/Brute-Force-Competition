@@ -68,8 +68,6 @@ void FEditorViewportClient::Release()
 
 void FEditorViewportClient::Input(float DeltaTime)
 {
-    ImGuiIO& io = ImGui::GetIO();
-    if (io.WantCaptureMouse) return;
     if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) // VK_RBUTTON은 마우스 오른쪽 버튼을 나타냄
     {
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
@@ -126,10 +124,11 @@ void FEditorViewportClient::Input(float DeltaTime)
         {
             CameraMoveUp(-1.f * DeltaTime);
         }
+       
+        UpdateCameraBuffer();
     }
     else
     {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
         bRightMouseDown = false; // 마우스 오른쪽 버튼을 떼면 상태 초기화
     }
 
@@ -186,7 +185,11 @@ bool FEditorViewportClient::IsSelected(POINT point)
 }
 void FEditorViewportClient::CollectIntersectingComponents()
 {
-   VisibleStaticMeshs =  GEngineLoop.GetWorld()->GetRootOctree()->CollectIntersectingComponents(frustumPlanes);
+   VisibleStaticMeshs = GEngineLoop.GetWorld()->GetRootOctree()->CollectIntersectingComponents(frustumPlanes);
+}
+void FEditorViewportClient::UpdateCameraBuffer()
+{
+    GEngineLoop.renderer.UpdateCameraConstant(GetViewMatrix() * GetProjectionMatrix());
 }
 void FEditorViewportClient::GetVisibleStaticMesh(TArray<UStaticMeshComponent*>& Outter)
 {

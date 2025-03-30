@@ -144,11 +144,8 @@ FVector4 FMatrix::TransformVector(const FVector4& v, const FMatrix& m)
 
 FMatrix FBoundingBox::CreateBoundingBoxTransform()
 {
-    // 중앙 위치 계산
     FVector Center = (min + max) * 0.5f;
-    // 스케일 계산 (박스의 크기)
     FVector Scale = max - min;
-
     FMatrix Transform = JungleMath::CreateModelMatrix(Center, FQuat(), Scale);
     return Transform;
 }

@@ -98,6 +98,7 @@ public:
 
     bool IsSelected(POINT point);
     void CollectIntersectingComponents();
+    void UpdateCameraBuffer();
     void GetVisibleStaticMesh(TArray<UStaticMeshComponent*>& Outter);
 protected:
     /** Camera speed setting */

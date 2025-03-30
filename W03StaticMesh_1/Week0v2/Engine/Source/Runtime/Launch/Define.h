@@ -197,7 +197,7 @@ struct FBoundingBox
     float pad;
     FVector max; // Maximum extents
     float pad1;
-    
+
     bool Intersects(const FBoundingBox& OtherBox) const
     {
         bool bOverlapX = (min.x <= OtherBox.max.x) && (max.x >= OtherBox.min.x);
@@ -211,7 +211,9 @@ struct FBoundingBox
         // 모든 축에서 겹쳐야만 최종적으로 교차하는 것으로 판단합니다.
         return bOverlapX && bOverlapY && bOverlapZ;
     }
- 
+    FVector GetBoundingBoxCenter() {
+        return (max - min) * 0.5f;
+    }
     bool IntersectsLocal(const FVector& localRayOrigin, const FVector& localRayDir,
         const FVector& boxMin, const FVector& boxMax,
         float& outDistance)
@@ -277,6 +279,33 @@ struct FBoundingBox
         outDistance = (tmin >= 0.0f) ? tmin : 0.0f;
         return true;
     }
+
+    bool IntersectsSphere(const FVector& SphereCenter, float SphereRadius) const
+    {
+        // AABB와 구의 교차 검사 (최소 거리 알고리즘)
+        float dmin = 0.0f;
+
+        // X축
+        if (SphereCenter.x < min.x)
+            dmin += (SphereCenter.x - min.x) * (SphereCenter.x - min.x);
+        else if (SphereCenter.x > max.x)
+            dmin += (SphereCenter.x - max.x) * (SphereCenter.x - max.x);
+
+        // y축
+        if (SphereCenter.y < min.y)
+            dmin += (SphereCenter.y - min.y) * (SphereCenter.y - min.y);
+        else if (SphereCenter.y > max.y)
+            dmin += (SphereCenter.y - max.y) * (SphereCenter.y - max.y);
+
+        // z축
+        if (SphereCenter.z < min.z)
+            dmin += (SphereCenter.z - min.z) * (SphereCenter.z - min.z);
+        else if (SphereCenter.z > max.z)
+            dmin += (SphereCenter.z - max.z) * (SphereCenter.z - max.z);
+
+        return dmin <= SphereRadius * SphereRadius;
+    }
+
     void Expand(const FBoundingBox& Other)
     {
         min.x = (min.x < Other.min.x) ? min.x : Other.min.x;
@@ -371,6 +400,54 @@ struct FBoundingBox
         // 만약 tmin < 0 이면, 레이의 시작점이 박스 내부에 있다는 의미이므로, 거리를 0으로 처리해도 됨.
         outDistance = (tmin >= 0.0f) ? tmin : 0.0f;
 
+        return true;
+    }
+    bool IntersectSphere(
+        const FVector& rayOrigin,
+        const FVector& rayDir,
+        const FVector& sphereCenter,
+        float sphereRadius,
+        float& outDistance)
+    {
+        // 구의 중심에서 레이 시작점까지의 벡터
+        FVector L = sphereCenter - rayOrigin;
+        // 레이 방향과 L의 내적 : 레이 상에서 구 중심에 가장 가까운 지점까지의 거리
+        float tca = L.Dot(rayDir);
+
+        // tca가 음수이면, 레이 방향이 구와 반대 방향임
+        if (tca < 0.0f)
+        {
+            return false;
+        }
+
+        // 구 중심과 레이 사이의 최소 거리 제곱
+        float d2 = L.Dot(L) - tca * tca;
+        float radius2 = sphereRadius * sphereRadius;
+
+        // 구 중심에서의 최소 거리가 구 반지름보다 크면 교차 없음
+        if (d2 > radius2)
+        {
+            return false;
+        }
+
+        // 구와의 교차 거리를 계산 (두 교차점 중 앞쪽을 선택)
+        float thc = std::sqrt(radius2 - d2);
+        float t0 = tca - thc;
+        float t1 = tca + thc;
+
+        // t0가 음수면, 레이 시작점이 구 내부일 수 있으므로 t1를 사용
+        if (t0 < 0.0f)
+        {
+            t0 = t1;
+        }
+
+        // 여전히 음수이면, 레이 시작점이 구 내부에 있고, 구 밖으로 나가는 경우도 아님
+        if (t0 < 0.0f)
+        {
+            return false;
+        }
+
+        outDistance = t0;
         return true;
     }
     FBoundingBox TransformWorld(const FMatrix& worldMatrix) const
@@ -473,9 +550,8 @@ struct FConstants {
     FMatrix MVP;      // 모델
     int IsSelected;
 };
-struct FConstantsXM {
-    DirectX::XMFLOAT4X4 MVP;      // 모델
-    int IsSelected;      // 모델
+struct FCameraConstants {
+    FMatrix VP;
 };
 struct FLitUnlitConstants {
     int isLit; // 1 = Lit, 0 = Unlit 

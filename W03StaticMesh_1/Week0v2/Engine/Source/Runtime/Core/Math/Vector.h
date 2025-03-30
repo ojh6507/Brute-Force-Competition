@@ -100,6 +100,11 @@ struct FVector
         // 두 벡터의 차 벡터의 크기를 계산
         return ((*this - other).Magnitude());
     }
+    float DistanceSq(const FVector& other) const {
+        // 두 벡터의 차 벡터의 크기를 계산
+        FVector sub = (*this - other);
+        return (sub.x * sub.x + sub.y * sub.y + sub.z * sub.z);
+    }
     DirectX::XMFLOAT3 ToXMFLOAT3() const
     {
         return DirectX::XMFLOAT3(x, y, z);

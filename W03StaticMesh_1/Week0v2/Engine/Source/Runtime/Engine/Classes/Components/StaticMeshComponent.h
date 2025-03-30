@@ -11,7 +11,8 @@ public:
     UStaticMeshComponent() = default;
 
     PROPERTY(int, selectedSubMeshIndex);
-    bool picked;
+    bool isSendBuffer = false;
+    bool bPickedBufferState = false;
     virtual uint32 GetNumMaterials() const override;
     virtual UMaterial* GetMaterial(uint32 ElementIndex) const override;
     virtual uint32 GetMaterialIndex(FName MaterialSlotName) const override;
@@ -31,6 +32,7 @@ public:
         {
             pTriangleBVH = BuildTriangleBVHFromRenderData(staticMesh->GetRenderData());
         }
+
     }
     TriangleBVH* BuildTriangleBVHFromRenderData(const OBJ::FStaticMeshRenderData* renderData)
     {
@@ -76,7 +78,14 @@ public:
         TriangleBVH* pBVH = new TriangleBVH(triangleList);
         return pBVH;
     }
-    bool IsPicked() { return picked; }
+    FVector GetBoundingBoxCenter() {
+        return GetWorldBoundingBox().GetBoundingBoxCenter();
+    }
+    FBoundingBox GetWorldBoundingBox()
+    {
+
+        return GetBoundingBox().TransformWorld(Model);
+    }
 protected:
     TriangleBVH* pTriangleBVH;
     UStaticMesh* staticMesh = nullptr;

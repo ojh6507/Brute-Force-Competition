@@ -18,10 +18,8 @@ public:
         const FVector& v0, const FVector& v1, const FVector& v2, float& hitDistance
     );
     FBoundingBox AABB;
-
 private:
     FString m_Type;
-
 public:
     FString GetType() { return m_Type; }
 
@@ -31,14 +29,5 @@ public:
         //staticMesh = FEngineLoop::resourceMgr.GetMesh(m_Type);
     }
     FBoundingBox GetBoundingBox() { return AABB; }
-    FBoundingBox GetWorldBoundingBox()
-    {
-        FMatrix Model = JungleMath::CreateModelMatrix(
-            GetWorldLocation(),
-            GetWorldRotation(),
-            GetWorldScale()
-        );
-        return GetBoundingBox().TransformWorld(Model);
-    }
 };
 

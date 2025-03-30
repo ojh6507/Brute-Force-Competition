@@ -80,11 +80,9 @@ void TriangleBVH::CollectCandidateTriangles(const FVector& rayOrigin, const FVec
     CollectCandidatesRecursive(rayOrigin, rayDir, outTriangles);
 }
 
-// 재귀적으로 광선과 교차하는 후보 삼각형들을 수집
 void TriangleBVH::CollectCandidatesRecursive(const FVector& rayOrigin, const FVector& rayDir, TArray<const Triangle*>& outTriangles) {
     float t;
-    // 현재 노드의 바운딩 박스와 광선 교차 검사 (교차하지 않으면 바로 종료)
-
+  
     if (!boundingBox.Intersect(rayOrigin, rayDir, t))
         return;
 

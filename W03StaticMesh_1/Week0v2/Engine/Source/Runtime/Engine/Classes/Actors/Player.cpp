@@ -30,8 +30,6 @@ void AEditorPlayer::Tick(float DeltaTime)
 
 void AEditorPlayer::Input()
 {
-    ImGuiIO& io = ImGui::GetIO();
-    if (io.WantCaptureMouse) return;
     if (GetAsyncKeyState(VK_LBUTTON) & 0x8000)
     {
         if (!bLeftMouseDown)
@@ -42,48 +40,21 @@ void AEditorPlayer::Input()
             GetCursorPos(&mousePos);
             GetCursorPos(&m_LastMousePos);
 
-            //uint32 UUID = GetEngine().graphicDevice.GetPixelUUID(mousePos);
-            //// TArray<UObject*> objectArr = GetWorld()->GetObjectArr();
-            //for (const auto obj : TObjectRange<USceneComponent>())
-            //{
-            //    if (obj->GetUUID() != UUID) continue;
-
-            //}
             ScreenToClient(GetEngine().hWnd, &mousePos);
 
             FVector pickPosition;
 
             const auto& ActiveViewport = GetEngine().GetLevelEditor()->GetActiveViewportClient();
-
             ScreenToViewSpace(mousePos.x, mousePos.y, ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix(), pickPosition);
             PickActor(pickPosition, ActiveViewport);
 
         }
     }
-    else
+    else if (bLeftMouseDown)
     {
-        if (bLeftMouseDown)
-        {
-            bLeftMouseDown = false; // ���콺 ������ ��ư�� ���� ���� �ʱ�ȭ
-            GetWorld()->SetPickingGizmo(nullptr);
-        }
+        bLeftMouseDown = false; // ���콺 ������ ��ư�� ���� ���� �ʱ�ȭ
     }
-    if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-    {
-        if (!bSpaceDown)
-        {
-            AddControlMode();
-            bSpaceDown = true;
-        }
-    }
-    else
-    {
-        if (bSpaceDown)
-        {
-            bSpaceDown = false;
-        }
-    }
-    if (GetAsyncKeyState(VK_RBUTTON) & 0x8000)
+    else if (GetAsyncKeyState(VK_RBUTTON) & 0x8000)
     {
         if (!bRightMouseDown)
         {
@@ -93,39 +64,11 @@ void AEditorPlayer::Input()
     else
     {
         bRightMouseDown = false;
-
-        if (GetAsyncKeyState('Q') & 0x8000)
-        {
-            //GetWorld()->SetPickingObj(nullptr);
-        }
-        if (GetAsyncKeyState('W') & 0x8000)
-        {
-            cMode = CM_TRANSLATION;
-        }
-        if (GetAsyncKeyState('E') & 0x8000)
-        {
-            cMode = CM_ROTATION;
-        }
-        if (GetAsyncKeyState('R') & 0x8000)
-        {
-            cMode = CM_SCALE;
-        }
-    }
-
-    if (GetAsyncKeyState(VK_DELETE) & 0x8000)
-    {
-        UWorld* World = GetWorld();
-        if (AActor* PickedActor = World->GetSelectedActor())
-        {
-            World->DestroyActor(PickedActor);
-            World->SetPickedActor(nullptr);
-        }
     }
 }
 
 void AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
-    if (!(ShowFlags::GetInstance().currentFlags & EEngineShowFlags::SF_Primitives)) return;
 
     FScopeCycleCounter pickCounter;
 
@@ -136,34 +79,41 @@ void AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEdit
     float minDistance = FLT_MAX;
 
 
+    FMatrix viewMatrix = ActiveViewport->GetViewMatrix();
+    Plane frustumPlanes[6];
+    memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
 
-    FMatrix viewMatrix = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->GetViewMatrix();
-    for (const auto& comp : GEngineLoop.GetWorld()->GetRootOctree()->CollectCandidateComponents(pickPosition, viewMatrix))
-    {
+    for (int maxDist = 20; maxDist <= ActiveViewport->farPlane; maxDist += (ActiveViewport->farPlane / 5)) {
 
-        float Distance = 0.0f;
-        int currentIntersectCount = 0;
-        if (RayIntersectsObject(pickPosition, comp, Distance, currentIntersectCount))
+        auto candidates = GEngineLoop.GetWorld()->GetRootOctree()->CollectCandidateComponents(pickPosition, viewMatrix, ActiveViewport->ViewTransformPerspective.GetLocation(), maxDist);
+        for (const auto& comp : candidates)
         {
-            if (Distance < minDistance)
+            float Distance = 0.0f;
+            int currentIntersectCount = 0;
+            if (RayIntersectsObject(pickPosition, comp, Distance, currentIntersectCount))
             {
-                minDistance = Distance;
-                maxIntersect = currentIntersectCount;
-                Possible = comp;
+                if (Distance < minDistance)
+                {
+                    minDistance = Distance;
+                    maxIntersect = currentIntersectCount;
+                    Possible = comp;
+                }
+                else if (abs(Distance - minDistance) < FLT_EPSILON && currentIntersectCount > maxIntersect)
+                {
+                    maxIntersect = currentIntersectCount;
+                    Possible = comp;
+                }
             }
-            else if (abs(Distance - minDistance) < FLT_EPSILON)
-            {
-                maxIntersect = currentIntersectCount;
-                Possible = comp;
-            }
+
         }
 
-    }
-    if (Possible)
-    {
-        GetWorld()->SetPickedPrimitive(Possible);
-        LastPickTime = pickCounter.Finish();
-        TotalPickTime += LastPickTime;
+        if (Possible)
+        {
+            GetWorld()->SetPickedPrimitive(Possible);
+            LastPickTime = pickCounter.Finish();
+            TotalPickTime += LastPickTime;
+            return;
+        }
     }
 }
 
@@ -193,23 +143,9 @@ void AEditorPlayer::ScreenToViewSpace(int screenX, int screenY, const FMatrix& v
 
 int AEditorPlayer::RayIntersectsObject(const FVector& pickPosition, USceneComponent* obj, float& hitDistance, int& intersectCount)
 {
-    FMatrix scaleMatrix = FMatrix::CreateScale(
-        obj->GetWorldScale().x,
-        obj->GetWorldScale().y,
-        obj->GetWorldScale().z
-    );
-    FMatrix rotationMatrix = FMatrix::CreateRotation(
-        obj->GetWorldRotation().x,
-        obj->GetWorldRotation().y,
-        obj->GetWorldRotation().z
-    );
 
-    FMatrix translationMatrix = FMatrix::CreateTranslationMatrix(obj->GetWorldLocation());
-    FMatrix worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
     FMatrix viewMatrix = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->GetViewMatrix();
-
-
-    FMatrix inverseMatrix = FMatrix::Inverse(worldMatrix * viewMatrix);
+    FMatrix inverseMatrix = FMatrix::Inverse(obj->Model * viewMatrix);
     FVector cameraOrigin = { 0,0,0 };
     FVector pickRayOrigin = inverseMatrix.TransformPosition(cameraOrigin);
     // 퍼스펙티브 모드의 기존 로직 사용

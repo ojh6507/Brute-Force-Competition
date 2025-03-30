@@ -20,13 +20,13 @@ public:
     void AddLocation(FVector _added);
     void AddRotation(FVector _added);
     void AddScale(FVector _added);
+    FMatrix Model;
 
 protected:
     FVector RelativeLocation;
     FVector RelativeRotation;
     FQuat QuatRotation;
     FVector RelativeScale3D;
-
     USceneComponent* AttachParent = nullptr;
     TArray<USceneComponent*> AttachChildren;
 
@@ -39,11 +39,19 @@ public:
 
     FVector GetLocalScale() const { return RelativeScale3D; }
     FVector GetLocalLocation() const { return RelativeLocation; }
-
-    void SetLocation(FVector _newLoc) { RelativeLocation = _newLoc; }
+    void UpdateMatrix();
+    void SetLocation(FVector _newLoc) {
+        RelativeLocation = _newLoc;
+        UpdateMatrix();
+    }
     virtual void SetRotation(FVector _newRot);
-    void SetRotation(FQuat _newRot) { QuatRotation = _newRot; }
-    void SetScale(FVector _newScale) { RelativeScale3D = _newScale; }
+    void SetRotation(FQuat _newRot) {
+        QuatRotation = _newRot;
+        UpdateMatrix();
+    }
+    void SetScale(FVector _newScale) {
+        RelativeScale3D = _newScale; UpdateMatrix();
+    }
     void SetupAttachment(USceneComponent* InParent);
 
 private:

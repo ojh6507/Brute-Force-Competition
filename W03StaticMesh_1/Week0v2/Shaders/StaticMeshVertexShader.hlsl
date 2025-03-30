@@ -1,7 +1,12 @@
 // MatrixBuffer: 변환 행렬 관리
 cbuffer MatrixConstants : register(b0)
 {
-    row_major float4x4 MVP;
+    row_major float4x4 Model;
+  
+};
+cbuffer CameraConstants : register(b6)
+{
+    row_major float4x4 VP;
   
 };
 
@@ -23,7 +28,9 @@ PS_INPUT mainVS(VS_INPUT input)
     PS_INPUT output;
     
     // 위치 변환
-    output.position = mul(input.position, MVP);
+    
+    output.position = mul(mul(input.position, Model), VP);
+
     //if (isSelected)
     //    output.color *= 0.5;
     //// 입력 normal 값의 길이 확인
