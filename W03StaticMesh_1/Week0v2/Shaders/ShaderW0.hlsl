@@ -1,6 +1,8 @@
 Texture2D Texture : register(t0);
 SamplerState Sampler : register(s0);
 
+
+
 // MatrixBuffer: 변환 행렬 관리
 cbuffer MatrixBuffer : register(b0)
 {

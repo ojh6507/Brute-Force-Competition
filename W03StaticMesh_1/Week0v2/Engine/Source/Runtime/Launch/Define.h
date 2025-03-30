@@ -10,6 +10,12 @@
 #include "Math/Vector4.h"
 #include "Math/Matrix.h"
 
+
+#define MsgBoxAssert(Text) do { \
+	std::string Value = Text; \
+	MessageBoxA(nullptr, Value.c_str(), "Error", MB_OK); assert(false); \
+} while (0)
+
 #define UE_LOG Console::GetInstance().AddLog
 
 #define _TCHAR_DEFINED
@@ -21,6 +27,12 @@ struct FVertexSimple
 {
     float x, y, z;    // Position
     float u = 0, v = 0;
+};
+struct FVertexSimpleIndex
+{
+    float x, y, z;    // Position
+    float u = 0, v = 0;
+    int MatrixIndex;
 };
 
 // Material Subset
@@ -466,6 +478,12 @@ struct FSubMeshConstants {
     FVector pad;
 };
 
+struct FInstanceData
+{
+    FMatrix WorldMatrix;
+};
+
+
 struct FTextureConstants {
     float UOffset;
     float VOffset;
@@ -473,3 +491,9 @@ struct FTextureConstants {
     float pad1;
 };
 
+struct FOffsetConstantData
+{
+    UINT BaseInstanceOffset;
+    // 필요시 다른 배치별 데이터 추가 (예: 패딩)
+    float padding[3];
+};

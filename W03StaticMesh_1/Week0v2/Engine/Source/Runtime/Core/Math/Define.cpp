@@ -29,6 +29,8 @@ FMatrix FMatrix::operator-(const FMatrix& Other) const {
 // 행렬 곱셈
 FMatrix FMatrix::operator*(const FMatrix& Other) const {
 
+
+
     FMatrix Result = DirectX::XMMatrixMultiply(DirectXMatrix, Other.DirectXMatrix);
 
     return Result;

@@ -22,12 +22,15 @@ UMaterial* FManagerOBJ::GetMaterial(FString name)
 UStaticMesh* FManagerOBJ::CreateStaticMesh(FString filePath)
 {
 
+
+
     OBJ::FStaticMeshRenderData* staticMeshRenderData = FManagerOBJ::LoadObjStaticMeshAsset(filePath);
 
     if (staticMeshRenderData == nullptr) return nullptr;
 
     UStaticMesh* staticMesh = GetStaticMesh(staticMeshRenderData->ObjectName);
     if (staticMesh != nullptr) {
+        staticMeshCountsMap[staticMesh]++;
         return staticMesh;
     }
 
@@ -35,6 +38,7 @@ UStaticMesh* FManagerOBJ::CreateStaticMesh(FString filePath)
     staticMesh->SetData(staticMeshRenderData);
 
     staticMeshMap.Add(staticMeshRenderData->ObjectName, staticMesh);
+    staticMeshCountsMap[staticMesh]++;
     return staticMesh;
 }
 

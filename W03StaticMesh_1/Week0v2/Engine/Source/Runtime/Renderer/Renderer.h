@@ -11,6 +11,23 @@
 #include "Container/Set.h"
 #include "Container/Map.h"
 
+struct StaticMeshInstanceData
+{
+    ID3D11Buffer* VertexBufferInstance;
+    ID3D11Buffer* IndexBufferInstance;
+
+    UINT NumVerticesPerInstance = 0; // 원본 메쉬의 정점 수 (Draw 호출 시 필요)
+    UINT NumIndicesPerInstance = 0;  // 원본 메쉬의 인덱스 수 (Draw 호출 시 필요)
+    UINT TotalInstancesInBuffer = 0; // 이 버퍼들에 포함된 총 인스턴스 수
+};
+
+struct FFrameBatchInfo
+{
+    class UStaticMesh* MeshType = nullptr;
+    UINT InstanceCount = 0;                // 이 배치의 인스턴스 수
+    UINT StructuredBufferOffset = 0;       // 공유 SB 내에서 이 배치의 데이터 시작 오프셋
+};
+
 class ULightComponentBase;
 class UWorld;
 class FGraphicsDevice;
@@ -42,6 +59,7 @@ public:
     FLighting lightingData;
 
     uint32 Stride;
+    //uint32 StrideInstance;
     uint32 Stride2;
 
 public:
@@ -61,9 +79,12 @@ public:
     void ReleaseBuffer(ID3D11Buffer*& Buffer) const;
     void ReleaseConstantBuffer();
 
+    void ReleaseInstanceData();
+
     void ResetVertexShader() const;
     void ResetPixelShader() const;
     void CreateShader();
+    bool CreateInputLayoutForVertexSimpleIndex();
 
     void SetVertexShader(const FWString& filename, const FString& funcname, const FString& version);
     void SetPixelShader(const FWString& filename, const FString& funcname, const FString& version);
@@ -75,9 +96,19 @@ public:
     void CreateLightingBuffer();
     void CreateLitUnlitBuffer();
     ID3D11Buffer* CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth) const;
+    ID3D11Buffer* CreateVertexBufferForManualInstancing(const TArray<FVertexSimple>& vertices, UINT InMatrixIndex, StaticMeshInstanceData& Data) const;
     ID3D11Buffer* CreateVertexBuffer(const TArray<FVertexSimple>& vertices, UINT byteWidth) const;
     ID3D11Buffer* CreateIndexBuffer(uint32* indices, UINT byteWidth) const;
     ID3D11Buffer* CreateIndexBuffer(const TArray<UINT>& indices, UINT byteWidth) const;
+    ID3D11Buffer* CreateIndexBufferForManualInstancing(const TArray<UINT>& originalIndices, UINT numOriginalVertices, UINT numInstances, StaticMeshInstanceData& Data) const;
+
+    bool CreateStructuredBuffer(
+        ID3D11Buffer** OutBuffer,
+        ID3D11ShaderResourceView** OutSRV,
+        UINT ElementCount,
+        UINT ElementSize,
+        const void* pInitialData = nullptr,
+        bool bDynamic = true); // 기본적으로 Dynamic으로 설정 (매 프레임 업데이트 가정)
 
     // update
     void UpdateLightBuffer() const;
@@ -86,7 +117,7 @@ public:
    void UpdateMaterial(const FObjMaterialInfo& MaterialInfo) const;
    //void UpdateLitUnlitConstant(int isLit) const;
    //void UpdateSubMeshConstant(bool isSelected) const;
-   //void UpdateTextureConstant(float UOffset, float VOffset);
+   void UpdateTextureConstant(float UOffset, float VOffset);
 
 public://텍스쳐용 기능 추가
     ID3D11VertexShader* VertexTextureShader = nullptr;
@@ -138,6 +169,7 @@ public: // line shader
     void UpdateBoundingBoxBuffer(ID3D11Buffer* pBoundingBoxBuffer, const TArray<FBoundingBox>& BoundingBoxes, int numBoundingBoxes) const;
     void UpdateOBBBuffer(ID3D11Buffer* pBoundingBoxBuffer, const TArray<FOBB>& BoundingBoxes, int numBoundingBoxes) const;
     void UpdateConesBuffer(ID3D11Buffer* pConeBuffer, const TArray<FCone>& Cones, int numCones) const;
+    void UpdateOffsetConstantBuffer(const void* pData, size_t dataSize);
 
     //Render Pass Demo
     void PrepareRender();
@@ -156,8 +188,10 @@ public: // line shader
 private:
     std::shared_ptr<FEditorViewportClient> CurrentViewport;
     TArray<UStaticMeshComponent*> StaticMeshObjs;
+    TMap<class UStaticMesh*, StaticMeshInstanceData> StaticMeshBatch;
     int PrevStaticMeshObjsNum = 0;
     class UMaterial* CurrentMaterial = nullptr;
+    class UStaticMesh* CurrentStaticMesh = nullptr;
     bool bIsDirtyRenderObj = true;
 
     //TMap<FName, TArray<UStaticMeshComponent>> StaticMeshObjsSorting;
@@ -172,6 +206,12 @@ public:
     ID3D11PixelShader* PixelLineShader = nullptr;
     ID3D11Buffer* GridConstantBuffer = nullptr;
     ID3D11Buffer* LinePrimitiveBuffer = nullptr;
+
+
+    ID3D11Buffer* StructBuffer = nullptr;
+    ID3D11ShaderResourceView* pStructBufferSRV = nullptr;
+    ID3D11Buffer* OffsetConstantBuffer = nullptr;
+
     ID3D11ShaderResourceView* pBBSRV = nullptr;
     ID3D11ShaderResourceView* pConeSRV = nullptr;
     ID3D11ShaderResourceView* pOBBSRV = nullptr;
