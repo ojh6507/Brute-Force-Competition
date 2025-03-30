@@ -185,7 +185,7 @@ bool FEditorViewportClient::IsSelected(POINT point)
 }
 void FEditorViewportClient::CollectIntersectingComponents()
 {
-   VisibleStaticMeshs = GEngineLoop.GetWorld()->GetRootOctree()->CollectIntersectingComponents(frustumPlanes);
+   VisibleStaticMeshs = GEngineLoop.GetWorld()->GetRootBVH()->CollectIntersectingComponents(frustumPlanes);
 }
 void FEditorViewportClient::UpdateCameraBuffer()
 {

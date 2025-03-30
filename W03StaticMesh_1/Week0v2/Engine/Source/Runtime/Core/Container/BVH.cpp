@@ -1,4 +1,4 @@
-#include "Octree.h"
+#include "BVH.h"
 
 #include <complex.h>
 

@@ -83,9 +83,9 @@ void AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEdit
     Plane frustumPlanes[6];
     memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
 
-    for (int maxDist = 20; maxDist <= ActiveViewport->farPlane; maxDist += (ActiveViewport->farPlane / 5)) {
+    for (int maxDist = 10; maxDist <= ActiveViewport->farPlane; maxDist += 10) {
 
-        auto candidates = GEngineLoop.GetWorld()->GetRootOctree()->CollectCandidateComponents(pickPosition, viewMatrix, ActiveViewport->ViewTransformPerspective.GetLocation(), maxDist);
+        auto candidates = GEngineLoop.GetWorld()->GetRootBVH()->CollectCandidateComponents(pickPosition, viewMatrix, ActiveViewport->ViewTransformPerspective.GetLocation(), maxDist);
         for (const auto& comp : candidates)
         {
             float Distance = 0.0f;
@@ -95,7 +95,6 @@ void AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEdit
                 if (Distance < minDistance)
                 {
                     minDistance = Distance;
-                    maxIntersect = currentIntersectCount;
                     Possible = comp;
                 }
                 else if (abs(Distance - minDistance) < FLT_EPSILON && currentIntersectCount > maxIntersect)

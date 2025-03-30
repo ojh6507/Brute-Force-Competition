@@ -41,9 +41,9 @@ void UWorld::Initialize()
 #endif
     FBoundingBox WorldBoundingBox = FBoundingBox(ParseSceneData.BoundingBox.min, ParseSceneData.BoundingBox.max);
     
-    if (RootOctree == nullptr)
+    if (RootBVH == nullptr)
     {
-        RootOctree = new FBVH(WorldBoundingBox);
+        RootBVH = new FBVH(WorldBoundingBox);
     }
 }
 

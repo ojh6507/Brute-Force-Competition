@@ -992,7 +992,7 @@ void FRenderer::PrepareRender()
         for (const auto iter : TObjectRange<UStaticMeshComponent>())
         {
             StaticMeshObjs.Add(iter);
-            iter->GetEngine().GetWorld()->GetRootOctree()->AddComponent(iter);
+            iter->GetEngine().GetWorld()->GetRootBVH()->AddComponent(iter);
         }
         CurrentViewport->CollectIntersectingComponents();
         CurrentViewport->UpdateCameraBuffer();

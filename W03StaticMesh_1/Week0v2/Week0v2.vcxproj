@@ -176,7 +176,7 @@
     <ClCompile Include="Engine\Source\Runtime\CoreUObject\UObject\NameTypes.cpp" />
     <ClCompile Include="Engine\Source\Runtime\CoreUObject\UObject\UObjectArray.cpp" />
     <ClCompile Include="Engine\Source\Runtime\CoreUObject\UObject\UObjectHash.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Core\Container\Octree.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Core\Container\BVH.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Core\Container\String.cpp" />
     <ClCompile Include="Engine\Source\Editor\PropertyEditor\ControlEditorPanel.cpp" />
     <ClCompile Include="Engine\Source\Editor\PropertyEditor\OutlinerEditorPanel.cpp" />
@@ -237,7 +237,7 @@
     <ClCompile Include="Engine\Source\Runtime\Core\Container\TriangleBVH.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\Source\Runtime\Core\Container\Octree.h" />
+    <ClInclude Include="Engine\Source\Runtime\Core\Container\BVH.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Delegates\Delegate.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Delegates\DelegateCombination.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\StaticMeshActor.h" />

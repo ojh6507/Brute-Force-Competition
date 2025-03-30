@@ -3,7 +3,7 @@
 #include "Container/Set.h"
 #include "UObject/ObjectFactory.h"
 #include "UObject/ObjectMacros.h"
-#include "Container/Octree.h"
+#include "Container/BVH.h"
 
 #include "Components/PrimitiveComponent.h"
 class FObjectFactory;
@@ -23,9 +23,9 @@ public:
     UWorld() = default;
     ~UWorld()
     {
-        if (RootOctree)
+        if (RootBVH)
         {
-            delete RootOctree;
+            delete RootBVH;
         }
     }
     
@@ -59,7 +59,7 @@ private:
     AActor* SelectedActor = nullptr;
     UPrimitiveComponent* SelectedPrimitve = nullptr;
 
-    FBVH* RootOctree = nullptr;
+    FBVH* RootBVH = nullptr;
     
     USceneComponent* pickingGizmo = nullptr;
     UCameraComponent* camera = nullptr;
@@ -69,7 +69,7 @@ public:
     UObject* worldGizmo = nullptr;
 
     const TSet<AActor*>& GetActors() const { return ActorsArray; }
-    FBVH* GetRootOctree() const { return RootOctree; }
+    FBVH* GetRootBVH() const { return RootBVH; }
     
     UTransformGizmo* LocalGizmo = nullptr;
     UCameraComponent* GetCamera() const { return camera; }
