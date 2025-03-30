@@ -423,6 +423,7 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\GameFramework\Actor.cpp" />
     <ClInclude Include="Engine\Source\Runtime\Core\Container\BVH.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Container\TriangleBVH.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\DirectXTK\Include\WICTextureLoader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Source\ThirdParty\DirectXTK\Include\DDSTextureLoader.h" />

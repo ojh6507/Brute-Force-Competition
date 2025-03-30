@@ -52,11 +52,15 @@ void UStaticMesh::SetData(OBJ::FStaticMeshRenderData* renderData)
         staticMeshRenderData->IndexBuffer = GetEngine().renderer.CreateIndexBuffer(staticMeshRenderData->Indices, indexNum * sizeof(UINT));
 
     for (int materialIndex = 0; materialIndex < staticMeshRenderData->Materials.Num(); materialIndex++) {
+
+
         FStaticMaterial* newMaterialSlot = new FStaticMaterial();
         UMaterial* newMaterial = FManagerOBJ::CreateMaterial(staticMeshRenderData->Materials[materialIndex]);
 
         newMaterialSlot->Material = newMaterial;
         newMaterialSlot->MaterialSlotName = staticMeshRenderData->Materials[materialIndex].MTLName;
+
+
 
         materials.Add(newMaterialSlot);
     }

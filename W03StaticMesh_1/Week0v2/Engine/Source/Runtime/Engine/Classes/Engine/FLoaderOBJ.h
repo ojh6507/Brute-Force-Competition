@@ -301,6 +301,7 @@ struct FLoaderOBJ
                 OutFStaticMesh.Materials[MaterialIndex].bHasTexture = true;
 
                 CreateTextureFromFile(OutFStaticMesh.Materials[MaterialIndex].DiffuseTexturePath);
+                OutFStaticMesh.Materials[MaterialIndex].DiffuseTexture = FEngineLoop::resourceMgr.GetTexture(OutFStaticMesh.Materials[MaterialIndex].DiffuseTexturePath);
             }
         }
         

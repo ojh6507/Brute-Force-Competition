@@ -61,14 +61,13 @@ struct PS_INPUT
 struct PS_OUTPUT
 {
     float4 color : SV_Target0;
-    float4 UUID : SV_Target1;
 };
 
 PS_OUTPUT mainPS(PS_INPUT input)
 {
     PS_OUTPUT output;
     
-    output.UUID = 1;
+    //output.UUID = 1;
     
     float3 texColor = Textures.Sample(Sampler, input.texcoord);
     float3 color;

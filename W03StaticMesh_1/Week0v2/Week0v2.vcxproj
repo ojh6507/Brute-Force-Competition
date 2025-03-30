@@ -286,6 +286,7 @@
     <ClInclude Include="Engine\Source\Runtime\SlateCore\Widgets\SWindow.h" />
     <ClInclude Include="Engine\Source\Runtime\Slate\Widgets\Layout\SSplitter.h" />
     <ClInclude Include="Engine\Source\ThirdParty\DirectXTK\Include\DDSTextureLoader.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\DirectXTK\Include\WICTextureLoader.h" />
     <ClInclude Include="Engine\Source\ThirdParty\tinyfiledialogs\tinyfiledialogs.h" />
     <ClInclude Include="Font\IconDefs.h" />
     <ClInclude Include="Font\RawFonts.h" />

@@ -9,6 +9,7 @@
 #include "Math/Vector.h"
 #include "Math/Vector4.h"
 #include "Math/Matrix.h"
+#include "Engine/Classes/Engine/Texture.h"
 
 #define UE_LOG Console::GetInstance().AddLog
 
@@ -89,6 +90,8 @@ struct FObjMaterialInfo
     /* Texture */
     FString DiffuseTextureName;  // map_Kd : Diffuse texture
     FWString DiffuseTexturePath;
+
+    std::shared_ptr<FTexture> DiffuseTexture;
 
     FString AmbientTextureName;  // map_Ka : Ambient texture
     FWString AmbientTexturePath;

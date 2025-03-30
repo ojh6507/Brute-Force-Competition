@@ -482,7 +482,7 @@ void FRenderer::UpdateMaterial(const FObjMaterialInfo& MaterialInfo) const
 
     if (MaterialInfo.bHasTexture == true)
     {
-        std::shared_ptr<FTexture> texture = FEngineLoop::resourceMgr.GetTexture(MaterialInfo.DiffuseTexturePath);
+        std::shared_ptr<FTexture> texture = MaterialInfo.DiffuseTexture;
         Graphics->DeviceContext->PSSetShaderResources(0, 1, &texture->TextureSRV);
         Graphics->DeviceContext->PSSetSamplers(0, 1, &texture->SamplerState);
     }
@@ -1013,7 +1013,7 @@ void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewp
     CurrentViewport = ActiveViewport;
     Graphics->DeviceContext->RSSetViewports(1, &ActiveViewport->GetD3DViewport());
     Graphics->ChangeRasterizer(ActiveViewport->GetViewMode());
-    MaterialSorting();
+    //RenderSorting();
     Graphics->PrepareOnce();
 }
 
@@ -1028,6 +1028,9 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
     PrepareShader();
     Plane frustumPlanes[6];
     memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
+
+    visibleRenderItems.Reserve(StaticMeshObjs.Num());
+
     //ActiveViewport->GetVisibleStaticMesh(StaticMeshObjs);
     for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
     {
@@ -1035,6 +1038,22 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         bool bFrustum = StaticMeshComp->GetWorldBoundingBox().IsIntersectingFrustum(frustumPlanes);
         if (!bFrustum) continue;
 
+        RenderItem item;
+        item.pStaticMeshComponent = StaticMeshComp;
+        item.distanceSq = FVector::DistanceSquared(StaticMeshComp->GetWorldLocation(), ActiveViewport->ViewTransformPerspective.GetLocation());
+
+        visibleRenderItems.Add(item);
+
+
+       
+    }
+
+    RenderSorting();
+
+
+    for (const RenderItem& visibleRenderItem : visibleRenderItems)
+    {
+        UStaticMeshComponent* StaticMeshComp = visibleRenderItem.pStaticMeshComponent;
         // 최종 MVP 행렬
        // FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
         if (World->GetSelectedComp() == StaticMeshComp)
@@ -1055,6 +1074,8 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
 
         RenderPrimitive(renderData, StaticMeshComp->GetStaticMesh()->GetMaterials(), StaticMeshComp->GetOverrideMaterials(), StaticMeshComp->GetselectedSubMeshIndex());
     }
+
+    visibleRenderItems.Empty();
 }
 
 void FRenderer::RenderGizmos(const UWorld* World, const std::shared_ptr<FEditorViewportClient>& ActiveViewport)
@@ -1162,16 +1183,16 @@ void FRenderer::RenderBillboards(UWorld* World, std::shared_ptr<FEditorViewportC
     PrepareShader();
 }
 
-void FRenderer::MaterialSorting()
+void FRenderer::RenderSorting()
 {
     //임시로 오브젝트의 수가 변경했을 때만 정렬
-    if (StaticMeshObjs.Num() == PrevStaticMeshObjsNum) return;
-    PrevStaticMeshObjsNum = StaticMeshObjs.Num();
+    //if (StaticMeshObjs.Num() == PrevStaticMeshObjsNum) return;
+    //PrevStaticMeshObjsNum = StaticMeshObjs.Num();
 
-    StaticMeshObjs.Sort([](const UStaticMeshComponent* A_ptr_ref, const UStaticMeshComponent* B_ptr_ref) {
+    visibleRenderItems.Sort([](const RenderItem A_ptr_ref, const RenderItem B_ptr_ref) {
         // 참조에서 실제 포인터 값을 가져옵니다.
-        const UStaticMeshComponent* CompA = A_ptr_ref;
-        const UStaticMeshComponent* CompB = B_ptr_ref;
+        const UStaticMeshComponent* CompA = A_ptr_ref.pStaticMeshComponent;
+        const UStaticMeshComponent* CompB = B_ptr_ref.pStaticMeshComponent;
 
         // 1. 컴포넌트 포인터 자체의 null 검사
         if (!CompA && !CompB) return false; // 둘 다 null이면 순서 유지 (동등)
@@ -1179,21 +1200,42 @@ void FRenderer::MaterialSorting()
         if (!CompB) return false; // B만 null이면 A는 B보다 나중에 와야 함 (false 반환)
 
 
-        const TArray<FStaticMaterial*>& MaterialsA = CompA->GetStaticMesh()->GetMaterials();
-        const TArray<FStaticMaterial*>& MaterialsB = CompB->GetStaticMesh()->GetMaterials();
+        UStaticMesh* MeshA = CompA->GetStaticMesh();
+        UStaticMesh* MeshB = CompB->GetStaticMesh();
 
-        // 3. 메테리얼 정보 포인터 null 검사
-        if (!MaterialsA[0] && !MaterialsB[0]) return false; // 둘 다 null이면 순서 유지
-        if (!MaterialsA[0]) return true;  // A만 null이면 A 우선
-        if (!MaterialsB[0]) return false; // B만 null이면 B 우선 (즉, A는 나중에)
+        if (MeshA != MeshB)
+        {
+            return MeshA < MeshB;
+        }
 
-        // 4. 포인터 주소값 비교 (핵심)
-        // MatInfoA가 MatInfoB보다 "작으면" (메모리 주소가 앞서면) true 반환
-        return MaterialsA[0] < MaterialsB[0];
+
+
+        return A_ptr_ref.distanceSq < B_ptr_ref.distanceSq;
 
         });
-    //std::sort(Materials.begin(), Materials.end(), [](const FMaterialInfo& a, const FMaterialInfo& b) {
-    //    return a.MaterialIndex < b.MaterialIndex;
+    //StaticMeshObjs.Sort([](const UStaticMeshComponent* A_ptr_ref, const UStaticMeshComponent* B_ptr_ref) {
+    //    // 참조에서 실제 포인터 값을 가져옵니다.
+    //    const UStaticMeshComponent* CompA = A_ptr_ref;
+    //    const UStaticMeshComponent* CompB = B_ptr_ref;
+
+    //    // 1. 컴포넌트 포인터 자체의 null 검사
+    //    if (!CompA && !CompB) return false; // 둘 다 null이면 순서 유지 (동등)
+    //    if (!CompA) return true;  // A만 null이면 A가 B보다 먼저 와야 함 (true 반환)
+    //    if (!CompB) return false; // B만 null이면 A는 B보다 나중에 와야 함 (false 반환)
+
+
+    //    UStaticMesh* MeshA = CompA->GetStaticMesh();
+    //    UStaticMesh* MeshB = CompB->GetStaticMesh();
+
+    //    if (MeshA != MeshB)
+    //    {
+    //        return MeshA < MeshB;
+    //    }
+
+
+
+    //    return MeshA < MeshB;
+
     //    });
 }
 

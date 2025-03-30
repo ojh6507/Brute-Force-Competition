@@ -11,6 +11,8 @@
 #include "Container/Set.h"
 #include "Container/Map.h"
 
+
+
 class ULightComponentBase;
 class UWorld;
 class FGraphicsDevice;
@@ -21,6 +23,14 @@ class FEditorViewportClient;
 class UBillboardComponent;
 class UStaticMeshComponent;
 class UGizmoBaseComponent;
+
+struct RenderItem {
+    uint32_t instanceIndex; // 원본 데이터 배열에서의 인덱스
+    UStaticMeshComponent* pStaticMeshComponent;    // 정렬 및 상태 설정용
+    float distanceSq;     // <<< 여기에 계산된 거리 제곱 값을 저장
+    // 또는 float viewSpaceZ;
+};
+
 class FRenderer 
 {
 
@@ -148,9 +158,11 @@ public: // line shader
     void RenderGizmos(const UWorld* World, const std::shared_ptr<FEditorViewportClient>& ActiveViewport);
     void RenderLight(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport);
     void RenderBillboards(UWorld* World,std::shared_ptr<FEditorViewportClient> ActiveViewport);
+
+
     
 
-    void MaterialSorting();
+    void RenderSorting();
 
     TArray<UStaticMeshComponent*> CameraInStaticMeshObjs;
 private:
@@ -164,7 +176,8 @@ private:
     TArray<UGizmoBaseComponent*> GizmoObjs;
     TArray<UBillboardComponent*> BillboardObjs;
     TArray<ULightComponentBase*> LightObjs;
-    
+
+    TArray<RenderItem> visibleRenderItems;
 
 
 public:

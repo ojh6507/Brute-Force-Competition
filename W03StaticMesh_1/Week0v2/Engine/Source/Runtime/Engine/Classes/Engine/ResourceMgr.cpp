@@ -7,6 +7,7 @@
 #include "Components/SkySphereComponent.h"
 #include "D3D11RHI/GraphicDevice.h"
 #include "DirectXTK/Include/DDSTextureLoader.h"
+#include "ThirdParty/DirectXTK/Include/WICTextureLoader.h"
 #include "Engine/FLoaderOBJ.h"
 
 void FResourceMgr::Initialize(FRenderer* renderer, FGraphicsDevice* device)
@@ -76,6 +77,7 @@ HRESULT FResourceMgr::LoadTextureFromFile(ID3D11Device* device, ID3D11DeviceCont
 	IWICBitmapFrameDecode* frame = nullptr;
 	IWICFormatConverter* converter = nullptr;
 
+
 	// WIC 팩토리 생성
 	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	if (FAILED(hr)) return hr;
@@ -87,6 +89,8 @@ HRESULT FResourceMgr::LoadTextureFromFile(ID3D11Device* device, ID3D11DeviceCont
 	// 이미지 파일 디코딩
 	hr = wicFactory->CreateDecoderFromFilename(filename, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &decoder);
 	if (FAILED(hr)) return hr;
+
+
 
 
 	hr = decoder->GetFrame(0, &frame);
@@ -104,6 +108,8 @@ HRESULT FResourceMgr::LoadTextureFromFile(ID3D11Device* device, ID3D11DeviceCont
 	frame->GetSize(&width, &height);
 	
 	// 픽셀 데이터 로드
+    UINT rowPitch = width * 4;
+    UINT imageSize = rowPitch * height;
 	BYTE* imageData = new BYTE[width * height * 4];
 	hr = converter->CopyPixels(nullptr, width * 4, width * height * 4, imageData);
 	if (FAILED(hr)) {
@@ -115,29 +121,39 @@ HRESULT FResourceMgr::LoadTextureFromFile(ID3D11Device* device, ID3D11DeviceCont
 	D3D11_TEXTURE2D_DESC textureDesc = {};
 	textureDesc.Width = width;
 	textureDesc.Height = height;
-	textureDesc.MipLevels = 1;
+	textureDesc.MipLevels = 0;
 	textureDesc.ArraySize = 1;
 	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	textureDesc.SampleDesc.Count = 1;
-	textureDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+    textureDesc.CPUAccessFlags = 0;
+    textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS; // <<< 수정: GenerateMips 플래그 추가
 
 	D3D11_SUBRESOURCE_DATA initData = {};
 	initData.pSysMem = imageData;
 	initData.SysMemPitch = width * 4;
 	ID3D11Texture2D* Texture2D;
-	hr = device->CreateTexture2D(&textureDesc, &initData, &Texture2D);
-	delete[] imageData;
-	if (FAILED(hr)) return hr;
+	hr = device->CreateTexture2D(&textureDesc, nullptr, &Texture2D);
 
-	// Shader Resource View 생성
-	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = textureDesc.Format;
-	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = 1;
+    // 밉 레벨 0에 데이터 업로드 (Device Context 사용)
+    context->UpdateSubresource(Texture2D, 0, nullptr, imageData, rowPitch, 0);
+
+    // imageData는 GPU로 복사되었으므로 해제 가능
+    delete[] imageData;
+    imageData = nullptr; // 해제 후 포인터 초기화
+
+	//// Shader Resource View 생성
+	//D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	//srvDesc.Format = textureDesc.Format;
+	//srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	//srvDesc.Texture2D.MostDetailedMip = 0;
+	//srvDesc.Texture2D.MipLevels = 1;
 	ID3D11ShaderResourceView* TextureSRV;
-	hr = device->CreateShaderResourceView(Texture2D, &srvDesc, &TextureSRV);
+	hr = device->CreateShaderResourceView(Texture2D, nullptr, &TextureSRV);
+
+    // <<< 추가: GenerateMips 호출 (Device Context 사용) >>>
+    context->GenerateMips(TextureSRV);
 
 	// 리소스 해제
 	wicFactory->Release();
@@ -155,6 +171,8 @@ HRESULT FResourceMgr::LoadTextureFromFile(ID3D11Device* device, ID3D11DeviceCont
 	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	samplerDesc.MinLOD = 0;
 	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+    samplerDesc.MipLODBias = 1.0f; // 예시: LOD 계산 결과에 1.0을 더함
 
 	device->CreateSamplerState(&samplerDesc, &SamplerState);
 	FWString name = FWString(filename);
