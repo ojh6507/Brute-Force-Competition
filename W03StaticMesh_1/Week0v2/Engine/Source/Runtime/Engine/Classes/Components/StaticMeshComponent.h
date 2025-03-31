@@ -46,10 +46,10 @@ public:
     FVector GetBoundingBoxCenter() {
         return GetWorldBoundingBox().GetBoundingBoxCenter();
     }
-    FBoundingBox GetWorldBoundingBox()
+    FBoundingBox GetWorldBoundingBox() const
     {
-
-        return GetBoundingBox().TransformWorld(Model);
+        FBoundingBox aab =GetBoundingBox();
+        return aab.TransformWorld(Model);
     }
 protected:
     TriangleBVH* pTriangleBVH;

@@ -194,7 +194,8 @@ struct Plane {
 struct FBoundingBox
 {
     FBoundingBox() {}
-    FBoundingBox(FVector _min, FVector _max) : min(_min), max(_max) {}
+    FBoundingBox(FVector _min, FVector _max) : min(_min), max(_max) {
+    }
     FVector min; // Minimum extents
     float pad;
     FVector max; // Maximum extents
@@ -444,14 +445,21 @@ struct FBoundingBox
         // cond1이나 cond2가 참이면 0, 아니면 1
         int valid = !(cond1 | cond2);
 
-        // outDistance 계산: tmin가 음수이면 0, 아니면 tmin (삼항 대신 곱셈 사용)
-        // (tmin >= 0) ? tmin : 0 를, (tmin * (tmin >= 0))로 표현하면, (tmin >= 0) 평가가 0 또는 1가 되도록 강제해야 하는데,
-        // C++에서는 bool(true)=1, bool(false)=0가 된다.
         outDistance = (tmin >= 0.0f) * tmin;
 
         // valid이 1이면 true, 0이면 false
         return valid != 0;
     }
+    
+    float GetDistanceToPoint(const FVector& point) const
+    {
+        // 각 축에 대해 점이 바운딩박스 범위 내에 있다면 0, 범위 밖이면 차이 값을 반환
+        float dx = (point.x < min.x) ? (min.x - point.x) : ((point.x > max.x) ? (point.x - max.x) : 0.0f);
+        float dy = (point.y < min.y) ? (min.y - point.y) : ((point.y > max.y) ? (point.y - max.y) : 0.0f);
+        float dz = (point.z < min.z) ? (min.z - point.z) : ((point.z > max.z) ? (point.z - max.z) : 0.0f);
+        return sqrtf(dx * dx + dy * dy + dz * dz);
+    }
+
     bool IntersectSphere(
         const FVector& rayOrigin,
         const FVector& rayDir,
@@ -459,39 +467,38 @@ struct FBoundingBox
         float sphereRadius,
         float& outDistance)
     {
-        // 구의 중심에서 레이 시작점까지의 벡터
+        // 구 중심에서 레이 시작점까지의 벡터
         FVector L = sphereCenter - rayOrigin;
-        // 레이 방향과 L의 내적 : 레이 상에서 구 중심에 가장 가까운 지점까지의 거리
         float tca = L.Dot(rayDir);
 
-        // tca가 음수이면, 레이 방향이 구와 반대 방향임
+        // 레이 방향이 구와 반대라면, 추가 연산 없이 바로 false 반환
         if (tca < 0.0f)
         {
             return false;
         }
 
-        // 구 중심과 레이 사이의 최소 거리 제곱
-        float d2 = L.Dot(L) - tca * tca;
-        float radius2 = sphereRadius * sphereRadius;
+        // 미리 계산된 값 사용
+        float L2 = L.Dot(L);
+        float tca2 = tca * tca;
+        float radius2 = sphereRadius;
 
-        // 구 중심에서의 최소 거리가 구 반지름보다 크면 교차 없음
+        // 최소 거리의 제곱을 계산해 비교 (sqrt 전 단계)
+        float d2 = L2 - tca2;
         if (d2 > radius2)
         {
             return false;
         }
 
-        // 구와의 교차 거리를 계산 (두 교차점 중 앞쪽을 선택)
+        // 필요한 경우에만 sqrt 호출 (정확도가 덜 요구되면 근사값으로 대체 가능)
         float thc = std::sqrt(radius2 - d2);
         float t0 = tca - thc;
         float t1 = tca + thc;
 
-        // t0가 음수면, 레이 시작점이 구 내부일 수 있으므로 t1를 사용
+        // t0가 음수이면 t1 사용
         if (t0 < 0.0f)
         {
             t0 = t1;
         }
-
-        // 여전히 음수이면, 레이 시작점이 구 내부에 있고, 구 밖으로 나가는 경우도 아님
         if (t0 < 0.0f)
         {
             return false;
@@ -500,21 +507,32 @@ struct FBoundingBox
         outDistance = t0;
         return true;
     }
+
     FBoundingBox TransformWorld(const FMatrix& worldMatrix) const
     {
-        // 모델 공간 중심과 half-extents 계산
+        // 로컬 공간에서 중심과 half-extents 계산
         FVector center = (min + max) * 0.5f;
         FVector extents = (max - min) * 0.5f;
 
-        // 점 변환 함수 TransformPoint는 worldMatrix를 사용해 center를 월드 좌표로 변환합니다.
+        // 중심을 월드 공간으로 변환
         FVector worldCenter = worldMatrix.TransformPosition(center);
 
-        FVector worldExtents;
-        worldExtents.x = fabs(worldMatrix.M[0][0]) * extents.x + fabs(worldMatrix.M[0][1]) * extents.y + fabs(worldMatrix.M[0][2]) * extents.z;
-        worldExtents.y = fabs(worldMatrix.M[1][0]) * extents.x + fabs(worldMatrix.M[1][1]) * extents.y + fabs(worldMatrix.M[1][2]) * extents.z;
-        worldExtents.z = fabs(worldMatrix.M[2][0]) * extents.x + fabs(worldMatrix.M[2][1]) * extents.y + fabs(worldMatrix.M[2][2]) * extents.z;
+        // 행렬의 상위 3x3 부분의 절대값 벡터를 사용하여 각 축에 대한 확장량 계산
+        // (FVector::GetAbs()와 DotProduct() 함수가 사용됨)
+        FVector row0(worldMatrix.M[0][0], worldMatrix.M[0][1], worldMatrix.M[0][2]);
+        FVector row1(worldMatrix.M[1][0], worldMatrix.M[1][1], worldMatrix.M[1][2]);
+        FVector row2(worldMatrix.M[2][0], worldMatrix.M[2][1], worldMatrix.M[2][2]);
 
-        // 월드 AABB 생성
+        FVector::GetAbs(row0);
+        FVector::GetAbs(row1);
+        FVector::GetAbs(row2);
+        
+        float worldExtentX = row0.Dot(extents);
+        float worldExtentY = row1.Dot(extents);
+        float worldExtentZ = row2.Dot(extents);
+
+        FVector worldExtents(worldExtentX, worldExtentY, worldExtentZ);
+
         return FBoundingBox(worldCenter - worldExtents, worldCenter + worldExtents);
     }
 

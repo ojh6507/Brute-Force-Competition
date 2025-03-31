@@ -18,13 +18,15 @@ public:
     // 컴포넌트를 BVH 트리에 추가
     void AddComponent(UStaticMeshComponent* InComponent);
 
-    void RayCheck(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& outSortedLeaves);
+    void RayCheck(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& outSortedLeaves, int maxT);
+
+    void FlattenTree(TArray<FBVH*>& OutNodes);
     TArray<UStaticMeshComponent*> CollectCandidateComponentsByLeaf(const FBVH* leaf)
     {
         return leaf ? leaf->PrimitiveComponents : TArray<UStaticMeshComponent*>();
     } 
     
-    void CollectValidLeafNodesWithT(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& OutLeaves);
+    void CollectValidLeafNodesWithT(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& OutLeaves, int maxT);
     // 유효한 리프 노드들을 반환 (재귀적으로)
     void CollectValidLeafNodes(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<FBVH*>& OutLeaves);
     // 현재 리프 노드의 컴포넌트 리스트 반환
@@ -42,18 +44,16 @@ public:
     int Depth = 0;
 
     // 분할 임계치와 최대 깊이 (필요에 따라 조정)
-    static const int DivideThreshold = 40;
-    static const int MaxDepth = 30;
+    static const int DivideThreshold = 32;
+    static const int MaxDepth = 23;
     TArray<std::pair<FBVH*, float>> hitLeaves;
-private:
-    // 현재 노드를 두 개의 자식 노드로 분할하고 기존 컴포넌트를 재분배
-    void SubDivide();
 
-private:
+     void SubDivide();
+
     FBoundingBox BoundingBox;
-    // (필요 시 계산한 반 크기: 옥트리와 달리 BVH에서는 사용하지 않을 수 있음)
-    FVector HalfSize;
+  
     TArray<UStaticMeshComponent*> PrimitiveComponents;
     FBVH* LeftChild = nullptr;
     FBVH* RightChild = nullptr;
+
 };

@@ -123,24 +123,30 @@ struct FMatrix
         );
 
 	}
-	FVector4 TransformFVector4(const FVector4& vector)
-	{
-		return FVector4(
-			M[0][0] * vector.x + M[1][0] * vector.y + M[2][0] * vector.z + M[3][0] * vector.a,
-			M[0][1] * vector.x + M[1][1] * vector.y + M[2][1] * vector.z + M[3][1] * vector.a,
-			M[0][2] * vector.x + M[1][2] * vector.y + M[2][2] * vector.z + M[3][2] * vector.a,
-			M[0][3] * vector.x + M[1][3] * vector.y + M[2][3] * vector.z + M[3][3] * vector.a
-		);
-	}
-    FVector TransformPosition(const FVector& vector) const
+    // 헤더 파일에 인라인 함수를 선언
+    __forceinline FVector4 TransformFVector4(const FVector4& vector)
     {
-        DirectX::XMVECTOR vec = DirectX::XMVectorSet(vector.x, vector.y, vector.z, 1.0f);
-        DirectX::XMVECTOR result = DirectX::XMVector4Transform(vec, DirectXMatrix);
-        float x = DirectX::XMVectorGetX(result);
-        float y = DirectX::XMVectorGetY(result);
-        float z = DirectX::XMVectorGetZ(result);
-        float w = DirectX::XMVectorGetW(result);
-        return w != 0.0f ? FVector{ x / w, y / w, z / w } : FVector{ x, y, z };
+        // M는 이미 정렬된 4x4 행렬 상수라고 가정
+        return FVector4(
+            M[0][0] * vector.x + M[1][0] * vector.y + M[2][0] * vector.z + M[3][0] * vector.a,
+            M[0][1] * vector.x + M[1][1] * vector.y + M[2][1] * vector.z + M[3][1] * vector.a,
+            M[0][2] * vector.x + M[1][2] * vector.y + M[2][2] * vector.z + M[3][2] * vector.a,
+            M[0][3] * vector.x + M[1][3] * vector.y + M[2][3] * vector.z + M[3][3] * vector.a
+        );
     }
+
+    __forceinline FVector TransformPosition(const FVector& vector) const
+    {
+     
+        using namespace DirectX;
+        XMVECTOR vec = XMVectorSet(vector.x, vector.y, vector.z, 1.0f);
+        XMVECTOR result = XMVector4Transform(vec, DirectXMatrix); // DirectXMatrix는 상수 행렬(16바이트 정렬)
+        float w = XMVectorGetW(result);
+       
+        return (w != 0.0f)
+            ? FVector{ XMVectorGetX(result) / w, XMVectorGetY(result) / w, XMVectorGetZ(result) / w }
+        : FVector{ XMVectorGetX(result), XMVectorGetY(result), XMVectorGetZ(result) };
+    }
+
 
 };

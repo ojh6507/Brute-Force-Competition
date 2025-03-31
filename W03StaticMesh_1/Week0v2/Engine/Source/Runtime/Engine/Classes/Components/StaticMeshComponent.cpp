@@ -63,35 +63,67 @@ void UStaticMeshComponent::GetUsedMaterials(TArray<UMaterial*>& Out) const
     }
 }
 
-int UStaticMeshComponent::CheckRayIntersection( FVector& rayOrigin, FVector& rayDirection, float& pfNearHitDistance)
+int UStaticMeshComponent::CheckRayIntersection(FVector& rayOrigin, FVector& rayDirection, float& pfNearHitDistance)
 {
-    // AABB 테스트로 초기 필터링
-    if (!AABB.Intersect(rayOrigin, rayDirection, pfNearHitDistance))
+    // AABB의 내접 sphere 계산
+    FVector sphereCenter = (AABB.min + AABB.max) * 0.5f;
+    float dx = AABB.max.x - AABB.min.x;
+    float dy = AABB.max.y - AABB.min.y;
+    float dz = AABB.max.z - AABB.min.z;
+    float sphereRadius = 0.5f * std::min({ dx, dy, dz });
+
+    float fHitDistance;
+    // 내접 sphere와의 교차 판정 수행
+    if (AABB.IntersectSphere(rayOrigin, rayDirection, sphereCenter, sphereRadius * sphereRadius, fHitDistance))
     {
-        return 0;
+        pfNearHitDistance = fHitDistance;
+        return 1;
     }
+    return 0;
 
-    TArray <const Triangle*> candidateTriangles;
-    pTriangleBVH->CollectCandidateTriangles(rayOrigin, rayDirection, candidateTriangles);
+    /*
+    //if (!AABB.Intersect(rayOrigin, rayDirection, pfNearHitDistance))
+    //{
+    //    return 0;
+    //}
+    //TArray<std::pair<TriangleBVH*, float>> sortedLeaves;
+    //TArray<Triangle*> candidateTriangles;
+    //pTriangleBVH->RayCheck(rayOrigin, rayDirection, sortedLeaves);
+    //pTriangleBVH->CollectCandidateTrianglesFromSortedLeaves(sortedLeaves, candidateTriangles);
 
-    int nIntersections = 0;
-    float fNearHitDistance = FLT_MAX;
+    //int nIntersections = 0;
+    //float fNearHitDistance = FLT_MAX;
 
-    // 후보 삼각형에 대해 정밀 교차 테스트 수행
-    for (const Triangle* tri : candidateTriangles)
-    {
-        float fHitDistance;
-        if (IntersectRayTriangle(rayOrigin, rayDirection, tri->v0, tri->v1, tri->v2, fHitDistance))
-        {
-            if (fHitDistance < fNearHitDistance)
-            {
-                pfNearHitDistance = fNearHitDistance = fHitDistance;
-            }
-            ++nIntersections;
-        }
-    }
+    //
+    //// 후보 삼각형에 대해 정밀 교차 테스트 수행
+    //for (Triangle* tri : candidateTriangles)
+    //{
+    //    // 삼각형 AABB 테스트 (optional)
+    //    float triAABBHit;
+    //    if (!tri->bbox.Intersect(rayOrigin, rayDirection, triAABBHit) || triAABBHit > fNearHitDistance)
+    //    {
+    //        continue;
+    //    }
 
-    return nIntersections;
+    //    float fHitDistance;
+    //    // IntersectRayTriangle 함수 내부에서도 early exit를 적용할 수 있도록 수정 가능
+    //    if (IntersectRayTriangle(rayOrigin, rayDirection, tri->v0, tri->v1, tri->v2, fHitDistance))
+    //    {
+    //        if (fHitDistance < fNearHitDistance)
+    //        {
+    //            fNearHitDistance = fHitDistance;
+    //            pfNearHitDistance = fHitDistance;
+    //        }
+    //        ++nIntersections;
+
+    //        // 조기 종료: 만약 현재 fHitDistance가 일정 임계값 이하라면
+    //        if (fNearHitDistance < 0.01)  // 임계값은 상황에 맞게 설정
+    //            break;
+    //    }
+    //}
+
+    //return nIntersections;
+    */
 }
 
 TriangleBVH* UStaticMeshComponent::BuildTriangleBVHFromRenderData(const OBJ::FStaticMeshRenderData* renderData)

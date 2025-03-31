@@ -70,7 +70,7 @@ void FEditorViewportClient::Input(float DeltaTime)
 {
     if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) // VK_RBUTTON은 마우스 오른쪽 버튼을 나타냄
     {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+      
         if (!bRightMouseDown)
         {
             // 마우스 오른쪽 버튼을 처음 눌렀을 때, 마우스 위치 초기화
@@ -299,8 +299,6 @@ void FEditorViewportClient::UpdateProjectionMatrix()
         );
     }
 }
-
-// FEditorViewportClient 클래스 내부에 추가할 새로운 평면 추출 함수
 void FEditorViewportClient::ExtractFrustumPlanesDirect()
 {
     // 카메라 파라미터 추출

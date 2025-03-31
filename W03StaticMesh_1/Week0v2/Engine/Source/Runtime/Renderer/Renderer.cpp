@@ -989,14 +989,26 @@ void FRenderer::PrepareRender()
 {
     if (bIsDirtyRenderObj == true)
     {
+        UWorld* world = nullptr;
         for (const auto iter : TObjectRange<UStaticMeshComponent>())
         {
+            if (!world)
+                world = iter->GetEngine().GetWorld();
+            
+            if (world)
+                world->GetRootBVH()->AddComponent(iter);
+            
             StaticMeshObjs.Add(iter);
-            iter->GetEngine().GetWorld()->GetRootBVH()->AddComponent(iter);
         }
+
         CurrentViewport->CollectIntersectingComponents();
+        
+        world->GetRootBVH()->FlattenTree(world->FlatNodes);
+
         CurrentViewport->UpdateCameraBuffer();
+        
         MaterialSorting();
+        
         bIsDirtyRenderObj = false;
     }
 }
