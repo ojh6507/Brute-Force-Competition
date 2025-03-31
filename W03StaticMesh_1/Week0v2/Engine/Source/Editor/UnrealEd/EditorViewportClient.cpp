@@ -38,7 +38,6 @@ void FEditorViewportClient::Initialize(int32 viewportIndex)
 void FEditorViewportClient::Tick(float DeltaTime)
 {
     Input(DeltaTime);
-    UpdateMatrix();
     UpdateCameraBuffer();
     CollectIntersectingComponents();
 
@@ -125,8 +124,8 @@ void FEditorViewportClient::Input(float DeltaTime)
         {
             CameraMoveUp(-1.f * DeltaTime);
         }
-       
-       
+        
+        UpdateMatrix();
     }
     else
     {

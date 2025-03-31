@@ -217,6 +217,40 @@ struct FBoundingBox
     FVector GetBoundingBoxCenter() {
         return (max - min) * 0.5f;
     }
+
+    float GetDistanceWithRaySIMD(const FVector& rayOrigin, const FVector& rayDir) {
+        const float epsilon = 1e-6f;
+
+        // AABB min/max 좌표를 배열로 저장
+        float boxMin[3] = {min.x, min.y, min.z};
+        float boxMax[3] = {max.x, max.y, max.z};
+
+        // 레이 원점과 방향을 배열로 저장
+        float rayOrig[3] = {rayOrigin.x, rayOrigin.y, rayOrigin.z};
+        float rayDirInv[3] = {1.0f / (rayDir.x + epsilon), 1.0f / (rayDir.y + epsilon), 1.0f / (rayDir.z + epsilon)};
+
+        // SIMD 레지스터에 데이터 로드
+        __m128 boxMinVec = _mm_loadu_ps(boxMin);
+        __m128 boxMaxVec = _mm_loadu_ps(boxMax);
+        __m128 rayOrigVec = _mm_loadu_ps(rayOrig);
+        __m128 rayDirInvVec = _mm_loadu_ps(rayDirInv);
+
+        // t1 = (min - origin) * invDir
+        __m128 t1Vec = _mm_mul_ps(_mm_sub_ps(boxMinVec, rayOrigVec), rayDirInvVec);
+
+        // t2 = (max - origin) * invDir
+        __m128 t2Vec = _mm_mul_ps(_mm_sub_ps(boxMaxVec, rayOrigVec), rayDirInvVec);
+
+        // tmin = max(t1, t2)
+        __m128 tminVec = _mm_min_ps(t1Vec, t2Vec);
+
+        // 최종 tmin 계산
+        float tmin[4];
+        _mm_storeu_ps(tmin, tminVec);
+
+        return std::max(std::max(tmin[0], tmin[1]), std::max(tmin[2], 0.0f));
+    }
+    
     bool IntersectsLocal(const FVector& localRayOrigin, const FVector& localRayDir,
         const FVector& boxMin, const FVector& boxMax,
         float& outDistance)
