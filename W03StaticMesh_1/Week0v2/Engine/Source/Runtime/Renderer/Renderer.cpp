@@ -195,12 +195,14 @@ void FRenderer::RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<F
         break;
     }
     case 1:
-        Graphics->DeviceContext->IASetVertexBuffers(0, 1, &renderData->VertexBufferLOD[0], &Stride, &offset);
-        Graphics->DeviceContext->IASetIndexBuffer(renderData->IndexBufferLOD[0], DXGI_FORMAT_R32_UINT, 0);
+        Graphics->DeviceContext->IASetVertexBuffers(0, 1, &renderData->VertexBuffer, &Stride, &offset);
+        if (renderData->IndexBuffer)
+            Graphics->DeviceContext->IASetIndexBuffer(renderData->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
         break;
     case 2:
-        Graphics->DeviceContext->IASetVertexBuffers(0, 1, &renderData->VertexBufferLOD[1], &Stride, &offset);
-        Graphics->DeviceContext->IASetIndexBuffer(renderData->IndexBufferLOD[1], DXGI_FORMAT_R32_UINT, 0);
+        Graphics->DeviceContext->IASetVertexBuffers(0, 1, &renderData->VertexBuffer, &Stride, &offset);
+        if (renderData->IndexBuffer)
+            Graphics->DeviceContext->IASetIndexBuffer(renderData->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
         break;
     }
 
@@ -1155,7 +1157,7 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
             UpdateConstant(StaticMeshComp->Model, UUIDColor, false);
         }
         
-        uint32 LODLevel = 2;
+        uint32 LODLevel = 0;
 
 
         OBJ::FStaticMeshRenderData* renderData = StaticMeshComp->GetStaticMesh()->GetRenderData();
