@@ -338,15 +338,26 @@ struct FLoaderOBJ
             if (vertexMap.Find(key) == nullptr)
             {
                 FVertexSimple vertex {};
-                vertex.x = RawData.Vertices[vIdx].x;
-                vertex.y = RawData.Vertices[vIdx].y;
-                vertex.z = RawData.Vertices[vIdx].z;
 
-               
+                float originalX = RawData.Vertices[vIdx].x;
+                float originalY = RawData.Vertices[vIdx].y;
+                float originalZ = RawData.Vertices[vIdx].z;
+
+                // 1. float x, y, z 값을 XMVECTOR (float4)로 만듭니다. W는 0.0f 또는 1.0f 등 무관.
+                DirectX::XMVECTOR posVec = DirectX::XMVectorSet(originalX, originalY, originalZ, 0.0f);
+
+                // 2. XMVECTOR 값을 XMHALF4 구조체로 변환(패킹)하여 저장합니다.
+                DirectX::PackedVector::XMStoreHalf4(&vertex.position, posVec);
+
+
                 if (tIdx != UINT32_MAX && tIdx < RawData.UVs.Num())
                 {
-                    vertex.u = RawData.UVs[tIdx].x;
-                    vertex.v = -RawData.UVs[tIdx].y;
+
+                    float cpuFloatX = RawData.UVs[tIdx].x;
+                    float cpuFloatY = -RawData.UVs[tIdx].y;
+
+                    DirectX::XMVECTOR vec = DirectX::XMVectorSet(cpuFloatX, cpuFloatY, 0.0f, 0.0f);
+                    DirectX::PackedVector::XMStoreHalf2(&vertex.uv, vec);
                 }
 
                 index = OutStaticMesh.Vertices.Num();
@@ -393,13 +404,23 @@ struct FLoaderOBJ
         
         for (int32 i = 0; i < InVertices.Num(); i++)
         {
-            MinVector.x = std::min(MinVector.x, InVertices[i].x);
-            MinVector.y = std::min(MinVector.y, InVertices[i].y);
-            MinVector.z = std::min(MinVector.z, InVertices[i].z);
+            //DirectX::PackedVector::XMHALF4 packedPosition; // 여기에 half4 데이터가 로드되었다고 가정
 
-            MaxVector.x = std::max(MaxVector.x, InVertices[i].x);
-            MaxVector.y = std::max(MaxVector.y, InVertices[i].y);
-            MaxVector.z = std::max(MaxVector.z, InVertices[i].z);
+            // 1. XMHALF4 데이터를 XMVECTOR (float4) 타입으로 로드합니다.
+            DirectX::XMVECTOR loadedVec = DirectX::PackedVector::XMLoadHalf4(&InVertices[i].position);
+
+            // 2. 로드된 XMVECTOR에서 각 float 성분(x, y, z)을 추출합니다.
+            float retrievedX = DirectX::XMVectorGetX(loadedVec);
+            float retrievedY = DirectX::XMVectorGetY(loadedVec);
+            float retrievedZ = DirectX::XMVectorGetZ(loadedVec);
+
+            MinVector.x = std::min(MinVector.x, retrievedX);
+            MinVector.y = std::min(MinVector.y, retrievedY);
+            MinVector.z = std::min(MinVector.z, retrievedZ);
+
+            MaxVector.x = std::max(MaxVector.x, retrievedX);
+            MaxVector.y = std::max(MaxVector.y, retrievedY);
+            MaxVector.z = std::max(MaxVector.z, retrievedZ);
         }
 
         OutMinVector = MinVector;

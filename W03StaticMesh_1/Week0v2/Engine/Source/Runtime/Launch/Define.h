@@ -30,7 +30,7 @@ using namespace DirectX::PackedVector;
 
 struct FVertexSimple
 {
-    float x, y, z;    // Position
+    XMHALF4 position;     // Position
     XMHALF2  uv;
 };
 
