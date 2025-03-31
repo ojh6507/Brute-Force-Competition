@@ -56,7 +56,7 @@ cbuffer MatrixConstants : register(b0)
 struct PS_INPUT
 {
     float4 position : SV_POSITION; // 변환된 화면 좌표
-    float2 texcoord : TEXCOORD1;
+    float2 texcoord : TEXCOORD0;
 };
 
 struct PS_OUTPUT

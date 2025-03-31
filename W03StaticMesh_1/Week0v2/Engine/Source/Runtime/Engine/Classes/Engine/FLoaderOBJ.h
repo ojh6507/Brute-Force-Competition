@@ -7,6 +7,9 @@
 #include "Container/Map.h"
 #include "HAL/PlatformType.h"
 #include "Serialization/Serializer.h"
+#include "ThirdParty/LodGenerator/Include/LodGenerator.h"
+#include "ThirdParty/LodGenerator/Include/mesh.h"
+#include "ThirdParty/meshoptimizer/meshoptimizer.h"
 
 class UStaticMesh;
 struct FManagerOBJ;
@@ -160,6 +163,11 @@ struct FLoaderOBJ
                 }
                 else if (faceVertexIndices.Num() == 3) // 삼각형
                 {
+                    /*if (OutObjInfo.VertexIndices.Num() >= 1500 * 3)
+                    {
+                        break;
+                    }*/
+
                     OutObjInfo.VertexIndices.Add(faceVertexIndices[0]);
                     OutObjInfo.VertexIndices.Add(faceVertexIndices[1]);
                     OutObjInfo.VertexIndices.Add(faceVertexIndices[2]);
@@ -301,6 +309,7 @@ struct FLoaderOBJ
                 OutFStaticMesh.Materials[MaterialIndex].bHasTexture = true;
 
                 CreateTextureFromFile(OutFStaticMesh.Materials[MaterialIndex].DiffuseTexturePath);
+                OutFStaticMesh.Materials[MaterialIndex].DiffuseTexture = FEngineLoop::resourceMgr.GetTexture(OutFStaticMesh.Materials[MaterialIndex].DiffuseTexturePath);
             }
         }
         
@@ -314,8 +323,21 @@ struct FLoaderOBJ
         OutStaticMesh.PathName = RawData.PathName;
         OutStaticMesh.DisplayName = RawData.DisplayName;
 
+
+        // --- 단계 1: OBJ 로드 및 초기 float 기반 정점/인덱스 버퍼 생성 ---
+        std::vector<FVertexSimpleFloat> initialFloatVertices; // float 기반 임시 정점 버퍼
+        std::vector<unsigned int> initialIndices;           // 초기 인덱스 버퍼
+        TMap<std::string, uint32> vertexMap;               // 중복 제거용 맵
+
+
+
         // 고유 정점을 기반으로 FVertexSimple 배열 생성
-        TMap<std::string, uint32> vertexMap; // 중복 체크용
+        //TMap<std::string, uint32> vertexMap; // 중복 체크용
+
+
+        //LOD용 버텍스 데이터
+        //std::vector<float> vertexPositions;
+        //std::vector<float> vertexAttributesUV; // UV용 버텍스 데이터
 
         for (int32 i = 0; i < RawData.VertexIndices.Num(); i++)
         {
@@ -323,44 +345,198 @@ struct FLoaderOBJ
             uint32 tIdx = RawData.TextureIndices[i];
             uint32 nIdx = RawData.NormalIndices[i];
 
-            // 키 생성 (v/vt/vn 조합)
-            std::string key = std::to_string(vIdx) + "/" + 
-                             std::to_string(tIdx) + "/" + 
-                             std::to_string(nIdx);
-
+            std::string key = std::to_string(vIdx) + "/" + std::to_string(tIdx) + "/" + std::to_string(nIdx);
             uint32 index;
+
             if (vertexMap.Find(key) == nullptr)
             {
-                FVertexSimple vertex {};
+                FVertexSimpleFloat vertex; // float 기반 구조체 사용
+
                 vertex.x = RawData.Vertices[vIdx].x;
                 vertex.y = RawData.Vertices[vIdx].y;
                 vertex.z = RawData.Vertices[vIdx].z;
 
-               
                 if (tIdx != UINT32_MAX && tIdx < RawData.UVs.Num())
                 {
                     vertex.u = RawData.UVs[tIdx].x;
-                    vertex.v = -RawData.UVs[tIdx].y;
+                    vertex.v = -RawData.UVs[tIdx].y; // V 좌표 뒤집기 (필요시)
                 }
+                // (만약 노말 등 다른 속성도 FVertexSimpleFloat에 있다면 여기서 채움)
 
-                index = OutStaticMesh.Vertices.Num();
-                OutStaticMesh.Vertices.Add(vertex);
+                index = initialFloatVertices.size();
+                initialFloatVertices.push_back(vertex); // float 기반 버퍼에 추가
                 vertexMap[key] = index;
             }
             else
             {
                 index = vertexMap[key];
             }
-
-            OutStaticMesh.Indices.Add(index);
-            
+            initialIndices.push_back(index);
         }
+
+
+
+
+        // --- 단계 3: meshoptimizer LOD 생성 준비 ---
+        // 3.1. 위치 및 UV 데이터를 별도의 float 배열로 추출
+        std::vector<float> vertexPositions;
+        std::vector<float> vertexAttributesUV;
+        vertexPositions.reserve(initialFloatVertices.size() * 3);
+        vertexAttributesUV.reserve(initialFloatVertices.size() * 2);
+
+        for (const auto& v : initialFloatVertices) {
+            vertexPositions.push_back(v.x);
+            vertexPositions.push_back(v.y);
+            vertexPositions.push_back(v.z);
+            vertexAttributesUV.push_back(v.u);
+            vertexAttributesUV.push_back(v.v);
+        }
+
+        // 3.2. LOD 생성 파라미터 설정 (예: LOD 1 생성)
+        size_t target_index_count_lod1 = initialIndices.size() / 4; // 예: 1/4로 줄이기
+        float target_error_lod1 = 0.05f;                         // 예: 5% 오차 허용
+        std::vector<unsigned int> lod1Indices(initialIndices.size()); // 결과 저장용
+        float lod1_result_error = 0.0f;
+        const float attribute_weights[2] = { 1.0f, 1.0f }; // UV 가중치
+
+        // 3.3. LOD 1 생성 호출
+        size_t num_lod1_indices = meshopt_simplifyWithAttributes(
+            lod1Indices.data(), initialIndices.data(), initialIndices.size(),
+            vertexPositions.data(), initialFloatVertices.size(), sizeof(float) * 3,
+            vertexAttributesUV.data(), sizeof(float) * 2, attribute_weights, 2,
+            nullptr, target_index_count_lod1, target_error_lod1, 0, &lod1_result_error
+        );
+        lod1Indices.resize(num_lod1_indices);
+
+
+        // LOD2 생성
+        size_t target_index_count_lod2 = initialIndices.size() / 6; // 예: 1/4로 줄이기
+        float target_error_lod2 = 0.1f;                         // 예: 5% 오차 허용
+        std::vector<unsigned int> lod2Indices(initialIndices.size()); // 결과 저장용
+        float lod2_result_error = 0.0f;
+        const float attribute_weights2[2] = { 1.0f, 1.0f }; // UV 가중치
+
+        size_t num_lod2_indices = meshopt_simplifyWithAttributes(
+            lod2Indices.data(), initialIndices.data(), initialIndices.size(),
+            vertexPositions.data(), initialFloatVertices.size(), sizeof(float) * 3,
+            vertexAttributesUV.data(), sizeof(float) * 2, attribute_weights2, 2,
+            nullptr, target_index_count_lod2, target_error_lod2, 0, &lod2_result_error
+        );
+        lod2Indices.resize(num_lod2_indices);
+
+        // LOD 0 결과 생성 (원본 인덱스와 float 정점 사용)
+        auto lod0Result = FinalizeAndOptimizeLODMesh(initialIndices, initialFloatVertices);
+        ConvertStdVectorToTArray(lod0Result.first, OutStaticMesh.Vertices);
+        ConvertStdVectorToTArray(lod0Result.second, OutStaticMesh.Indices);
+
+
+        OutStaticMesh.VerticesLOD.SetNum(5);
+        OutStaticMesh.IndicesLOD.SetNum(5);
+        auto lod1Result = FinalizeAndOptimizeLODMesh(lod1Indices, initialFloatVertices);
+        ConvertStdVectorToTArray(lod1Result.first, OutStaticMesh.VerticesLOD[0]);
+        ConvertStdVectorToTArray(lod1Result.second, OutStaticMesh.IndicesLOD[0]);
+
+        auto lod2Result = FinalizeAndOptimizeLODMesh(lod2Indices, initialFloatVertices);
+        ConvertStdVectorToTArray(lod2Result.first, OutStaticMesh.VerticesLOD[1]);
+        ConvertStdVectorToTArray(lod2Result.second, OutStaticMesh.IndicesLOD[1]);
 
         // Calculate StaticMesh BoundingBox
         ComputeBoundingBox(OutStaticMesh.Vertices, OutStaticMesh.BoundingBoxMin, OutStaticMesh.BoundingBoxMax);
-        
+
+        int a = 0;
+
+        //OutStaticMesh.Vertices = lod0Result.first; // TArray에 할당 (변환 필요 시 ConvertStdVectorToTArray 같은 함수 사용)
+        //OutStaticMesh.Indices = lod0Result.second; // TArray에 할당
+
+
+        //std::vector<uint32_t> originalIndices;
+        //// LOD 생성
+        //for (auto index : OutStaticMesh.Indices)
+        //{
+        //    originalIndices.push_back(index);
+        //}
+
+        //// --- LOD 생성을 위한 데이터 준비 ---
+
+        //// 1. 결과 인덱스를 저장할 버퍼 준비 (최악의 경우 원본 크기)
+        //std::vector<unsigned int> lodIndices(originalIndices.size());
+
+
+        //// 2. 정점 위치 데이터 준비 (meshopt_simplify* 함수는 float* 타입을 요구!)
+        //vertexPositions;
+
+
+        //// 3. 정점 속성(UV) 데이터 준비 (meshopt_simplifyWithAttributes는 float* 타입을 요구!)
+
+
+        //const float* attributes_uv_ptr = vertexAttributesUV.data();
+        //size_t attributes_uv_stride = sizeof(float) * 2; // UV 데이터만 저장했으므로 stride는 float 2개 크기
+
+        //const float* positions_ptr = vertexPositions.data();
+        //size_t positions_stride = sizeof(float) * 3; // 위치 데이터만 저장했으므로 stride는 float 3개 크기
+
+
+        //// 4. 속성 가중치 설정 (UV 2개 컴포넌트에 대한 가중치)
+        //const float attribute_weights[2] = { 1.0f, 1.0f }; // UV의 U, V 중요도를 동일하게 설정 (값 조절 가능)
+        //size_t attribute_count = 2;
+
+
+        //// 5. 단순화 목표 설정
+        //size_t target_index_count = originalIndices.size() / 2; // 예: 인덱스 수를 절반으로 줄이기 목표
+        //float target_error = 0.01f;                           // 예: 허용 오차 1% (값 조절 필요)
+        //unsigned int options = 0;                             // 기본 옵션 (필요시 meshopt_SimplifyLockBorder 등 추가)
+
+        //float result_error = 0.0f;
+
+        //
+        //size_t num_lod_indices = meshopt_simplifyWithAttributes(
+        //    lodIndices.data(),          // 결과 인덱스 버퍼
+        //    originalIndices.data(),     // 원본 인덱스 버퍼
+        //    originalIndices.size(),     // 원본 인덱스 수
+        //    positions_ptr,              // 정점 위치 데이터 (float*)
+        //    OutStaticMesh.Vertices.Num(),    // 원본 정점 수
+        //    positions_stride,           // 위치 데이터 스트라이드
+        //    attributes_uv_ptr,          // 정점 속성 데이터 (float*) - UV
+        //    attributes_uv_stride,       // 속성 데이터 스트라이드
+        //    attribute_weights,          // 속성 가중치 배열
+        //    attribute_count,            // 속성 개수 (UV는 2)
+        //    nullptr,                    // vertex_lock (NULL이면 사용 안 함)
+        //    target_index_count,         // 목표 인덱스 수
+        //    target_error,               // 목표 에러율
+        //    options,                    // 단순화 옵션
+        //    &result_error               // 결과 에러율 (선택적)
+        //);
+
+        //// 7. 결과 사용
+        //lodIndices.resize(num_lod_indices); // 실제 결과 크기에 맞게 벡터 크기 조절
+
+        //// 8. (선택적, 권장) 최종 버텍스/인덱스 버퍼 최적화
+        //// LOD 생성 후에는 불필요한 정점이 생길 수 있으므로,
+        //// 최종적으로 사용할 정점만 남기고 버퍼를 최적화하는 것이 좋습니다.
+        //std::vector<FVertexSimple> finalVertices;
+        //std::vector<unsigned int> finalIndices(num_lod_indices); // lodIndices 크기와 동일
+
+        //// remap 테이블 생성
+        //std::vector<unsigned int> remap(OutStaticMesh.Vertices.Num());
+        //size_t unique_vertex_count = meshopt_generateVertexRemap(remap.data(), lodIndices.data(), num_lod_indices, OutStaticMesh.Vertices.GetData(), OutStaticMesh.Vertices.Num(), sizeof(FVertexSimple));
+
+        //// 최종 인덱스 버퍼 생성
+        //meshopt_remapIndexBuffer(finalIndices.data(), lodIndices.data(), num_lod_indices, remap.data());
+
+        //// 최종 정점 버퍼 생성
+        //finalVertices.resize(unique_vertex_count);
+        //meshopt_remapVertexBuffer(finalVertices.data(), OutStaticMesh.Vertices.GetData(), OutStaticMesh.Vertices.Num(), sizeof(FVertexSimple), remap.data());
+
+
         return true;
     }
+
+    static std::pair<std::vector<FVertexSimple>, std::vector<unsigned int>>
+        FinalizeAndOptimizeLODMesh(
+            const std::vector<unsigned int>& lodIndices,
+            const std::vector<FVertexSimpleFloat>& sourceFloatVertices);
+
+    //static 
 
     static bool CreateTextureFromFile(const FWString& Filename)
     {
@@ -387,13 +563,23 @@ struct FLoaderOBJ
         
         for (int32 i = 0; i < InVertices.Num(); i++)
         {
-            MinVector.x = std::min(MinVector.x, InVertices[i].x);
-            MinVector.y = std::min(MinVector.y, InVertices[i].y);
-            MinVector.z = std::min(MinVector.z, InVertices[i].z);
+            //DirectX::PackedVector::XMHALF4 packedPosition; // 여기에 half4 데이터가 로드되었다고 가정
 
-            MaxVector.x = std::max(MaxVector.x, InVertices[i].x);
-            MaxVector.y = std::max(MaxVector.y, InVertices[i].y);
-            MaxVector.z = std::max(MaxVector.z, InVertices[i].z);
+            // 1. XMHALF4 데이터를 XMVECTOR (float4) 타입으로 로드합니다.
+            DirectX::XMVECTOR loadedVec = DirectX::PackedVector::XMLoadHalf4(&InVertices[i].position);
+
+            // 2. 로드된 XMVECTOR에서 각 float 성분(x, y, z)을 추출합니다.
+            float retrievedX = DirectX::XMVectorGetX(loadedVec);
+            float retrievedY = DirectX::XMVectorGetY(loadedVec);
+            float retrievedZ = DirectX::XMVectorGetZ(loadedVec);
+
+            MinVector.x = std::min(MinVector.x, retrievedX);
+            MinVector.y = std::min(MinVector.y, retrievedY);
+            MinVector.z = std::min(MinVector.z, retrievedZ);
+
+            MaxVector.x = std::max(MaxVector.x, retrievedX);
+            MaxVector.y = std::max(MaxVector.y, retrievedY);
+            MaxVector.z = std::max(MaxVector.z, retrievedZ);
         }
 
         OutMinVector = MinVector;

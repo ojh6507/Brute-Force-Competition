@@ -342,7 +342,6 @@ void FGraphicsDevice::Prepare(D3D11_VIEWPORT* viewport)
 
 void FGraphicsDevice::OnResize(HWND hWindow) {
     DeviceContext->OMSetRenderTargets(0, RTVs, 0);
-    // DeviceContext->OMSetRenderTargets(0, &FrameBufferRTV, nullptr);
     
     FrameBufferRTV->Release();
     FrameBufferRTV = nullptr;

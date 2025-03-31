@@ -21,11 +21,11 @@ void UWorld::Initialize()
     CreateBaseObject();
     //SpawnObject(OBJ_CUBE);
 
-#if _DEBUG
-    FString jsonContent = FSceneMgr::LoadSceneFromFile("Assets/Data/Default.scene");
-    SceneData ParseSceneData = FSceneMgr::ParseSceneData(jsonContent);
+//#if _DEBUG
+//    FString jsonContent = FSceneMgr::LoadSceneFromFile("Assets/Data/Default.scene");
+//    SceneData ParseSceneData = FSceneMgr::ParseSceneData(jsonContent);
 
-#else
+//#else
     char const* lFilterPatterns[1] = { "*.scene" };
     const char* FileName = tinyfd_openFileDialog("Open Scene File", "", 1, lFilterPatterns, "Scene(.scene) file", 0);
 
@@ -38,7 +38,7 @@ void UWorld::Initialize()
     
     FString jsonContent = FSceneMgr::LoadSceneFromFile(FileName);
     SceneData ParseSceneData = FSceneMgr::ParseSceneData(jsonContent);
-#endif
+//#endif
     FBoundingBox WorldBoundingBox = FBoundingBox(ParseSceneData.BoundingBox.min, ParseSceneData.BoundingBox.max);
     
     if (RootBVH == nullptr)

@@ -86,6 +86,17 @@ struct FVector
         }
     }
 
+    static float DistanceSquared(const FVector& v1, const FVector& v2) {
+        // 각 축(x, y, z)별로 차이를 구합니다.
+        float dx = v2.x - v1.x;
+        float dy = v2.y - v1.y;
+        float dz = v2.z - v1.z;
+
+        // 각 차이를 제곱하여 합산합니다. 이것이 거리의 제곱입니다.
+        // (dx * dx) + (dy * dy) + (dz * dz)
+        return (dx * dx) + (dy * dy) + (dz * dz);
+    }
+
     // const 객체를 위한 인덱스 연산자 (상수 참조 반환)
     const float& operator[](int index) const {
         switch (index) {
@@ -109,7 +120,14 @@ struct FVector
     {
         return DirectX::XMFLOAT3(x, y, z);
     }
+    static inline FVector GetAbs(const FVector& v)
+    {
+        using namespace DirectX;
 
+        XMVECTOR vec = XMVectorSet(v.x, v.y, v.z, 0.0f);
+        XMVECTOR absVec = XMVectorAbs(vec);
+        return FVector(XMVectorGetX(absVec), XMVectorGetY(absVec), XMVectorGetZ(absVec));
+    }
     static const FVector ZeroVector;
     static const FVector OneVector;
     static const FVector UpVector;

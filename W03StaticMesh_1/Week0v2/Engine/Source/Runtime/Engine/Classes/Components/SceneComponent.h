@@ -21,7 +21,8 @@ public:
     void AddRotation(FVector _added);
     void AddScale(FVector _added);
     FMatrix Model;
-   
+    FMatrix InvModel;
+    FMatrix GetInvModel() { return InvModel; }
 protected:
     FVector RelativeLocation;
     FVector RelativeRotation;

@@ -147,23 +147,38 @@ TArray<UStaticMeshComponent*> FBVH::CollectIntersectingComponents(const Plane fr
     return {};
 }
 
-void FBVH::RayCheck(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& outSortedLeaves)
+void FBVH::RayCheck(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& outSortedLeaves , int maxT)
 {
     outSortedLeaves.Empty();
-    CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, outSortedLeaves);
+    CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, outSortedLeaves, maxT);
 
     outSortedLeaves.Sort([](const TPair<FBVH*, float>& A, const TPair<FBVH*, float>& B) {
         return A.Value < B.Value;
         });
 }
 
-void FBVH::CollectValidLeafNodesWithT(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& OutLeaves)
+void FBVH::FlattenTree(TArray<FBVH*>& OutNodes)
+{
+    OutNodes.Add(this);
+
+    if (LeftChild)
+    {
+        LeftChild->FlattenTree(OutNodes);
+    }
+    if (RightChild)
+    {
+        RightChild->FlattenTree(OutNodes);
+    }
+}
+
+void FBVH::CollectValidLeafNodesWithT(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& OutLeaves, int maxT)
 {
     float t;
-    if (!BoundingBox.Intersect(pickRayOrigin, rayDirection, t)) {
+   
+    if (!BoundingBox.Intersect(pickRayOrigin, rayDirection, t) || t > maxT) {
         return;
     }
-
+   
     if (IsLeafNode()) {
         if (PrimitiveComponents.Num() > 0) {
             OutLeaves.Add(TPair<FBVH*, float>(this, t));
@@ -171,10 +186,10 @@ void FBVH::CollectValidLeafNodesWithT(const FVector& pickRayOrigin, const FVecto
     }
     else {
         if (LeftChild) {
-            LeftChild->CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, OutLeaves);
+            LeftChild->CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, OutLeaves, maxT);
         }
         if (RightChild) {
-            RightChild->CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, OutLeaves);
+            RightChild->CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, OutLeaves, maxT);
         }
     }
 }
@@ -183,7 +198,7 @@ void FBVH::CollectValidLeafNodesWithT(const FVector& pickRayOrigin, const FVecto
 // 유효한 리프 노드들을 재귀적으로 수집
 void FBVH::CollectValidLeafNodes(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<FBVH*>& OutLeaves) {
     float t;
-    if (!BoundingBox.Intersect(pickRayOrigin, rayDirection, t)) {
+    if (!BoundingBox.Intersect(pickRayOrigin, rayDirection, t) ) {
         return;
     }
     if (IsLeafNode()) {

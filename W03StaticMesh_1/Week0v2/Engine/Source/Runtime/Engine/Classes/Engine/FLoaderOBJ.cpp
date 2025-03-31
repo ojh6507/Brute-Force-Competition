@@ -90,3 +90,69 @@ void FManagerOBJ::MergeRenderData(const TArray<OBJ::FStaticMeshRenderData*>& ren
     //staticMeshRenderData->TotalVertices = mergedVertices.Num();
     //staticMeshRenderData->TotalIndices = mergedIndices.Num();
 }
+
+std::pair<std::vector<FVertexSimple>, std::vector<unsigned int>> FLoaderOBJ::FinalizeAndOptimizeLODMesh(const std::vector<unsigned int>& lodIndices, const std::vector<FVertexSimpleFloat>& sourceFloatVertices)
+{
+    std::vector<FVertexSimple> finalVertices;     // 최종 GPU용 버퍼 (XMHALF)
+    std::vector<unsigned int> finalIndices;        // 최종 인덱스 버퍼
+
+    // --- 단계 1: 고유 정점 식별 및 remap 테이블 생성 ---
+    // lodIndices가 실제로 사용하는 sourceFloatVertices 내의 고유한 정점들을 찾습니다.
+    // sourceFloatVertices의 크기만큼 remap 테이블 공간 필요.
+    std::vector<unsigned int> remap(sourceFloatVertices.size());
+    size_t unique_vertex_count = meshopt_generateVertexRemap(
+        remap.data(),               // 결과 remap 테이블을 저장할 버퍼
+        lodIndices.data(),          // 입력 LOD 인덱스 버퍼
+        lodIndices.size(),          // 입력 인덱스 수
+        sourceFloatVertices.data(), // 입력 정점 버퍼 (float 기반이어야 안정적)
+        sourceFloatVertices.size(), // 입력 정점 수
+        sizeof(FVertexSimpleFloat)  // 입력 정점 구조체의 크기
+    );
+
+    // --- 단계 2: 최종 인덱스 버퍼 생성 ---
+    // remap 테이블을 사용하여 lodIndices를 새로운 인덱스(finalIndices)로 변환합니다.
+    // 이 새로운 인덱스는 최종 정점 버퍼(finalVertices) 내의 인덱스를 가리킵니다.
+    finalIndices.resize(lodIndices.size()); // 결과 인덱스 버퍼 크기 설정
+    meshopt_remapIndexBuffer(
+        finalIndices.data(),        // 결과 인덱스 버퍼
+        lodIndices.data(),          // 입력 LOD 인덱스 버퍼
+        lodIndices.size(),          // 입력 인덱스 수
+        remap.data()                // remap 테이블
+    );
+
+    // --- 단계 3: 최종 정점 버퍼 생성 (압축 포맷으로 변환 포함) ---
+    // 3.1. 먼저 고유한 정점들만 float 형태로 임시 버퍼에 모읍니다.
+    std::vector<FVertexSimpleFloat> remappedFloatVertices(unique_vertex_count);
+    meshopt_remapVertexBuffer(
+        remappedFloatVertices.data(), // 고유 float 정점을 저장할 임시 버퍼
+        sourceFloatVertices.data(),   // 원본 float 정점 버퍼
+        sourceFloatVertices.size(),   // 원본 정점 수
+        sizeof(FVertexSimpleFloat),   // 원본 정점 구조체 크기
+        remap.data()                  // remap 테이블
+    );
+
+    // 3.2. 임시 float 정점 버퍼를 최종 GPU 포맷(XMHALF 등)으로 변환합니다.
+    finalVertices.reserve(unique_vertex_count); // 최종 버퍼 메모리 예약
+    for (const auto& floatVertex : remappedFloatVertices)
+    {
+        FVertexSimple packedVertex; // 최종 포맷 구조체
+
+        // 위치 변환 (float -> XMHALF4)
+        DirectX::XMVECTOR posVec = DirectX::XMVectorSet(floatVertex.x, floatVertex.y, floatVertex.z, 0.0f); // W는 보통 1.0 또는 0.0
+        DirectX::PackedVector::XMStoreHalf4(&packedVertex.position, posVec);
+
+        // UV 변환 (float -> XMHALF2)
+        DirectX::XMVECTOR uvVec = DirectX::XMVectorSet(floatVertex.u, floatVertex.v, 0.0f, 0.0f);
+        DirectX::PackedVector::XMStoreHalf2(&packedVertex.uv, uvVec);
+
+        // (만약 FVertexSimpleFloat와 FVertexSimple에 다른 속성이 있다면 여기서 변환 추가)
+        // 예: 노말 변환 (float3 -> PackedFormat)
+        // DirectX::XMVECTOR normVec = DirectX::XMVectorSet(floatVertex.nx, floatVertex.ny, floatVertex.nz, 0.0f);
+        // DirectX::PackedVector::XMStore...(&packedVertex.normal, normVec);
+
+        finalVertices.push_back(packedVertex); // 최종 버퍼에 추가
+    }
+
+    // 최종 정점 버퍼와 최종 인덱스 버퍼를 쌍으로 반환
+    return std::make_pair(std::move(finalVertices), std::move(finalIndices));
+}
