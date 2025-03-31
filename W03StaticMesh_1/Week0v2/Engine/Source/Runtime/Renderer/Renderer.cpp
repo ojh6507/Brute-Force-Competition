@@ -462,8 +462,8 @@ void FRenderer::UpdateConstant(const FMatrix& MVP, FVector4 UUIDColor, bool IsSe
         {
             FConstants* constants = static_cast<FConstants*>(ConstantBufferMSR.pData);
             constants->MVP = MVP;
+            constants->UUID = UUIDColor;
             constants->IsSelected = IsSelected;
-
         }
         Graphics->DeviceContext->Unmap(ConstantBuffer, 0); // GPU�� �ٽ� ��밡���ϰ� �����
     }
@@ -1029,9 +1029,12 @@ void FRenderer::PrepareRender()
         world->GetRootBVH()->FlattenTree(world->FlatNodes);
 
         CurrentViewport->UpdateCameraBuffer();
+
+        MaterialSorting();
         
-        //MaterialSorting();
-        
+        RenderStaticMeshes(GEngineLoop.GetWorld() ,CurrentViewport);
+        GEngineLoop.graphicDevice.CacheUUIDBuffer();
+
         bIsDirtyRenderObj = false;
     }
 }
@@ -1056,7 +1059,79 @@ void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewp
 void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
     UPrimitiveBatch::GetInstance().RenderBatch(ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix());
-    RenderStaticMeshes(World, ActiveViewport);
+    if (!ActiveViewport->isMove)
+    {
+        RenderStaticMeshesStop(World, ActiveViewport);
+    }
+    if (ActiveViewport->isMove)
+    {
+        RenderStaticMeshes(World, ActiveViewport);
+    }
+}
+
+void FRenderer::RenderStaticMeshesStop(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
+{
+    PrepareShader();
+    TArray<UStaticMeshComponent*> RenderComps;
+    TSet<uint32_t> RenderUUIDs;
+    
+    const int Width = Graphics->SwapchainDesc.BufferDesc.Width;
+    const int Height = Graphics->SwapchainDesc.BufferDesc.Height;
+
+    for (int i=0;i<Height; i++)
+    {
+        for (int j=0;j<Width; j++)
+        {
+            if (j > 1999)
+            {
+                break;
+            }
+
+            uint32_t uid = Graphics->UUIDBuffer[i][j];
+            if (uid == 0)
+            {
+                continue;
+            }
+            RenderUUIDs.Add(uid);
+        }
+        if (i>1999)
+        {
+            break;
+        }
+    }
+
+    for (uint32_t uuid:RenderUUIDs)
+    {
+        if (StaticMeshComponentMap[uuid])
+        {
+            RenderComps.Add(StaticMeshComponentMap[uuid]);
+        }
+    }    
+
+    for (UStaticMeshComponent* StaticMeshComp : RenderComps)
+    {
+        FVector4 UUIDColor = Graphics->EncodeUUIDColor(StaticMeshComp->GetUUID());
+        UUIDColor /= 255.f;
+        // 최종 MVP 행렬
+        // FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
+        if (World->GetSelectedComp() == StaticMeshComp)
+        {
+            UPrimitiveBatch::GetInstance().RenderAABB(
+                StaticMeshComp->GetBoundingBox(),
+                StaticMeshComp->GetWorldLocation(),
+                StaticMeshComp->Model
+            );
+            UpdateConstant(StaticMeshComp->Model, UUIDColor, true);
+        }else
+        {
+            UpdateConstant(StaticMeshComp->Model, UUIDColor, false);
+        }
+
+        OBJ::FStaticMeshRenderData* renderData = StaticMeshComp->GetStaticMesh()->GetRenderData();
+
+        RenderPrimitive(renderData, StaticMeshComp->GetStaticMesh()->GetMaterials(), StaticMeshComp->GetOverrideMaterials(), StaticMeshComp->GetselectedSubMeshIndex());
+    }
+
 }
 
 void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
@@ -1065,12 +1140,12 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
     Plane frustumPlanes[6];
     memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
 
+
     visibleRenderItems.Reserve(StaticMeshObjs.Num());
 
     //ActiveViewport->GetVisibleStaticMesh(StaticMeshObjs);
     for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
     {
-
         bool bFrustum = StaticMeshComp->GetWorldBoundingBox().IsIntersectingFrustum(frustumPlanes);
         if (!bFrustum) continue;
 
@@ -1079,50 +1154,32 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         item.distanceSq = FVector::DistanceSquared(StaticMeshComp->GetWorldLocation(), ActiveViewport->ViewTransformPerspective.GetLocation());
 
         visibleRenderItems.Add(item);
-
-
-       
     }
 
     RenderSorting();
 
-
     for (const RenderItem& visibleRenderItem : visibleRenderItems)
     {
         UStaticMeshComponent* StaticMeshComp = visibleRenderItem.pStaticMeshComponent;
+        FVector4 UUIDColor = Graphics->EncodeUUIDColor(visibleRenderItem.pStaticMeshComponent->GetUUID());
+        UUIDColor /= 255.f;
+
         // 최종 MVP 행렬
        // FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
         if (World->GetSelectedComp() == StaticMeshComp)
         {
-            UpdateConstant(StaticMeshComp->Model, {}, true);
-
             UPrimitiveBatch::GetInstance().RenderAABB(
                 StaticMeshComp->GetBoundingBox(),
                 StaticMeshComp->GetWorldLocation(),
                 StaticMeshComp->Model
             );
-
+            UpdateConstant(StaticMeshComp->Model, UUIDColor, true);
+        }else
+        {
+            UpdateConstant(StaticMeshComp->Model, UUIDColor, false);
         }
-        else
-            UpdateConstant(StaticMeshComp->Model, {}, false);
-        
+
         uint32 LODLevel = 2;
-
-        //if (visibleRenderItem.distanceSq < 0.1 * 0.1)
-        //{
-        //    LODLevel = 0;
-        //}
-        //else if (visibleRenderItem.distanceSq < 1 * 1)
-        //{
-        //    LODLevel = 1;
-        //}
-        //else
-        //{
-        //    LODLevel = 2;
-        //}
-
-
-        
 
         OBJ::FStaticMeshRenderData* renderData = StaticMeshComp->GetStaticMesh()->GetRenderData();
 

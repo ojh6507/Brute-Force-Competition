@@ -8,6 +8,10 @@
 #include "World.h"
 #include "GameFramework/Actor.h"
 #include "Components/StaticMeshComponent.h"
+#include "JSON/json.hpp"
+
+#include "Editor/LevelEditor/SLevelEditor.h"
+
 FVector FEditorViewportClient::Pivot = FVector(0.0f, 0.0f, 0.0f);
 float FEditorViewportClient::orthoSize = 10.0f;
 FEditorViewportClient::FEditorViewportClient()
@@ -64,8 +68,6 @@ void FEditorViewportClient::Release()
 
 }
 
-
-
 void FEditorViewportClient::Input(float DeltaTime)
 {
     if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) // VK_RBUTTON은 마우스 오른쪽 버튼을 나타냄
@@ -76,6 +78,8 @@ void FEditorViewportClient::Input(float DeltaTime)
             // 마우스 오른쪽 버튼을 처음 눌렀을 때, 마우스 위치 초기화
             GetCursorPos(&lastMousePos);
             bRightMouseDown = true;
+            
+            isMove = true;
         }
         else
         {
@@ -126,12 +130,21 @@ void FEditorViewportClient::Input(float DeltaTime)
         }
         
         UpdateMatrix();
+        GEngineLoop.graphicDevice.CacheUUIDBuffer();
+        isMove = true;
     }
     else
     {
+        if (isMove)
+        {
+            GEngineLoop.graphicDevice.CacheUUIDBuffer();
+            isMove = false;
+            
+        }
         bRightMouseDown = false; // 마우스 오른쪽 버튼을 떼면 상태 초기화
     }
 
+    
     // Focus Selected Actor
     if (GetAsyncKeyState('F') & 0x8000)
     {

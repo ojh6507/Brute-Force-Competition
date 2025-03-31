@@ -119,6 +119,7 @@ TArray<UStaticMeshComponent*> FBVH::GetPrimitiveComponents() const {
 }
 TArray<UStaticMeshComponent*> FBVH::CollectIntersectingComponents(const Plane frustumPlanes[6])
 {
+
     //TArray<UStaticMeshComponent*> OutComponents;
     ////DebugBoundingBox();
     //// 현재 노드의 바운딩박스가 프러스텀과 교차하지 않으면 바로 반환

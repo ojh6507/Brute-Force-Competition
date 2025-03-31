@@ -1,5 +1,7 @@
 ﻿#pragma once
+#include "Components/StaticMeshComponent.h"
 #include "Container/Array.h"
+#include "Container/Map.h"
 #include "Container/Set.h"
 
 class UClass;
@@ -30,3 +32,4 @@ private:
 };
 
 extern FUObjectArray GUObjectArray;
+extern TMap<uint32_t, UStaticMeshComponent*> StaticMeshComponentMap;

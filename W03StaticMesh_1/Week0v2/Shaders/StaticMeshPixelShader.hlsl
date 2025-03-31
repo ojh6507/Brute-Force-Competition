@@ -4,6 +4,7 @@ SamplerState Sampler : register(s0);
 cbuffer MatrixConstants : register(b0)
 {
     row_major float4x4 MVP;
+    float4 UUID;
     int isSelected;
 };
 
@@ -63,13 +64,11 @@ struct PS_OUTPUT
     float4 color : SV_Target0;
 };
 
-
-
 PS_OUTPUT mainPS(PS_INPUT input)
 {
     PS_OUTPUT output;
     
-    //output.UUID = 1;
+    output.UUID = UUID;
     
     float3 texColor = Textures.Sample(Sampler, input.texcoord);
     float3 color;
@@ -84,6 +83,7 @@ PS_OUTPUT mainPS(PS_INPUT input)
         color += float3(0.5f, 0.5f, 0.0f);
     }
     output.color = float4(color, 1);
+
     return output;
     // 노란색 틴트로 하이라이트
     //    if (IsSelectedSubMesh)

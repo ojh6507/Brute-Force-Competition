@@ -13,6 +13,8 @@
 
 std::atomic<double> FWindowsPlatformTime::GSecondsPerCycle{ 0.0 };
 std::atomic<bool> FWindowsPlatformTime::bInitialized{ false };
+int SCR_WIDTH = 1000;
+int SCR_HEIGHT = 1000;
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -31,10 +33,18 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
     case WM_SIZE:
         if (wParam != SIZE_MINIMIZED)
         {
+            SCR_WIDTH = LOWORD(lParam);
+            SCR_HEIGHT = HIWORD(lParam);
             //UGraphicsDevice 객체의 OnResize 함수 호출
             if (FEngineLoop::graphicDevice.SwapChain)
             {
                 FEngineLoop::graphicDevice.OnResize(hWnd);
+
+                GEngineLoop.graphicDevice.Prepare();
+                GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->UpdateCameraBuffer();
+                GEngineLoop.renderer.RenderStaticMeshes(GEngineLoop.GetWorld(), GEngineLoop.GetLevelEditor()->GetActiveViewportClient());
+                GEngineLoop.graphicDevice.CacheUUIDBuffer();
+                
             }
             for (int i = 0; i < 1; i++)
             {
@@ -43,13 +53,24 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
                     if (GEngineLoop.GetLevelEditor()->GetViewports()[i])
                     {
                         GEngineLoop.GetLevelEditor()->GetViewports()[i]->ResizeViewport(FEngineLoop::graphicDevice.SwapchainDesc);
+
+                        GEngineLoop.graphicDevice.Prepare();
                         GEngineLoop.GetLevelEditor()->GetViewports()[i]->UpdateCameraBuffer();
+                        GEngineLoop.renderer.RenderStaticMeshes(GEngineLoop.GetWorld(), GEngineLoop.GetLevelEditor()->GetActiveViewportClient());
+                        GEngineLoop.graphicDevice.CacheUUIDBuffer();
                     }
                 }
             }
             if (GEngineLoop.LevelEditor)
+            {
                 GEngineLoop.renderer.InitOnceState(GEngineLoop.LevelEditor->GetActiveViewportClient());
 
+                GEngineLoop.graphicDevice.Prepare();
+                GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->UpdateCameraBuffer();
+                GEngineLoop.renderer.RenderStaticMeshes(GEngineLoop.GetWorld(), GEngineLoop.GetLevelEditor()->GetActiveViewportClient());
+                GEngineLoop.graphicDevice.CacheUUIDBuffer();
+            }
+            
         }
         /*  Console::GetInstance().OnResize(hWnd);
         */ // ControlPanel::GetInstance().OnResize(hWnd);
@@ -57,11 +78,8 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
         // Outliner::GetInstance().OnResize(hWnd);
         // ViewModeDropdown::GetInstance().OnResize(hWnd);
         // ShowFlags::GetInstance().OnResize(hWnd);
-        if (GEngineLoop.GetUnrealEditor())
-        {
-            GEngineLoop.GetUnrealEditor()->OnResize(hWnd);
-        }
-        ViewportTypePanel::GetInstance().OnResize(hWnd);
+
+        // ViewportTypePanel::GetInstance().OnResize(hWnd);
         break;
     case WM_MOUSEWHEEL:
         if (ImGui::GetIO().WantCaptureMouse)
@@ -291,9 +309,18 @@ void FEngineLoop::WindowInit(HINSTANCE hInstance)
 
     RegisterClassW(&wndclass);
 
+    RECT rc = { 0, 0, SCR_WIDTH, SCR_HEIGHT };
+
+   AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
     hWnd = CreateWindowExW(
         0, WindowClass, Title, WS_POPUP | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, 1000, 1000,
+        CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top,
         nullptr, nullptr, hInstance, nullptr
     );
+    
+    // hWnd = CreateWindowExW(
+    //     0, WindowClass, Title, WS_POPUP | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
+    //     CW_USEDEFAULT, CW_USEDEFAULT, 1000, 1000,
+    //     nullptr, nullptr, hInstance, nullptr
+    // );
 }

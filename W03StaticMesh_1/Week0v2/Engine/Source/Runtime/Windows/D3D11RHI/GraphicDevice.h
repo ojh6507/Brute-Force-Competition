@@ -55,10 +55,15 @@ public:
     ID3D11RasterizerState* GetCurrentRasterizer() { return CurrentRasterizer; }
     void ChangeRasterizer(EViewModeIndex evi);
     void ChangeDepthStencilState(ID3D11DepthStencilState* newDetptStencil);
+    void CacheUUIDBuffer();
 
     uint32 GetPixelUUID(POINT pt);
+    FVector4 EncodeUUIDColor(uint32 UUID);
     uint32 DecodeUUIDColor(FVector4 UUIDColor);
+    uint32_t UUIDBuffer[2000][2000] = {0,};
+    
 private:
     ID3D11RasterizerState* CurrentRasterizer = nullptr;
+
 };
 
