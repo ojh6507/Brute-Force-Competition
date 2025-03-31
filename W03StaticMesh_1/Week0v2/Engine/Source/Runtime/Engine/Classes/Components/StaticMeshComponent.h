@@ -39,6 +39,7 @@ public:
        // }*/
 
     }
+
     TriangleBVH* BuildTriangleBVHFromRenderData(const OBJ::FStaticMeshRenderData* renderData);
     TriangleKDTree* BuildTriangleKDTreeFromRenderData(const OBJ::FStaticMeshRenderData* renderData);
 
