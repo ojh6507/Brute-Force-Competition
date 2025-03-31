@@ -9,7 +9,7 @@
 #include "Serialization/Serializer.h"
 #include "ThirdParty/LodGenerator/Include/LodGenerator.h"
 #include "ThirdParty/LodGenerator/Include/mesh.h"
-#include "meshoptimizer.h"
+#include "ThirdParty/meshoptimizer/meshoptimizer.h"
 
 class UStaticMesh;
 struct FManagerOBJ;
