@@ -1030,7 +1030,7 @@ void FRenderer::PrepareRender()
 
         CurrentViewport->UpdateCameraBuffer();
         
-        MaterialSorting();
+        //MaterialSorting();
         
         bIsDirtyRenderObj = false;
     }
@@ -1049,7 +1049,7 @@ void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewp
     CurrentViewport = ActiveViewport;
     Graphics->DeviceContext->RSSetViewports(1, &ActiveViewport->GetD3DViewport());
     Graphics->ChangeRasterizer(ActiveViewport->GetViewMode());
-    //RenderSorting();
+
     Graphics->PrepareOnce();
 }
 
@@ -1106,20 +1106,20 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         else
             UpdateConstant(StaticMeshComp->Model, {}, false);
         
-        uint32 LODLevel = 1;
+        uint32 LODLevel = 2;
 
- /*       if (visibleRenderItem.distanceSq < 0.1 * 0.1)
-        {
-            LODLevel = 0;
-        }
-        else if (visibleRenderItem.distanceSq < 1 * 1)
-        {
-            LODLevel = 1;
-        }
-        else
-        {
-            LODLevel = 2;
-        }*/
+        //if (visibleRenderItem.distanceSq < 0.1 * 0.1)
+        //{
+        //    LODLevel = 0;
+        //}
+        //else if (visibleRenderItem.distanceSq < 1 * 1)
+        //{
+        //    LODLevel = 1;
+        //}
+        //else
+        //{
+        //    LODLevel = 2;
+        //}
 
 
         

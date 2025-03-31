@@ -250,10 +250,7 @@ void AEditorPlayer::ScreenToViewSpace(int screenX, int screenY, const FMatrix& v
 
 }
 
-int AEditorPlayer::RayIntersectsObject(const FVector& pickPosition, UStaticMeshComponent* obj, float& hitDistance, int& intersectCount)
-{
 
-}
 
 
 void AEditorPlayer::PickedObjControl()
