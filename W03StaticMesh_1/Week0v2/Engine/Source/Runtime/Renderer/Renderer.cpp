@@ -1029,10 +1029,12 @@ void FRenderer::PrepareRender()
         world->GetRootBVH()->FlattenTree(world->FlatNodes);
 
         CurrentViewport->UpdateCameraBuffer();
+
+        MaterialSorting();
         
         RenderStaticMeshes(GEngineLoop.GetWorld() ,CurrentViewport);
         GEngineLoop.graphicDevice.CacheUUIDBuffer();
-        
+
         bIsDirtyRenderObj = false;
     }
 }
@@ -1139,6 +1141,7 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
     memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
     
 
+
     visibleRenderItems.Reserve(StaticMeshObjs.Num());
 
     //ActiveViewport->GetVisibleStaticMesh(StaticMeshObjs);
@@ -1154,17 +1157,16 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         item.distanceSq = FVector::DistanceSquared(StaticMeshComp->GetWorldLocation(), ActiveViewport->ViewTransformPerspective.GetLocation());
 
         visibleRenderItems.Add(item);
-
-
-       
     }
 
     RenderSorting();
 
-
     for (const RenderItem& visibleRenderItem : visibleRenderItems)
     {
         UStaticMeshComponent* StaticMeshComp = visibleRenderItem.pStaticMeshComponent;
+        FVector4 UUIDColor = Graphics->EncodeUUIDColor(visibleRenderItem.pStaticMeshComponent->GetUUID());
+        UUIDColor /= 255.f;
+
         // 최종 MVP 행렬
         FVector4 UUIDColor = Graphics->EncodeUUIDColor(StaticMeshComp->GetUUID());
         UUIDColor /= 255.f;
@@ -1182,7 +1184,6 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         }
         
         uint32 LODLevel = 2;
-
 
         OBJ::FStaticMeshRenderData* renderData = StaticMeshComp->GetStaticMesh()->GetRenderData();
 

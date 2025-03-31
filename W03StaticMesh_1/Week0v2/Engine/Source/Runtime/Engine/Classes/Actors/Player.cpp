@@ -85,6 +85,7 @@ void AEditorPlayer::Input()
     }
 }
 bool AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEditorViewportClient> ActiveViewport)
+
 {
     UPrimitiveComponent* bestComponent = nullptr;
     float bestDistance = FLT_MAX;

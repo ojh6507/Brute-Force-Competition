@@ -144,6 +144,7 @@ TArray<UStaticMeshComponent*> FBVH::CollectIntersectingComponents(const Plane fr
     //     OutComponents.Append(RightChild->CollectIntersectingComponents(frustumPlanes));
     // }
 
+
     return {};
 }
 
