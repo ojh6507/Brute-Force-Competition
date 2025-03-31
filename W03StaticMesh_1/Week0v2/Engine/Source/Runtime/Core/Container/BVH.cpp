@@ -119,8 +119,8 @@ TArray<UStaticMeshComponent*> FBVH::GetPrimitiveComponents() const {
 }
 TArray<UStaticMeshComponent*> FBVH::CollectIntersectingComponents(const Plane frustumPlanes[6])
 {
-    TArray<UStaticMeshComponent*> OutComponents;
-    //DebugBoundingBox();
+    //TArray<UStaticMeshComponent*> OutComponents;
+    ////DebugBoundingBox();
     //// 현재 노드의 바운딩박스가 프러스텀과 교차하지 않으면 바로 반환
     //if (!BoundingBox.IsIntersectingFrustum(frustumPlanes))
     //{
@@ -147,40 +147,60 @@ TArray<UStaticMeshComponent*> FBVH::CollectIntersectingComponents(const Plane fr
     return {};
 }
 
-// 레이와 교차하는 후보 컴포넌트를 수집 (pickPos, viewMatrix 기준)
-TArray<UStaticMeshComponent*> FBVH::CollectCandidateComponents(const FVector& pickPos, const FMatrix& viewMatrix, const FVector& CameraPos, float maxDist)
+void FBVH::RayCheck(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& outSortedLeaves , int maxT)
 {
-    TArray<UStaticMeshComponent*> CandidateComponents;
-    FMatrix inverseMatrix = FMatrix::Inverse(viewMatrix);
-    FVector pickRayOrigin = inverseMatrix.TransformPosition(FVector(0, 0, 0));
-    FVector transformedPick = inverseMatrix.TransformPosition(pickPos);
-    FVector rayDirection = (transformedPick - pickRayOrigin).Normalize();
+    outSortedLeaves.Empty();
+    CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, outSortedLeaves, maxT);
 
-    TArray<FBVH*> validLeaves;
-    CollectValidLeafNodes(validLeaves);
+    outSortedLeaves.Sort([](const TPair<FBVH*, float>& A, const TPair<FBVH*, float>& B) {
+        return A.Value < B.Value;
+        });
+}
 
-    const float maxDistSq = maxDist * maxDist;
-    for (FBVH* leaf : validLeaves)
+void FBVH::FlattenTree(TArray<FBVH*>& OutNodes)
+{
+    OutNodes.Add(this);
+
+    if (LeftChild)
     {
-        float dist = 0;
-        if (leaf->BoundingBox.Intersect(pickRayOrigin, rayDirection, dist))
-        {
-            for (UStaticMeshComponent* Comp : leaf->GetPrimitiveComponents())
-            {
-                float ddist = Comp->GetWorldLocation().DistanceSq(CameraPos);
-                if (ddist < maxDistSq)
-                {
-                    CandidateComponents.Add(Comp);
-                }
-            }
+        LeftChild->FlattenTree(OutNodes);
+    }
+    if (RightChild)
+    {
+        RightChild->FlattenTree(OutNodes);
+    }
+}
+
+void FBVH::CollectValidLeafNodesWithT(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& OutLeaves, int maxT)
+{
+    float t;
+   
+    if (!BoundingBox.Intersect(pickRayOrigin, rayDirection, t) || t > maxT) {
+        return;
+    }
+   
+    if (IsLeafNode()) {
+        if (PrimitiveComponents.Num() > 0) {
+            OutLeaves.Add(TPair<FBVH*, float>(this, t));
         }
     }
-    return CandidateComponents;
+    else {
+        if (LeftChild) {
+            LeftChild->CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, OutLeaves, maxT);
+        }
+        if (RightChild) {
+            RightChild->CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, OutLeaves, maxT);
+        }
+    }
 }
 
 
 // 유효한 리프 노드들을 재귀적으로 수집
-void FBVH::CollectValidLeafNodes(TArray<FBVH*>& OutLeaves) {
+void FBVH::CollectValidLeafNodes(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<FBVH*>& OutLeaves) {
+    float t;
+    if (!BoundingBox.Intersect(pickRayOrigin, rayDirection, t) ) {
+        return;
+    }
     if (IsLeafNode()) {
         if (PrimitiveComponents.Num() > 0) {
             OutLeaves.Add(this);
@@ -188,13 +208,15 @@ void FBVH::CollectValidLeafNodes(TArray<FBVH*>& OutLeaves) {
     }
     else {
         if (LeftChild) {
-            LeftChild->CollectValidLeafNodes(OutLeaves);
+            LeftChild->CollectValidLeafNodes(pickRayOrigin, rayDirection, OutLeaves);
         }
         if (RightChild) {
-            RightChild->CollectValidLeafNodes(OutLeaves);
+            RightChild->CollectValidLeafNodes(pickRayOrigin, rayDirection, OutLeaves);
         }
     }
+
 }
+
 
 // 디버깅: 현재 노드의 바운딩박스를 렌더링
 void FBVH::DebugBoundingBox() {

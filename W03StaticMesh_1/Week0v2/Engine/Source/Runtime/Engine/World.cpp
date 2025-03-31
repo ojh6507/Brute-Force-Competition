@@ -45,6 +45,7 @@ void UWorld::Initialize()
     {
         RootBVH = new FBVH(WorldBoundingBox);
     }
+  
 }
 
 void UWorld::CreateBaseObject()

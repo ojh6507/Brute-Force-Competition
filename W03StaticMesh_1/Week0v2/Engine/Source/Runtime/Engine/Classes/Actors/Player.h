@@ -17,7 +17,7 @@ class AEditorPlayer : public AActor
 
     void Input();
     bool PickGizmo(FVector& rayOrigin);
-    void PickActor(const FVector& pickPosition, std::shared_ptr<FEditorViewportClient> ActiveViewport);
+    bool PickActor(const FVector& pickPosition, std::shared_ptr<FEditorViewportClient> ActiveViewport);
     void AddControlMode();
     void AddCoordiMode();
 
@@ -25,8 +25,9 @@ class AEditorPlayer : public AActor
     int TotalPickCount;
     float LastPickTime;
     float TotalPickTime;
+
 private:
-    int RayIntersectsObject(const FVector& pickPosition, USceneComponent* obj, float& hitDistance, int& intersectCount);
+    int RayIntersectsObject(const FVector& pickPosition, UStaticMeshComponent* obj, float& hitDistance, int& intersectCount);
     void ScreenToViewSpace(int screenX, int screenY, const FMatrix& viewMatrix, const FMatrix& projectionMatrix, FVector& rayOrigin);
     void PickedObjControl();
     void ControlRotation(USceneComponent* pObj, UGizmoBaseComponent* Gizmo, int32 deltaX, int32 deltaY);

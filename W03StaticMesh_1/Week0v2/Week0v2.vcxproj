@@ -253,6 +253,8 @@
     <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\vfetchoptimizer.cpp" />
     <ClCompile Include="Engine\Source\ThirdParty\tinyfiledialogs\tinyfiledialogs.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Core\Container\TriangleBVH.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Core\Container\KDTree.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Core\Container\TriangleKDTree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Source\Runtime\Core\Container\BVH.h" />
@@ -379,6 +381,8 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Components\UTextUUID.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\World.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Container\TriangleBVH.h" />
+    <ClInclude Include="Engine\Source\Runtime\Core\Container\KDTree.h" />
+    <ClInclude Include="Engine\Source\Runtime\Core\Container\TriangleKDTree.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\StaticMeshPixelShader.hlsl">

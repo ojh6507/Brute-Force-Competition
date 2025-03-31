@@ -111,6 +111,7 @@ void USceneComponent::UpdateMatrix()
         GetWorldRotation(),
         GetWorldScale()
     );
+    InvModel = FMatrix::Inverse(Model);
 }
 
 void USceneComponent::SetRotation(FVector _newRot)

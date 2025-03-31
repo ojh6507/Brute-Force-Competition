@@ -4,6 +4,7 @@
 #include "UObject/ObjectFactory.h"
 #include "UObject/ObjectMacros.h"
 #include "Container/BVH.h"
+#include "Container/KDTree.h"
 
 #include "Components/PrimitiveComponent.h"
 class FObjectFactory;
@@ -46,7 +47,7 @@ public:
 
     /** World에 존재하는 Actor를 제거합니다. */
     bool DestroyActor(AActor* ThisActor);
-
+    TArray<FBVH*> FlatNodes;
 private:
     const FString defaultMapName = "Default";
 
@@ -60,6 +61,7 @@ private:
     UPrimitiveComponent* SelectedPrimitve = nullptr;
 
     FBVH* RootBVH = nullptr;
+    KDTree* RootKDTree = nullptr;
     
     USceneComponent* pickingGizmo = nullptr;
     UCameraComponent* camera = nullptr;
@@ -70,6 +72,7 @@ public:
 
     const TSet<AActor*>& GetActors() const { return ActorsArray; }
     FBVH* GetRootBVH() const { return RootBVH; }
+    KDTree* GetRootKDTree() const { return RootKDTree; }
     
     UTransformGizmo* LocalGizmo = nullptr;
     UCameraComponent* GetCamera() const { return camera; }

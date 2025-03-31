@@ -64,17 +64,18 @@ int UPrimitiveComponent::CheckRayIntersection(FVector& rayOrigin, FVector& rayDi
     return nIntersections;
 }
 
-bool UPrimitiveComponent::IntersectRayTriangle(const FVector& rayOrigin, const FVector& rayDirection, const FVector& v0, const FVector& v1, const FVector& v2, float& hitDistance)
+bool UPrimitiveComponent::IntersectRayTriangle(const FVector& rayOrigin, const FVector& rayDirection,
+    const FVector& v0, const FVector& v1, const FVector& v2,
+    float& hitDistance)
 {
     const float epsilon = 1e-6f;
     FVector edge1 = v1 - v0;
-    const FVector edge2 = v2 - v0;
-    FVector FrayDirection = rayDirection;
-    FVector h = FrayDirection.Cross(edge2);
-    float a = edge1.Dot(h);
+    FVector edge2 = v2 - v0;
 
+    FVector h = rayDirection.Cross(edge2);
+    float a = edge1.Dot(h);
     if (fabs(a) < epsilon)
-        return false; // Ray와 삼각형이 평행한 경우
+        return false; // 레이와 삼각형이 평행
 
     float f = 1.0f / a;
     FVector s = rayOrigin - v0;
@@ -83,16 +84,15 @@ bool UPrimitiveComponent::IntersectRayTriangle(const FVector& rayOrigin, const F
         return false;
 
     FVector q = s.Cross(edge1);
-    float v = f * FrayDirection.Dot(q);
+    float v = f * rayDirection.Dot(q);
     if (v < 0.0f || (u + v) > 1.0f)
         return false;
 
     float t = f * edge2.Dot(q);
-    if (t > epsilon) {
-
+    if (t > epsilon)
+    {
         hitDistance = t;
         return true;
     }
-
     return false;
 }

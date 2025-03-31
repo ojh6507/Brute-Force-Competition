@@ -38,7 +38,7 @@ void FEditorViewportClient::Initialize(int32 viewportIndex)
 void FEditorViewportClient::Tick(float DeltaTime)
 {
     Input(DeltaTime);
-    UpdateMatrix();
+    UpdateCameraBuffer();
     CollectIntersectingComponents();
 
    /* FrustumStaticMeshs.Empty();
@@ -70,7 +70,7 @@ void FEditorViewportClient::Input(float DeltaTime)
 {
     if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) // VK_RBUTTON은 마우스 오른쪽 버튼을 나타냄
     {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+      
         if (!bRightMouseDown)
         {
             // 마우스 오른쪽 버튼을 처음 눌렀을 때, 마우스 위치 초기화
@@ -124,8 +124,8 @@ void FEditorViewportClient::Input(float DeltaTime)
         {
             CameraMoveUp(-1.f * DeltaTime);
         }
-       
-        UpdateCameraBuffer();
+        
+        UpdateMatrix();
     }
     else
     {
@@ -155,7 +155,6 @@ void FEditorViewportClient::ResizeViewport(const DXGI_SWAP_CHAIN_DESC& swapchain
     }
     AspectRatio = GEngineLoop.GetAspectRatio(GEngineLoop.graphicDevice.SwapChain);
     UpdateProjectionMatrix();
-    UpdateViewMatrix();
 }
 void FEditorViewportClient::ResizeViewport(FRect Top, FRect Bottom, FRect Left, FRect Right)
 {
@@ -167,7 +166,6 @@ void FEditorViewportClient::ResizeViewport(FRect Top, FRect Bottom, FRect Left, 
     }
     AspectRatio = GEngineLoop.GetAspectRatio(GEngineLoop.graphicDevice.SwapChain);
     UpdateProjectionMatrix();
-    UpdateViewMatrix();
 }
 bool FEditorViewportClient::IsSelected(POINT point)
 {
@@ -301,8 +299,6 @@ void FEditorViewportClient::UpdateProjectionMatrix()
         );
     }
 }
-
-// FEditorViewportClient 클래스 내부에 추가할 새로운 평면 추출 함수
 void FEditorViewportClient::ExtractFrustumPlanesDirect()
 {
     // 카메라 파라미터 추출
@@ -312,14 +308,14 @@ void FEditorViewportClient::ExtractFrustumPlanesDirect()
     FVector camRight = ViewTransformPerspective.GetRightVector();
 
     // 근/원거리 평면 중심 계산
-    FVector nc = camPos + camForward * (nearPlane + 0.05);
+    FVector nc = camPos + camForward * (nearPlane + 0.1);
     FVector fc = camPos + camForward * farPlane;
 
     // 시야각(ViewFOV)은 일반적으로 도(degree) 단위이므로 라디안으로 변환 (예: 60도 -> 60 * PI/180)
     float fovRad = ViewFOV * 3.141592f / 180.0f;
 
     // 근/원거리 평면의 높이와 너비 계산
-    float nearHeight = (nearPlane + 0.05)* tanf(fovRad * 0.5f);
+    float nearHeight = (nearPlane + 0.1)* tanf(fovRad * 0.5f);
     float nearWidth = nearHeight * AspectRatio;
     float farHeight = farPlane * tanf(fovRad * 0.5f);
     float farWidth = farHeight * AspectRatio;

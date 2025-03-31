@@ -120,7 +120,14 @@ struct FVector
     {
         return DirectX::XMFLOAT3(x, y, z);
     }
+    static inline FVector GetAbs(const FVector& v)
+    {
+        using namespace DirectX;
 
+        XMVECTOR vec = XMVectorSet(v.x, v.y, v.z, 0.0f);
+        XMVECTOR absVec = XMVectorAbs(vec);
+        return FVector(XMVectorGetX(absVec), XMVectorGetY(absVec), XMVectorGetZ(absVec));
+    }
     static const FVector ZeroVector;
     static const FVector OneVector;
     static const FVector UpVector;

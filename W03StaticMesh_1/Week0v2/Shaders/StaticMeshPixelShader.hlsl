@@ -63,6 +63,8 @@ struct PS_OUTPUT
     float4 color : SV_Target0;
 };
 
+
+
 PS_OUTPUT mainPS(PS_INPUT input)
 {
     PS_OUTPUT output;

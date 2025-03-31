@@ -43,6 +43,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
                     if (GEngineLoop.GetLevelEditor()->GetViewports()[i])
                     {
                         GEngineLoop.GetLevelEditor()->GetViewports()[i]->ResizeViewport(FEngineLoop::graphicDevice.SwapchainDesc);
+                        GEngineLoop.GetLevelEditor()->GetViewports()[i]->UpdateCameraBuffer();
                     }
                 }
             }
