@@ -72,7 +72,6 @@ void FEditorViewportClient::Input(float DeltaTime)
 {
     if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) // VK_RBUTTON은 마우스 오른쪽 버튼을 나타냄
     {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         if (!bRightMouseDown)
         {
             // 마우스 오른쪽 버튼을 처음 눌렀을 때, 마우스 위치 초기화
@@ -144,19 +143,6 @@ void FEditorViewportClient::Input(float DeltaTime)
         bRightMouseDown = false; // 마우스 오른쪽 버튼을 떼면 상태 초기화
     }
 
-    
-    // Focus Selected Actor
-    if (GetAsyncKeyState('F') & 0x8000)
-    {
-        if (AActor* PickedActor = GEngineLoop.GetWorld()->GetSelectedActor())
-        {
-            FViewportCameraTransform& ViewTransform = ViewTransformPerspective;
-            ViewTransform.SetLocation(
-                // TODO: 10.0f 대신, 정점의 min, max의 거리를 구해서 하면 좋을 듯
-                PickedActor->GetActorLocation() - (ViewTransform.GetForwardVector() * 10.0f)
-            );
-        }
-    }
 }
 void FEditorViewportClient::ResizeViewport(const DXGI_SWAP_CHAIN_DESC& swapchaindesc)
 {
@@ -468,7 +454,7 @@ void FEditorViewportClient::LoadConfig(const TMap<FString, FString>& config)
     ViewTransformPerspective.ViewRotation.z = GetValueFromConfig(config, "PerspectiveCameraRotZ" + ViewportNum, 0.0f);
     ShowFlag = GetValueFromConfig(config, "ShowFlag" + ViewportNum, 31.0f);
     ViewMode = static_cast<EViewModeIndex>(GetValueFromConfig(config, "ViewMode" + ViewportNum, 0));
-    ViewportType = static_cast<ELevelViewportType>(GetValueFromConfig(config, "ViewportType" + ViewportNum, 3));
+    ViewportType = static_cast<ELevelViewportType>(GetValueFromConfig(config, "ViewportType" + ViewportNum, 0));
 }
 void FEditorViewportClient::SaveConfig(TMap<FString, FString>& config)
 {
