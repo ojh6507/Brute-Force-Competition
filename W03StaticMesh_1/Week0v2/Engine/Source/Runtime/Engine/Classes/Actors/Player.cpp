@@ -34,25 +34,34 @@ void AEditorPlayer::Input()
     {
         if (!bLeftMouseDown)
         {
-            bLeftMouseDown = true;
-
             POINT mousePos;
             GetCursorPos(&mousePos);
-            GetCursorPos(&m_LastMousePos);
             ScreenToClient(GetEngine().hWnd, &mousePos);
+            if (mousePos.x <0 || mousePos.x > FEngineLoop::graphicDevice.SwapchainDesc.BufferDesc.Width)
+            {
+                return;
+            }
+
+            if (mousePos.y < 0 || mousePos.y > FEngineLoop::graphicDevice.SwapchainDesc.BufferDesc.Height)
+            {
+                return;
+            }
 
             FScopeCycleCounter pickCounter;
             ++TotalPickCount;
 
-            FVector pickPosition;
-
-            const auto& ActiveViewport = GetEngine().GetLevelEditor()->GetActiveViewportClient();
-            ScreenToViewSpace(mousePos.x, mousePos.y, ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix(), pickPosition);
-            if (PickActor(pickPosition, ActiveViewport))
+            bLeftMouseDown = true;
+            
+            uint32_t PickUUID = FEngineLoop::graphicDevice.UUIDBuffer[mousePos.y][mousePos.x];
+            
+            if (StaticMeshComponentMap[PickUUID])
             {
+                GetWorld()->SetPickedPrimitive(StaticMeshComponentMap[PickUUID]);
+                
                 LastPickTime = pickCounter.Finish();
                 TotalPickTime += LastPickTime;
             }
+            
         }
     }
     else if (bLeftMouseDown)
@@ -73,7 +82,6 @@ void AEditorPlayer::Input()
 }
 bool AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
-
     UPrimitiveComponent* Possible = nullptr;
     float minDistance = FLT_MAX;
     int maxIntersect = 0;

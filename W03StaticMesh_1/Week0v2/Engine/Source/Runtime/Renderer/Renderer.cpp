@@ -439,8 +439,8 @@ void FRenderer::UpdateConstant(const FMatrix& MVP, FVector4 UUIDColor, bool IsSe
         {
             FConstants* constants = static_cast<FConstants*>(ConstantBufferMSR.pData);
             constants->MVP = MVP;
+            constants->UUID = UUIDColor;
             constants->IsSelected = IsSelected;
-
         }
         Graphics->DeviceContext->Unmap(ConstantBuffer, 0); // GPU�� �ٽ� ��밡���ϰ� �����
     }
@@ -997,6 +997,9 @@ void FRenderer::PrepareRender()
         CurrentViewport->CollectIntersectingComponents();
         CurrentViewport->UpdateCameraBuffer();
         MaterialSorting();
+        
+        RenderStaticMeshes(GEngineLoop.GetWorld() ,CurrentViewport);
+            
         bIsDirtyRenderObj = false;
     }
 }
@@ -1020,37 +1023,107 @@ void FRenderer::InitOnceState(std::shared_ptr<FEditorViewportClient> ActiveViewp
 void FRenderer::Render(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
     UPrimitiveBatch::GetInstance().RenderBatch(ActiveViewport->GetViewMatrix(), ActiveViewport->GetProjectionMatrix());
-    RenderStaticMeshes(World, ActiveViewport);
+    if (!ActiveViewport->isMove)
+    {
+        RenderStaticMeshesStop(World, ActiveViewport);
+    }
+    if (ActiveViewport->isMove)
+    {
+        RenderStaticMeshes(World, ActiveViewport);
+    }
 }
 
-void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
+void FRenderer::RenderStaticMeshesStop(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
     PrepareShader();
-    Plane frustumPlanes[6];
-    memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
-    //ActiveViewport->GetVisibleStaticMesh(StaticMeshObjs);
-    for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
+    TArray<UStaticMeshComponent*> RenderComps;
+    TSet<uint32_t> RenderUUIDs;
+    
+    const int Width = Graphics->SwapchainDesc.BufferDesc.Width;
+    const int Height = Graphics->SwapchainDesc.BufferDesc.Height;
+
+    for (int i=0;i<Height; i++)
     {
+        for (int j=0;j<Width; j++)
+        {
+            if (j > 1999)
+            {
+                break;
+            }
 
-        bool bFrustum = StaticMeshComp->GetWorldBoundingBox().IsIntersectingFrustum(frustumPlanes);
-        if (!bFrustum) continue;
+            uint32_t uid = Graphics->UUIDBuffer[i][j];
+            if (uid == 0)
+            {
+                continue;
+            }
+            RenderUUIDs.Add(uid);
+        }
+        if (i>1999)
+        {
+            break;
+        }
+    }
 
+    for (uint32_t uuid:RenderUUIDs)
+    {
+        RenderComps.Add(StaticMeshComponentMap[uuid]);
+    }    
+
+    for (UStaticMeshComponent* StaticMeshComp : RenderComps)
+    {
+        FVector4 UUIDColor = Graphics->EncodeUUIDColor(StaticMeshComp->GetUUID());
+        UUIDColor /= 255.f;
         // 최종 MVP 행렬
-       // FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
+        // FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
         if (World->GetSelectedComp() == StaticMeshComp)
         {
-            UpdateConstant(StaticMeshComp->Model, {}, true);
-
             UPrimitiveBatch::GetInstance().RenderAABB(
                 StaticMeshComp->GetBoundingBox(),
                 StaticMeshComp->GetWorldLocation(),
                 StaticMeshComp->Model
             );
-
+            UpdateConstant(StaticMeshComp->Model, UUIDColor, true);
+        }else
+        {
+            UpdateConstant(StaticMeshComp->Model, UUIDColor, false);
         }
-        else
-            UpdateConstant(StaticMeshComp->Model, {}, false);
 
+        OBJ::FStaticMeshRenderData* renderData = StaticMeshComp->GetStaticMesh()->GetRenderData();
+
+        RenderPrimitive(renderData, StaticMeshComp->GetStaticMesh()->GetMaterials(), StaticMeshComp->GetOverrideMaterials(), StaticMeshComp->GetselectedSubMeshIndex());
+    }
+
+}
+
+void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
+{
+ 
+    PrepareShader();
+    Plane frustumPlanes[6];
+    memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);
+    
+    //ActiveViewport->GetVisibleStaticMesh(StaticMeshObjs);
+    for (UStaticMeshComponent* StaticMeshComp : StaticMeshObjs)
+    {
+        bool bFrustum = StaticMeshComp->GetWorldBoundingBox().IsIntersectingFrustum(frustumPlanes);
+        if (!bFrustum) continue;
+
+        FVector4 UUIDColor = Graphics->EncodeUUIDColor(StaticMeshComp->GetUUID());
+        UUIDColor /= 255.f;
+        // 최종 MVP 행렬
+       // FVector4 UUIDColor = StaticMeshComp->EncodeUUID() / 255.0f;
+        if (World->GetSelectedComp() == StaticMeshComp)
+        {
+            UPrimitiveBatch::GetInstance().RenderAABB(
+                StaticMeshComp->GetBoundingBox(),
+                StaticMeshComp->GetWorldLocation(),
+                StaticMeshComp->Model
+            );
+            UpdateConstant(StaticMeshComp->Model, UUIDColor, true);
+        }else
+        {
+            UpdateConstant(StaticMeshComp->Model, UUIDColor, false);
+        }
 
         OBJ::FStaticMeshRenderData* renderData = StaticMeshComp->GetStaticMesh()->GetRenderData();
 

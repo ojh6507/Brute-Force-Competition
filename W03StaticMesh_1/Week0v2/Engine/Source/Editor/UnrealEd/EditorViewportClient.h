@@ -85,7 +85,7 @@ class FEditorViewportClient : public FViewportClient
 public:
     FEditorViewportClient();
     ~FEditorViewportClient();
-
+    bool isMove;
     virtual void        Draw(FViewport* Viewport) override;
     virtual UWorld* GetWorld() const { return NULL; };
     void Initialize(int32 viewportIndex);

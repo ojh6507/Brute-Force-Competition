@@ -26,3 +26,4 @@ void FUObjectArray::ProcessPendingDestroyObjects()
 }
 
 FUObjectArray GUObjectArray;
+TMap<uint32_t, UStaticMeshComponent*> StaticMeshComponentMap;

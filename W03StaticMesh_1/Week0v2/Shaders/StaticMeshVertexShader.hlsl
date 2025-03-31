@@ -2,6 +2,7 @@
 cbuffer MatrixConstants : register(b0)
 {
     row_major float4x4 Model;
+    float4 UUID;
   
 };
 cbuffer CameraConstants : register(b6)

@@ -47,8 +47,7 @@ struct FVector4 {
             float z;
             float a;
         };
-
-
+        
         struct
         {
             float R;

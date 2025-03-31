@@ -48,8 +48,11 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
                 }
             }
             if (GEngineLoop.LevelEditor)
+            {
                 GEngineLoop.renderer.InitOnceState(GEngineLoop.LevelEditor->GetActiveViewportClient());
-
+                // GEngineLoop.renderer.RenderStaticMeshes(GEngineLoop.GetWorld() ,GEngineLoop.LevelEditor->GetActiveViewportClient());
+            }
+            
         }
         /*  Console::GetInstance().OnResize(hWnd);
         */ // ControlPanel::GetInstance().OnResize(hWnd);

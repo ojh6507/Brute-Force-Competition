@@ -1,5 +1,8 @@
 #include "GraphicDevice.h"
 #include <wchar.h>
+
+#include "UnrealEd/EditorViewportClient.h"
+
 void FGraphicsDevice::Initialize(HWND hWindow) {
     CreateDeviceAndSwapChain(hWindow);
     CreateFrameBuffer();
@@ -294,7 +297,7 @@ void FGraphicsDevice::SwapBuffer() {
 void FGraphicsDevice::Prepare()
 {
     DeviceContext->ClearRenderTargetView(FrameBufferRTV, ClearColor); // 렌더 타겟 뷰에 저장된 이전 프레임 데이터를 삭제
-    DeviceContext->ClearRenderTargetView(UUIDFrameBufferRTV, ClearColor); // 렌더 타겟 뷰에 저장된 이전 프레임 데이터를 삭제
+    // DeviceContext->ClearRenderTargetView(UUIDFrameBufferRTV, ClearColor); // 렌더 타겟 뷰에 저장된 이전 프레임 데이터를 삭제
     DeviceContext->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0); // 깊이 버퍼 초기화 추가
 
     // DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // 정정 연결 방식 설정
@@ -303,8 +306,10 @@ void FGraphicsDevice::Prepare()
     // DeviceContext->RSSetState(CurrentRasterizer); //레스터 라이저 상태 설정
 
     // DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);
-    //
+    
     DeviceContext->OMSetRenderTargets(2, RTVs, DepthStencilView); // 렌더 타겟 설정(백버퍼를 가르킴)
+    // DeviceContext->OMSetRenderTargets(1, &FrameBufferRTV, DepthStencilView); // 렌더 타겟 설정(백버퍼를 가르킴)
+
     // DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff); // 블렌뎅 상태 설정, 기본블렌딩 상태임
 }
 
@@ -336,6 +341,7 @@ void FGraphicsDevice::Prepare(D3D11_VIEWPORT* viewport)
 
 void FGraphicsDevice::OnResize(HWND hWindow) {
     DeviceContext->OMSetRenderTargets(0, RTVs, 0);
+    // DeviceContext->OMSetRenderTargets(0, &FrameBufferRTV, nullptr);
     
     FrameBufferRTV->Release();
     FrameBufferRTV = nullptr;
@@ -397,8 +403,76 @@ void FGraphicsDevice::ChangeDepthStencilState(ID3D11DepthStencilState* newDetptS
     DeviceContext->OMSetDepthStencilState(newDetptStencil, 0);
 }
 
-uint32 FGraphicsDevice::GetPixelUUID(POINT pt)
+void FGraphicsDevice::CacheUUIDBuffer()
+{
+    const int Width = SwapchainDesc.BufferDesc.Width;
+    const int Height = SwapchainDesc.BufferDesc.Height;
+    
+    D3D11_TEXTURE2D_DESC stagingDesc = {};
+    stagingDesc.Width = Width;
+    stagingDesc.Height = Height;
+    stagingDesc.MipLevels = 1;
+    stagingDesc.ArraySize = 1;
+    stagingDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // 원본 텍스처 포맷과 동일
+    stagingDesc.SampleDesc.Count = 1;
+    stagingDesc.Usage = D3D11_USAGE_STAGING;
+    stagingDesc.BindFlags = 0;
+    stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 
+    ID3D11Texture2D* stagingTexture = nullptr;
+    Device->CreateTexture2D(&stagingDesc, nullptr, &stagingTexture);
+
+    // 3. 특정 좌표만 복사
+    DeviceContext->CopyResource(
+        stagingTexture, // 대상 텍스처
+        UUIDFrameBuffer // 원본 텍스처
+    );
+        
+    // 4. 데이터 매핑
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    DeviceContext->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mapped);
+
+    const BYTE* pixelData = static_cast<const BYTE*>(mapped.pData);
+    
+    DeviceContext->Unmap(stagingTexture, 0);
+
+    if (pixelData)
+    {
+        for (int i=0;i<Height; i++)
+        {
+            for (int j=0;j<Width; j++)
+            {
+                if (j > 1999 | i > 1999)
+                {
+                    continue;
+                }
+                
+                const BYTE* pixel = pixelData + (i * mapped.RowPitch) + (j * 4); // 각 픽셀은 RGBA(4바이트)
+
+                // 픽셀 데이터를 FVector4로 변환
+                FVector4 UUIDColor;
+                UUIDColor.X = static_cast<float>(pixel[0]); // R
+                UUIDColor.Y = static_cast<float>(pixel[1]); // G
+                UUIDColor.Z = static_cast<float>(pixel[2]); // B
+                UUIDColor.W = static_cast<float>(pixel[3]); // A
+
+                // DecodeUUIDColor를 사용하여 UUID 값 추출
+                uint32_t UUID = DecodeUUIDColor(UUIDColor);
+
+                // 배열에 저장
+                UUIDBuffer[i][j] = UUID;
+            }
+        }
+    }
+    
+    // 6. 매핑 해제 및 정리
+    if (stagingTexture)
+    {
+        stagingTexture->Release(); stagingTexture = nullptr;
+    }
+}
+
+uint32 FGraphicsDevice::GetPixelUUID(POINT pt)
 {
     // pt.x 값 제한하기
     if (pt.x < 0) {
@@ -463,10 +537,10 @@ uint32 FGraphicsDevice::GetPixelUUID(POINT pt)
 
     if (pixelData)
     {
-        UUIDColor.x = static_cast<float>(pixelData[0]); // R
-        UUIDColor.y = static_cast<float>(pixelData[1]); // G
-        UUIDColor.z = static_cast<float>(pixelData[2]) ; // B
-        UUIDColor.a = static_cast<float>(pixelData[3]); // A
+        UUIDColor.X = static_cast<float>(pixelData[0]); // R
+        UUIDColor.Y = static_cast<float>(pixelData[1]); // G
+        UUIDColor.Z = static_cast<float>(pixelData[2]) ; // B
+        UUIDColor.W = static_cast<float>(pixelData[3]); // A
     }
 
     // 6. 매핑 해제 및 정리
@@ -476,11 +550,31 @@ uint32 FGraphicsDevice::GetPixelUUID(POINT pt)
     return DecodeUUIDColor(UUIDColor);
 }
 
-uint32 FGraphicsDevice::DecodeUUIDColor(FVector4 UUIDColor) {
-    uint32_t W = static_cast<uint32_t>(UUIDColor.a) << 24;
-    uint32_t Z = static_cast<uint32_t>(UUIDColor.z) << 16;
-    uint32_t Y = static_cast<uint32_t>(UUIDColor.y) << 8;
-    uint32_t X = static_cast<uint32_t>(UUIDColor.x);
+FVector4 FGraphicsDevice::EncodeUUIDColor(uint32 UUID) {
+    alignas(16) uint32_t UUIDArray[4] = {
+        (UUID & 0xff),          // X
+        ((UUID >> 8) & 0xff),   // Y
+        ((UUID >> 16) & 0xff),  // Z
+        ((UUID >> 24) & 0xff)   // W
+    };
 
-    return W | Z | Y | X;
+    __m128i UUIDVec = _mm_set_epi32(UUIDArray[3], UUIDArray[2], UUIDArray[1], UUIDArray[0]); // SIMD 레지스터에 로드
+
+    alignas(16) float ResultArray[4];
+    __m128 ResultVec = _mm_cvtepi32_ps(UUIDVec); // 정수 -> 부동소수점 변환
+    _mm_store_ps(ResultArray, ResultVec);       // 결과 저장
+
+    return FVector4(ResultArray[0], ResultArray[1], ResultArray[2], ResultArray[3]);
+}
+
+uint32 FGraphicsDevice::DecodeUUIDColor(FVector4 UUIDColor) {
+    alignas(16) float ColorArray[4] = { UUIDColor.X, UUIDColor.Y, UUIDColor.Z, UUIDColor.W };
+    
+    __m128 ColorVec = _mm_load_ps(ColorArray);               // 부동소수점 값을 SIMD 레지스터에 로드
+    __m128i IntVec = _mm_cvtps_epi32(ColorVec);              // 부동소수점 -> 정수 변환
+
+    alignas(16) uint32_t IntArray[4];
+    _mm_store_si128(reinterpret_cast<__m128i*>(IntArray), IntVec); // 정수 값을 배열에 저장
+
+    return (IntArray[3] << 24) | (IntArray[2] << 16) | (IntArray[1] << 8) | IntArray[0];
 }

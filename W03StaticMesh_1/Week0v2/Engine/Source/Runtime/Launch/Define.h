@@ -599,9 +599,11 @@ struct FMaterialConstants {
 };
 
 struct FConstants {
-    FMatrix MVP;      // 모델
-    int IsSelected;
+    alignas(16) FMatrix MVP;      // 모델
+    alignas(16) FVector4 UUID;
+    alignas(16) int IsSelected;
 };
+
 struct FCameraConstants {
     FMatrix VP;
 };

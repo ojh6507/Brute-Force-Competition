@@ -21,6 +21,11 @@ public:
 
         GUObjectArray.AddObject(Obj);
 
+        if (Obj->IsA(UStaticMeshComponent::StaticClass()))
+        {
+            StaticMeshComponentMap[id] = dynamic_cast<UStaticMeshComponent*>(Obj);
+        }
+        
         UE_LOG(LogLevel::Display, "Created New Object : %s", *Name);
         return Obj;
     }
