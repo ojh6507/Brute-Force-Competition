@@ -377,7 +377,7 @@ void FGraphicsDevice::OnResize(HWND hWindow) {
     CreateDepthStencilBuffer(hWindow);
 
     DeviceContext->OMSetRenderTargets(2, RTVs, DepthStencilView); // 렌더 타겟 설정(백버퍼를 가르킴)
-
+    
     GEngineLoop.renderer.RenderStaticMeshes(GEngineLoop.GetWorld(), GEngineLoop.GetLevelEditor()->GetActiveViewportClient());
 }
 

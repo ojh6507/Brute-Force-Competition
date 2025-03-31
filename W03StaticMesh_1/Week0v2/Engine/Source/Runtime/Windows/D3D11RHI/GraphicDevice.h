@@ -60,7 +60,7 @@ public:
     uint32 GetPixelUUID(POINT pt);
     FVector4 EncodeUUIDColor(uint32 UUID);
     uint32 DecodeUUIDColor(FVector4 UUIDColor);
-    uint32_t UUIDBuffer[2000][2000] = {0,};
+    uint32_t UUIDBuffer[8000][4500] = {0,};
     
 private:
     ID3D11RasterizerState* CurrentRasterizer = nullptr;
