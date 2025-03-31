@@ -7,6 +7,8 @@
 #include "Container/Map.h"
 #include "HAL/PlatformType.h"
 #include "Serialization/Serializer.h"
+#include "ThirdParty/LodGenerator/Include/LodGenerator.h"
+#include "ThirdParty/LodGenerator/Include/mesh.h"
 
 class UStaticMesh;
 struct FManagerOBJ;
@@ -319,6 +321,12 @@ struct FLoaderOBJ
         OutStaticMesh.ObjectName = RawData.ObjectName;
         OutStaticMesh.PathName = RawData.PathName;
         OutStaticMesh.DisplayName = RawData.DisplayName;
+
+ /*       lod_generator::mesh src_mesh;
+        lod_generator::mesh dst_mesh;
+
+        auto instance = lod_generator::lod_core::get_instance();
+        instance->generate_lod(src_mesh, dst_mesh, type);*/
 
         // 고유 정점을 기반으로 FVertexSimple 배열 생성
         TMap<std::string, uint32> vertexMap; // 중복 체크용

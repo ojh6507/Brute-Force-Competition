@@ -424,6 +424,20 @@
     <ClInclude Include="Engine\Source\Runtime\Core\Container\BVH.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Container\TriangleBVH.h" />
     <ClInclude Include="Engine\Source\ThirdParty\DirectXTK\Include\WICTextureLoader.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\core.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\core_config.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\errors.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\global.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\lod_func.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\mesh.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\algorithms\algorithms.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\algorithms\basic_alg.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\algorithms\vertex_cluster.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\gpu_math\gpu_core.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\gpu_math\gpu_test.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\gpu_math\kernel_code.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\math\lod_math.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\LodGenerator.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Source\ThirdParty\DirectXTK\Include\DDSTextureLoader.h" />
@@ -517,5 +531,9 @@
     <ClCompile Include="Engine\Source\Runtime\Core\Math\Vector4.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Core\Container\BVH.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Core\Container\TriangleBVH.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="Engine\Source\ThirdParty\LodGenerator\lib\x64\Debug\LodGenerator.lib" />
+    <Library Include="Engine\Source\ThirdParty\LodGenerator\lib\x64\Release\LodGenerator.lib" />
   </ItemGroup>
 </Project>
