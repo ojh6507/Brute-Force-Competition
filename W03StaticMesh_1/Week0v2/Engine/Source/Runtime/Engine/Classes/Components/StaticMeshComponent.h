@@ -29,14 +29,14 @@ public:
         OverrideMaterials.SetNum(value->GetMaterials().Num());
         AABB = FBoundingBox(staticMesh->GetRenderData()->BoundingBoxMin, staticMesh->GetRenderData()->BoundingBoxMax);
 
-       if (pTriangleBVH == nullptr)
-        {
-            pTriangleBVH = BuildTriangleBVHFromRenderData(staticMesh->GetRenderData());
-        }
-       /* if (pTriangleKDTree == nullptr) {
+       //if (pTriangleBVH == nullptr)
+       // {
+       //     pTriangleBVH = BuildTriangleBVHFromRenderData(staticMesh->GetRenderData());
+       // }
+       ///* if (pTriangleKDTree == nullptr) {
 
-            pTriangleKDTree = BuildTriangleKDTreeFromRenderData(staticMesh->GetRenderData());
-        }*/
+       //     pTriangleKDTree = BuildTriangleKDTreeFromRenderData(staticMesh->GetRenderData());
+       // }*/
 
     }
     TriangleBVH* BuildTriangleBVHFromRenderData(const OBJ::FStaticMeshRenderData* renderData);
