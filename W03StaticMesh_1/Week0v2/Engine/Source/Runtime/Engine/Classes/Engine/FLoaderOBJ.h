@@ -160,6 +160,11 @@ struct FLoaderOBJ
                 }
                 else if (faceVertexIndices.Num() == 3) // 삼각형
                 {
+                    /*if (OutObjInfo.VertexIndices.Num() >= 1500 * 3)
+                    {
+                        break;
+                    }*/
+
                     OutObjInfo.VertexIndices.Add(faceVertexIndices[0]);
                     OutObjInfo.VertexIndices.Add(faceVertexIndices[1]);
                     OutObjInfo.VertexIndices.Add(faceVertexIndices[2]);

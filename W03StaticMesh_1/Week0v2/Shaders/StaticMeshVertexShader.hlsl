@@ -13,7 +13,7 @@ cbuffer CameraConstants : register(b6)
 struct VS_INPUT
 {
     float4 position : POSITION; // 버텍스 위치
-    float2 texcoord : TEXCOORD;
+    half2 texcoord : TEXCOORD;
 };
 
 struct PS_INPUT

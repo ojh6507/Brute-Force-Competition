@@ -11,6 +11,16 @@
 #include "Math/Matrix.h"
 #include "Engine/Classes/Engine/Texture.h"
 
+#include <DirectXPackedVector.h> 
+
+using namespace DirectX::PackedVector;
+
+
+#define MsgBoxAssert(Text) do { \
+	std::string Value = Text; \
+	MessageBoxA(nullptr, Value.c_str(), "Error", MB_OK); assert(false); \
+} while (0)
+
 #define UE_LOG Console::GetInstance().AddLog
 
 #define _TCHAR_DEFINED
@@ -21,7 +31,7 @@
 struct FVertexSimple
 {
     float x, y, z;    // Position
-    float u = 0, v = 0;
+    XMHALF2  uv;
 };
 
 // Material Subset
