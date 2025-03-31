@@ -999,7 +999,8 @@ void FRenderer::PrepareRender()
         MaterialSorting();
         
         RenderStaticMeshes(GEngineLoop.GetWorld() ,CurrentViewport);
-            
+        GEngineLoop.graphicDevice.CacheUUIDBuffer();
+
         bIsDirtyRenderObj = false;
     }
 }
@@ -1066,7 +1067,10 @@ void FRenderer::RenderStaticMeshesStop(UWorld* World, std::shared_ptr<FEditorVie
 
     for (uint32_t uuid:RenderUUIDs)
     {
-        RenderComps.Add(StaticMeshComponentMap[uuid]);
+        if (StaticMeshComponentMap[uuid])
+        {
+            RenderComps.Add(StaticMeshComponentMap[uuid]);
+        }
     }    
 
     for (UStaticMeshComponent* StaticMeshComp : RenderComps)
@@ -1097,7 +1101,6 @@ void FRenderer::RenderStaticMeshesStop(UWorld* World, std::shared_ptr<FEditorVie
 
 void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewportClient> ActiveViewport)
 {
- 
     PrepareShader();
     Plane frustumPlanes[6];
     memcpy(frustumPlanes, ActiveViewport->frustumPlanes, sizeof(Plane) * 6);

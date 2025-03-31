@@ -54,14 +54,18 @@ void AEditorPlayer::Input()
             
             uint32_t PickUUID = FEngineLoop::graphicDevice.UUIDBuffer[mousePos.y][mousePos.x];
             
-            if (StaticMeshComponentMap[PickUUID])
+            if (PickUUID == 0)
             {
-                GetWorld()->SetPickedPrimitive(StaticMeshComponentMap[PickUUID]);
-                
-                LastPickTime = pickCounter.Finish();
-                TotalPickTime += LastPickTime;
-            }
-            
+                GetWorld()->SetPickedPrimitive(nullptr);
+            }else
+            {
+                if (StaticMeshComponentMap[PickUUID])
+                {
+                    GetWorld()->SetPickedPrimitive(StaticMeshComponentMap[PickUUID]);
+                    LastPickTime = pickCounter.Finish();
+                    TotalPickTime += LastPickTime;
+                }
+            }            
         }
     }
     else if (bLeftMouseDown)

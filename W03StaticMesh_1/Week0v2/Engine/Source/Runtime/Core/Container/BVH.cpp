@@ -119,30 +119,30 @@ TArray<UStaticMeshComponent*> FBVH::GetPrimitiveComponents() const {
 }
 TArray<UStaticMeshComponent*> FBVH::CollectIntersectingComponents(const Plane frustumPlanes[6])
 {
-    TArray<UStaticMeshComponent*> OutComponents;
-    DebugBoundingBox();
-    // 현재 노드의 바운딩박스가 프러스텀과 교차하지 않으면 바로 반환
-    if (!BoundingBox.IsIntersectingFrustum(frustumPlanes))
-    {
-        return OutComponents;
-    }
-
-    // 리프 노드라면 현재 노드의 컴포넌트를 모두 추가
-    if (IsLeafNode())
-    {
-        OutComponents.Append(PrimitiveComponents);
-        return OutComponents;
-    }
-
-    // 자식 노드가 있다면 재귀적으로 호출
-    if (LeftChild)
-    {
-        OutComponents.Append(LeftChild->CollectIntersectingComponents(frustumPlanes));
-    }
-    if (RightChild)
-    {
-        OutComponents.Append(RightChild->CollectIntersectingComponents(frustumPlanes));
-    }
+    // TArray<UStaticMeshComponent*> OutComponents;
+    // DebugBoundingBox();
+    // // 현재 노드의 바운딩박스가 프러스텀과 교차하지 않으면 바로 반환
+    // if (!BoundingBox.IsIntersectingFrustum(frustumPlanes))
+    // {
+    //     return OutComponents;
+    // }
+    //
+    // // 리프 노드라면 현재 노드의 컴포넌트를 모두 추가
+    // if (IsLeafNode())
+    // {
+    //     OutComponents.Append(PrimitiveComponents);
+    //     return OutComponents;
+    // }
+    //
+    // // 자식 노드가 있다면 재귀적으로 호출
+    // if (LeftChild)
+    // {
+    //     OutComponents.Append(LeftChild->CollectIntersectingComponents(frustumPlanes));
+    // }
+    // if (RightChild)
+    // {
+    //     OutComponents.Append(RightChild->CollectIntersectingComponents(frustumPlanes));
+    // }
 
     return {};
 }

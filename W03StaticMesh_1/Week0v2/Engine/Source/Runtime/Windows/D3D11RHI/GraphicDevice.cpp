@@ -1,6 +1,7 @@
 #include "GraphicDevice.h"
 #include <wchar.h>
 
+#include "LevelEditor/SLevelEditor.h"
 #include "UnrealEd/EditorViewportClient.h"
 
 void FGraphicsDevice::Initialize(HWND hWindow) {
@@ -297,7 +298,7 @@ void FGraphicsDevice::SwapBuffer() {
 void FGraphicsDevice::Prepare()
 {
     DeviceContext->ClearRenderTargetView(FrameBufferRTV, ClearColor); // 렌더 타겟 뷰에 저장된 이전 프레임 데이터를 삭제
-    // DeviceContext->ClearRenderTargetView(UUIDFrameBufferRTV, ClearColor); // 렌더 타겟 뷰에 저장된 이전 프레임 데이터를 삭제
+    DeviceContext->ClearRenderTargetView(UUIDFrameBufferRTV, ClearColor); // 렌더 타겟 뷰에 저장된 이전 프레임 데이터를 삭제
     DeviceContext->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0); // 깊이 버퍼 초기화 추가
 
     // DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // 정정 연결 방식 설정
@@ -356,8 +357,6 @@ void FGraphicsDevice::OnResize(HWND hWindow) {
 
     ReleaseFrameBuffer();
 
-
-
     if (screenWidth == 0 || screenHeight == 0) {
         MessageBox(hWindow, L"Invalid width or height for ResizeBuffers!", L"Error", MB_ICONERROR | MB_OK);
         return;
@@ -378,8 +377,9 @@ void FGraphicsDevice::OnResize(HWND hWindow) {
     CreateFrameBuffer();
     CreateDepthStencilBuffer(hWindow);
 
+    DeviceContext->OMSetRenderTargets(2, RTVs, DepthStencilView); // 렌더 타겟 설정(백버퍼를 가르킴)
 
-
+    GEngineLoop.renderer.RenderStaticMeshes(GEngineLoop.GetWorld(), GEngineLoop.GetLevelEditor()->GetActiveViewportClient());
 }
 
 
@@ -435,16 +435,16 @@ void FGraphicsDevice::CacheUUIDBuffer()
     const BYTE* pixelData = static_cast<const BYTE*>(mapped.pData);
     
     DeviceContext->Unmap(stagingTexture, 0);
-
+    
     if (pixelData)
     {
         for (int i=0;i<Height; i++)
         {
             for (int j=0;j<Width; j++)
             {
-                if (j > 1999 | i > 1999)
+                if (j > 1999)
                 {
-                    continue;
+                    break;
                 }
                 
                 const BYTE* pixel = pixelData + (i * mapped.RowPitch) + (j * 4); // 각 픽셀은 RGBA(4바이트)
@@ -461,6 +461,10 @@ void FGraphicsDevice::CacheUUIDBuffer()
 
                 // 배열에 저장
                 UUIDBuffer[i][j] = UUID;
+            }
+            if (i > 1999)
+            {
+                break;
             }
         }
     }
