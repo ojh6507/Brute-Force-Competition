@@ -322,14 +322,13 @@ struct FLoaderOBJ
         OutStaticMesh.PathName = RawData.PathName;
         OutStaticMesh.DisplayName = RawData.DisplayName;
 
- /*       lod_generator::mesh src_mesh;
-        lod_generator::mesh dst_mesh;
-
-        auto instance = lod_generator::lod_core::get_instance();
-        instance->generate_lod(src_mesh, dst_mesh, type);*/
 
         // 고유 정점을 기반으로 FVertexSimple 배열 생성
         TMap<std::string, uint32> vertexMap; // 중복 체크용
+
+
+        //LOD용 버텍스 데이터
+        std::vector<double> lodGeneratorVertices;
 
         for (int32 i = 0; i < RawData.VertexIndices.Num(); i++)
         {
@@ -350,6 +349,11 @@ struct FLoaderOBJ
                 float originalX = RawData.Vertices[vIdx].x;
                 float originalY = RawData.Vertices[vIdx].y;
                 float originalZ = RawData.Vertices[vIdx].z;
+
+                lodGeneratorVertices.push_back(static_cast<double>(originalX));
+                lodGeneratorVertices.push_back(static_cast<double>(originalY));
+                lodGeneratorVertices.push_back(static_cast<double>(originalZ));
+
 
                 // 1. float x, y, z 값을 XMVECTOR (float4)로 만듭니다. W는 0.0f 또는 1.0f 등 무관.
                 DirectX::XMVECTOR posVec = DirectX::XMVectorSet(originalX, originalY, originalZ, 0.0f);
@@ -383,9 +387,101 @@ struct FLoaderOBJ
 
         // Calculate StaticMesh BoundingBox
         ComputeBoundingBox(OutStaticMesh.Vertices, OutStaticMesh.BoundingBoxMin, OutStaticMesh.BoundingBoxMax);
+
+
+        std::vector<uint32_t> your_index_buffer;
+        // LOD 생성
+        for (auto index : OutStaticMesh.Indices)
+        {
+            your_index_buffer.push_back(index);
+        }
+
+        lod_generator::mesh sourceMesh;
+        lod_generator::mesh destinationMesh;
+
+        sourceMesh.set_indexes(your_index_buffer);
+        sourceMesh.set_vertexes(lodGeneratorVertices);
+
+
+
+        auto instance = lod_generator::lod_core::get_instance();
+
+        // 3. LOD 생성 호출 (예시)
+        auto core = lod_generator::lod_core::get_instance();
+        core->set_error(0.1); // 원하는 에러 임계값 설정 (값이 작을수록 덜 단순화됨)
+        int result = core->generate_lod(sourceMesh, destinationMesh, lod_generator::BASIC_QEM); // 또는 다른 알고리즘
+
+        if (result != 1) {
+            return false;
+        }
+        // 4. 결과 가져오기
+        std::vector<double> simplifiedVertices = destinationMesh.get_vertexes();
+        std::vector<uint32_t> simplifiedIndices = destinationMesh.get_indexes();
+        // 이 simplifiedVertices와 simplifiedIndices를 사용하여 새로운 메쉬 생성 및 렌더링
+
+        TArray<FVertexSimple> finalVertexBuffer;
+        finalVertexBuffer.Reserve(simplifiedVertices.size() / 3); // 최종 정점 수만큼 예약
+
+
+        // 원본 정점 버퍼 (UV 정보 포함)
+        const TArray<FVertexSimple>& originalVertexBuffer = OutStaticMesh.Vertices;/* ... 원본 정점 데이터 ... */;
+
+        for (size_t i = 0; i < simplifiedVertices.size(); i += 3) {
+            // 1. 단순화된 정점 위치 가져오기 (double)
+            double sx = simplifiedVertices[i];
+            double sy = simplifiedVertices[i + 1];
+            double sz = simplifiedVertices[i + 2];
+            DirectX::XMVECTOR simplifiedPosVecF = DirectX::XMVectorSet(static_cast<float>(sx), static_cast<float>(sy), static_cast<float>(sz), 0.0f);
+
+            // 2. 원본에서 가장 가까운 정점 찾기 (비효율적 방법 예시 - 실제로는 최적화 필요)
+            float minDistSq = FLT_MAX;
+            const FVertexSimple* closestOriginalVertex = nullptr;
+            for (const auto& originalVertex : originalVertexBuffer) {
+                // 원본 위치를 float 벡터로 가정
+                //DirectX::XMVECTOR loadedVec = DirectX::PackedVector::XMLoadHalf4(&InVertices[i].position);
+                DirectX::XMVECTOR originalPosVec = DirectX::PackedVector::XMLoadHalf4(&originalVertex.position); // 또는 XMHALF4 등 원본 타입에 맞게 로드
+                float distSq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(simplifiedPosVecF, originalPosVec)));
+                if (distSq < minDistSq) {
+                    minDistSq = distSq;
+                    closestOriginalVertex = &originalVertex;
+                }
+            }
+
+            // 3. 최종 정점 데이터 생성
+            FVertexSimple finalVertex;
+
+            // 3.1. 위치 설정 (double -> XMHALF4)
+            DirectX::PackedVector::XMStoreHalf4(&finalVertex.position, simplifiedPosVecF);
+
+            // 3.2. UV 설정 (가장 가까운 원본 정점의 UV 사용)
+            if (closestOriginalVertex) {
+                finalVertex.uv = closestOriginalVertex->uv; // 원본 UV 타입이 XMHALF2라고 가정
+            }
+            else {
+                // 가까운 정점을 못 찾은 경우 기본값 설정 (이 경우는 거의 없음)
+                DirectX::PackedVector::XMStoreHalf2(&finalVertex.uv, DirectX::XMVectorZero());
+            }
+
+            finalVertexBuffer.Add(finalVertex);
+        }
+
+
+        TArray<uint32> finalIndices;
+        const int32 NumIndices = simplifiedIndices.size(); // TArray는 보통 int32 사용
+        finalIndices.Reserve(NumIndices); // 미리 공간 확보
+        for (int i = 0; i < simplifiedIndices.size(); i++)
+        {
+            finalIndices.Add (simplifiedIndices[i]);
+        }
+
+
+        OutStaticMesh.Indices = finalIndices;
+        OutStaticMesh.Vertices = finalVertexBuffer;
         
         return true;
     }
+
+    //static 
 
     static bool CreateTextureFromFile(const FWString& Filename)
     {
