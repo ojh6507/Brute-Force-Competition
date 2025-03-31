@@ -438,6 +438,7 @@
     <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\gpu_math\kernel_code.h" />
     <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\math\lod_math.h" />
     <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\LodGenerator.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\meshoptimizer\meshoptimizer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Source\ThirdParty\DirectXTK\Include\DDSTextureLoader.h" />
@@ -531,6 +532,22 @@
     <ClCompile Include="Engine\Source\Runtime\Core\Math\Vector4.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Core\Container\BVH.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Core\Container\TriangleBVH.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\allocator.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\clusterizer.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\indexanalyzer.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\indexcodec.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\indexgenerator.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\overdrawoptimizer.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\partition.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\quantization.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\rasterizer.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\simplifier.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\spatialorder.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\stripifier.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\vcacheoptimizer.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\vertexcodec.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\vertexfilter.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\vfetchoptimizer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Engine\Source\ThirdParty\LodGenerator\lib\x64\Debug\LodGenerator.lib" />

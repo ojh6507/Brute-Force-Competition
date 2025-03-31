@@ -34,6 +34,12 @@ struct FVertexSimple
     XMHALF2  uv;
 };
 
+struct FVertexSimpleFloat
+{
+    float x = 0.0f,y = 0.0f,z = 0.0f;     // Position
+    float  u = 0.0f, v = 0.0f;
+};
+
 // Material Subset
 struct FMaterialSubset
 {
@@ -133,13 +139,20 @@ namespace OBJ
         FString DisplayName;
 
         TArray<FVertexSimple> Vertices;
+
+        TArray<TArray<FVertexSimple>> VerticesLOD; // 배열 0번이 LOD 1레벨
         TArray<UINT> Indices;
+        TArray<TArray<UINT>> IndicesLOD; // 배열 0번이 LOD 1레벨
 
         int TotalVertices;
         int TotalIndices;
 
         ID3D11Buffer* VertexBuffer;
+        TArray<ID3D11Buffer*> VertexBufferLOD;
+
         ID3D11Buffer* IndexBuffer;
+        TArray<ID3D11Buffer*> IndexBufferLOD;
+        
 
         TArray<FObjMaterialInfo> Materials;
         TArray<FMaterialSubset> MaterialSubsets;

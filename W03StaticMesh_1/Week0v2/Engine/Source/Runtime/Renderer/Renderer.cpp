@@ -180,13 +180,36 @@ void FRenderer::RenderPrimitive(ID3D11Buffer* pVertexBuffer, UINT numVertices, I
     Graphics->DeviceContext->DrawIndexed(numIndices, 0, 0);
 }
 
-void FRenderer::RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<FStaticMaterial*> materials, TArray<UMaterial*> overrideMaterial, int selectedSubMeshIndex = -1)
+
+
+void FRenderer::RenderPrimitive(OBJ::FStaticMeshRenderData* renderData, TArray<FStaticMaterial*> materials, TArray<UMaterial*> overrideMaterial, int selectedSubMeshIndex, uint32 lodLevel)
 {
     UINT offset = 0;
-    Graphics->DeviceContext->IASetVertexBuffers(0, 1, &renderData->VertexBuffer, &Stride, &offset);
+    switch (lodLevel)
+    {
+    case 0:
+    {
+        Graphics->DeviceContext->IASetVertexBuffers(0, 1, &renderData->VertexBuffer, &Stride, &offset);
+        if (renderData->IndexBuffer)
+            Graphics->DeviceContext->IASetIndexBuffer(renderData->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+        break;
+    }
+    case 1:
+        Graphics->DeviceContext->IASetVertexBuffers(0, 1, &renderData->VertexBufferLOD[0], &Stride, &offset);
+        Graphics->DeviceContext->IASetIndexBuffer(renderData->IndexBufferLOD[0], DXGI_FORMAT_R32_UINT, 0);
+        break;
+    case 2:
+        Graphics->DeviceContext->IASetVertexBuffers(0, 1, &renderData->VertexBufferLOD[1], &Stride, &offset);
+        Graphics->DeviceContext->IASetIndexBuffer(renderData->IndexBufferLOD[1], DXGI_FORMAT_R32_UINT, 0);
+        break;
+    }
 
-    if (renderData->IndexBuffer)
-        Graphics->DeviceContext->IASetIndexBuffer(renderData->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+
+    //Graphics->DeviceContext->IASetVertexBuffers(0, 1, &renderData->VertexBuffer, &Stride, &offset);
+
+    //if (renderData->IndexBuffer)
+    //    Graphics->DeviceContext->IASetIndexBuffer(renderData->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
     if (renderData->MaterialSubsets.Num() == 0)
     {
@@ -1068,11 +1091,28 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         }
         else
             UpdateConstant(StaticMeshComp->Model, {}, false);
+        
+        uint32 LODLevel = 1;
 
+ /*       if (visibleRenderItem.distanceSq < 0.1 * 0.1)
+        {
+            LODLevel = 0;
+        }
+        else if (visibleRenderItem.distanceSq < 1 * 1)
+        {
+            LODLevel = 1;
+        }
+        else
+        {
+            LODLevel = 2;
+        }*/
+
+
+        
 
         OBJ::FStaticMeshRenderData* renderData = StaticMeshComp->GetStaticMesh()->GetRenderData();
 
-        RenderPrimitive(renderData, StaticMeshComp->GetStaticMesh()->GetMaterials(), StaticMeshComp->GetOverrideMaterials(), StaticMeshComp->GetselectedSubMeshIndex());
+        RenderPrimitive(renderData, StaticMeshComp->GetStaticMesh()->GetMaterials(), StaticMeshComp->GetOverrideMaterials(), StaticMeshComp->GetselectedSubMeshIndex(), LODLevel);
     }
 
     visibleRenderItems.Empty();
