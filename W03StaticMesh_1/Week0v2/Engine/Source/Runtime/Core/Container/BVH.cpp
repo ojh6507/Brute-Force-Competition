@@ -119,51 +119,67 @@ TArray<UStaticMeshComponent*> FBVH::GetPrimitiveComponents() const {
 }
 TArray<UStaticMeshComponent*> FBVH::CollectIntersectingComponents(const Plane frustumPlanes[6])
 {
-    // TArray<UStaticMeshComponent*> OutComponents;
-    // DebugBoundingBox();
-    // // 현재 노드의 바운딩박스가 프러스텀과 교차하지 않으면 바로 반환
-    // if (!BoundingBox.IsIntersectingFrustum(frustumPlanes))
-    // {
-    //     return OutComponents;
-    // }
-    //
-    // // 리프 노드라면 현재 노드의 컴포넌트를 모두 추가
-    // if (IsLeafNode())
-    // {
-    //     OutComponents.Append(PrimitiveComponents);
-    //     return OutComponents;
-    // }
-    //
-    // // 자식 노드가 있다면 재귀적으로 호출
-    // if (LeftChild)
-    // {
-    //     OutComponents.Append(LeftChild->CollectIntersectingComponents(frustumPlanes));
-    // }
-    // if (RightChild)
-    // {
-    //     OutComponents.Append(RightChild->CollectIntersectingComponents(frustumPlanes));
-    // }
+
+    //TArray<UStaticMeshComponent*> OutComponents;
+    ////DebugBoundingBox();
+    //// 현재 노드의 바운딩박스가 프러스텀과 교차하지 않으면 바로 반환
+    //if (!BoundingBox.IsIntersectingFrustum(frustumPlanes))
+    //{
+    //    return OutComponents;
+    //}
+
+    //// 리프 노드라면 현재 노드의 컴포넌트를 모두 추가
+    //if (IsLeafNode())
+    //{
+    //    OutComponents.Append(PrimitiveComponents);
+    //    return OutComponents;
+    //}
+
+    //// 자식 노드가 있다면 재귀적으로 호출
+    //if (LeftChild)
+    //{
+    //    OutComponents.Append(LeftChild->CollectIntersectingComponents(frustumPlanes));
+    //}
+    //if (RightChild)
+    //{
+    //    OutComponents.Append(RightChild->CollectIntersectingComponents(frustumPlanes));
+    //}
 
     return {};
 }
 
-void FBVH::RayCheck(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& outSortedLeaves)
+void FBVH::RayCheck(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& outSortedLeaves , int maxT)
 {
     outSortedLeaves.Empty();
-    CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, outSortedLeaves);
+    CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, outSortedLeaves, maxT);
 
     outSortedLeaves.Sort([](const TPair<FBVH*, float>& A, const TPair<FBVH*, float>& B) {
         return A.Value < B.Value;
         });
 }
 
-void FBVH::CollectValidLeafNodesWithT(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& OutLeaves)
+void FBVH::FlattenTree(TArray<FBVH*>& OutNodes)
+{
+    OutNodes.Add(this);
+
+    if (LeftChild)
+    {
+        LeftChild->FlattenTree(OutNodes);
+    }
+    if (RightChild)
+    {
+        RightChild->FlattenTree(OutNodes);
+    }
+}
+
+void FBVH::CollectValidLeafNodesWithT(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<std::pair<FBVH*, float>>& OutLeaves, int maxT)
 {
     float t;
-    if (!BoundingBox.Intersect(pickRayOrigin, rayDirection, t)) {
+   
+    if (!BoundingBox.Intersect(pickRayOrigin, rayDirection, t) || t > maxT) {
         return;
     }
-
+   
     if (IsLeafNode()) {
         if (PrimitiveComponents.Num() > 0) {
             OutLeaves.Add(TPair<FBVH*, float>(this, t));
@@ -171,10 +187,10 @@ void FBVH::CollectValidLeafNodesWithT(const FVector& pickRayOrigin, const FVecto
     }
     else {
         if (LeftChild) {
-            LeftChild->CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, OutLeaves);
+            LeftChild->CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, OutLeaves, maxT);
         }
         if (RightChild) {
-            RightChild->CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, OutLeaves);
+            RightChild->CollectValidLeafNodesWithT(pickRayOrigin, rayDirection, OutLeaves, maxT);
         }
     }
 }
@@ -183,7 +199,7 @@ void FBVH::CollectValidLeafNodesWithT(const FVector& pickRayOrigin, const FVecto
 // 유효한 리프 노드들을 재귀적으로 수집
 void FBVH::CollectValidLeafNodes(const FVector& pickRayOrigin, const FVector& rayDirection, TArray<FBVH*>& OutLeaves) {
     float t;
-    if (!BoundingBox.Intersect(pickRayOrigin, rayDirection, t)) {
+    if (!BoundingBox.Intersect(pickRayOrigin, rayDirection, t) ) {
         return;
     }
     if (IsLeafNode()) {

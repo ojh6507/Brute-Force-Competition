@@ -84,56 +84,159 @@ void AEditorPlayer::Input()
         bRightMouseDown = false;
     }
 }
-bool AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEditorViewportClient> ActiveViewport)
+
+bool AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEditorViewportClient> activeViewport)
 {
-    UPrimitiveComponent* Possible = nullptr;
-    float minDistance = FLT_MAX;
-    int maxIntersect = 0;
+    UPrimitiveComponent* bestComponent = nullptr;
+    float bestDistance = FLT_MAX;
+    int bestIntersectCount = 0;
 
-    FMatrix viewMatrix = ActiveViewport->GetViewMatrix();
+    // 뷰 행렬과 역행렬은 루프 바깥에서 한 번만 계산
+    FMatrix viewMatrix = activeViewport->GetViewMatrix();
     FMatrix invViewMatrix = FMatrix::Inverse(viewMatrix);
-    FVector pickRayOrigin = invViewMatrix.TransformPosition(FVector(0, 0, 0));
-    FVector transformedPick = invViewMatrix.TransformPosition(pickPosition);
-    FVector rayDirection = (transformedPick - pickRayOrigin).Normalize();
 
-    FVector CameraPos = ActiveViewport->ViewTransformPerspective.GetLocation();
+    // 카메라 원점과 픽 위치를 월드 공간으로 변환
+    FVector worldCameraOrigin = invViewMatrix.TransformPosition(FVector(0, 0, 0));
+    FVector worldPickPosition = invViewMatrix.TransformPosition(pickPosition);
+    FVector worldRayDir = (worldPickPosition - worldCameraOrigin).Normalize();
 
     TArray<std::pair<FBVH*, float>> hitLeaves;
 
-    GEngineLoop.GetWorld()->GetRootBVH()->RayCheck(pickRayOrigin, rayDirection, hitLeaves);
-
-    for (const TPair<FBVH*, float>& pair : hitLeaves)
+    // 각 거리 임계값(threshold)마다 후보 노드를 점진적으로 수집
+    for (int threshold = 10; threshold < 90; threshold += 10)
     {
-        FBVH* leaf = pair.Key;
-        TArray<UStaticMeshComponent*> comps = GEngineLoop.GetWorld()->GetRootBVH()->CollectCandidateComponentsByLeaf(leaf);
+        hitLeaves.Empty();
+        GEngineLoop.GetWorld()->GetRootBVH()->RayCheck(worldCameraOrigin, worldRayDir, hitLeaves, threshold);
 
-        for (UStaticMeshComponent* comp : comps)
+        for (const auto& leafPair : hitLeaves)
         {
-            float Distance = 0.0f;
-            int currentIntersectCount = 0;
+            FBVH* leaf = leafPair.first;
+            TArray<UStaticMeshComponent*> candidates = GEngineLoop.GetWorld()->GetRootBVH()->CollectCandidateComponentsByLeaf(leaf);
 
-            if (RayIntersectsObject(pickPosition, comp, Distance, currentIntersectCount))
+            for (UStaticMeshComponent* comp : candidates)
             {
-                if (Distance < minDistance && currentIntersectCount > 0 ||
-                    (FMath::Abs(Distance - minDistance) < FLT_EPSILON && currentIntersectCount> 1))
+                float distance = 0.0f;
+                int intersectCount = 0;
+
+                // 컴포넌트의 모델 행렬과 뷰 행렬을 합성하여 로컬 공간 변환에 사용
+                FMatrix compositeMatrix = comp->Model * viewMatrix;
+                FMatrix invComposite = FMatrix::Inverse(compositeMatrix);
+
+                // 월드 공간의 카메라 원점과 픽 위치를 컴포넌트 로컬 공간으로 변환
+                FVector localCameraOrigin = invComposite.TransformPosition(FVector(0, 0, 0));
+                FVector localPickPosition = invComposite.TransformPosition(pickPosition);
+                FVector localRayDir = (localPickPosition - localCameraOrigin).Normalize();
+
+                // 로컬 공간에서의 레이 교차 검사
+                intersectCount = comp->CheckRayIntersection(localCameraOrigin, localRayDir, distance);
+
+                if (intersectCount > 0)
                 {
-                    minDistance = Distance;
-                    maxIntersect = currentIntersectCount;
-                    Possible = comp;
+                    if ((distance < bestDistance) ||
+                        (FMath::Abs(distance - bestDistance) < FLT_EPSILON && intersectCount > bestIntersectCount))
+                    {
+                        bestDistance = distance;
+                        bestIntersectCount = intersectCount;
+                        bestComponent = comp;
+                    }
                 }
             }
-        }
-        if (Possible)
-        {
-            GetWorld()->SetPickedPrimitive(Possible);
-            return true;
+
+            if (bestComponent)
+            {
+                GetWorld()->SetPickedPrimitive(bestComponent);
+                return true;
+            }
         }
     }
-
-   
     return false;
-
 }
+
+
+//bool AEditorPlayer::PickActor(const FVector& pickPosition, std::shared_ptr<FEditorViewportClient> activeViewport)
+//{
+//    UPrimitiveComponent* bestComponent = nullptr;
+//    float bestDistance = FLT_MAX;
+//    int bestIntersectCount = 0;
+//
+//    // 뷰 행렬과 그 역행렬은 한 번만 계산
+//    FMatrix viewMatrix = activeViewport->GetViewMatrix();
+//    FMatrix invViewMatrix = FMatrix::Inverse(viewMatrix);
+//
+//    // 월드 공간에서의 카메라 원점과 픽 위치 계산
+//    FVector worldCameraOrigin = invViewMatrix.TransformPosition(FVector(0, 0, 0));
+//    FVector worldPickPosition = invViewMatrix.TransformPosition(pickPosition);
+//    FVector worldRayDir = (worldPickPosition - worldCameraOrigin).Normalize();
+//
+//    // 정적 BVH의 평탄화된 노드 배열 재사용 (매 프레임 정렬하지 않음)
+//    TArray<FBVH*> flatNodes = GEngineLoop.GetWorld()->FlatNodes;
+//    flatNodes.Sort([&](const FBVH* A, const FBVH* B) {
+//        return A->BoundingBox.GetDistanceToPoint(worldCameraOrigin) < B->BoundingBox.GetDistanceToPoint(worldCameraOrigin);
+//        });
+//    // 각 노드를 순회하면서 교차 검사
+//    for (int i{}; i < 90; i += 10) {
+//
+//        for (FBVH* node : flatNodes)
+//        {
+//           
+//
+//            float t;
+//            if (!node->BoundingBox.Intersect(worldCameraOrigin, worldRayDir, t) || t < 0)
+//                continue;
+//            if (t > i)
+//                continue;
+//
+//            if (node->IsLeafNode() && node->PrimitiveComponents.Num() > 0)
+//            {
+//                for (UStaticMeshComponent* comp : node->PrimitiveComponents)
+//                {
+//                    float distance = 0.0f;
+//                    int intersectCount = 0;
+//
+//                    // 컴포넌트의 모델 행렬과 뷰 행렬을 합성하여 로컬 공간 변환에 사용
+//                    FMatrix compositeMatrix = comp->Model * viewMatrix;
+//                    FMatrix invComposite = FMatrix::Inverse(compositeMatrix);
+//
+//                    // 월드 공간의 카메라 원점과 픽 위치를 컴포넌트 로컬 공간으로 변환
+//                    FVector localCameraOrigin = invComposite.TransformPosition(FVector(0, 0, 0));
+//                    FVector localPickPosition = invComposite.TransformPosition(pickPosition);
+//                    FVector localRayDir = (localPickPosition - localCameraOrigin).Normalize();
+//
+//                    // 로컬 공간에서의 레이 교차 검사
+//                    intersectCount = comp->CheckRayIntersection(localCameraOrigin, localRayDir, distance);
+//
+//                    if (intersectCount > 0)
+//                    {
+//                        if ((distance < bestDistance) ||
+//                            (FMath::Abs(distance - bestDistance) < FLT_EPSILON && intersectCount > bestIntersectCount))
+//                        {
+//                            bestDistance = distance;
+//                            bestIntersectCount = intersectCount;
+//                            bestComponent = comp;
+//                        }
+//                    }
+//                }
+//
+//                if (bestComponent)
+//                {
+//                    GetWorld()->SetPickedPrimitive(bestComponent);
+//                    return true;
+//                }
+//            }
+//
+//            // 후보가 발견되었고, 현재 노드의 t가 후보보다 작으면 조기 종료
+//            if (bestComponent && t < bestDistance)
+//            {
+//                GetWorld()->SetPickedPrimitive(bestComponent);
+//                return true;
+//            }
+//        }
+//    }
+// 
+//    return false;
+//}
+
+//
 
 void AEditorPlayer::AddControlMode()
 {
@@ -159,19 +262,7 @@ void AEditorPlayer::ScreenToViewSpace(int screenX, int screenY, const FMatrix& v
 
 }
 
-int AEditorPlayer::RayIntersectsObject(const FVector& pickPosition, USceneComponent* obj, float& hitDistance, int& intersectCount)
-{
 
-    FMatrix viewMatrix = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->GetViewMatrix();
-    FMatrix inverseMatrix = FMatrix::Inverse(obj->Model * viewMatrix);
-    FVector cameraOrigin = { 0,0,0 };
-    FVector pickRayOrigin = inverseMatrix.TransformPosition(cameraOrigin);
-    // 퍼스펙티브 모드의 기존 로직 사용
-    FVector transformedPick = inverseMatrix.TransformPosition(pickPosition);
-    FVector rayDirection = (transformedPick - pickRayOrigin).Normalize();
-    intersectCount = obj->CheckRayIntersection(pickRayOrigin, rayDirection, hitDistance);
-    return intersectCount;
-}
 
 
 void AEditorPlayer::PickedObjControl()

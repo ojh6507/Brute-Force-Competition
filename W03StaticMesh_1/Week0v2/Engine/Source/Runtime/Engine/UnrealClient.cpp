@@ -24,7 +24,7 @@ void FViewport::ResizeViewport(const DXGI_SWAP_CHAIN_DESC& swapchaindesc)
     viewport.TopLeftX = 0.0f;
     viewport.TopLeftY = 0.0f;
     viewport.Width = width;
-    viewport.Height = height;
+    viewport.Height = height ;
 
     viewport.MinDepth = 0.0f;
     viewport.MaxDepth = 1.0f;

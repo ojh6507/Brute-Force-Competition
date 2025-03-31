@@ -47,7 +47,7 @@ public:
 
     /** World에 존재하는 Actor를 제거합니다. */
     bool DestroyActor(AActor* ThisActor);
-
+    TArray<FBVH*> FlatNodes;
 private:
     const FString defaultMapName = "Default";
 

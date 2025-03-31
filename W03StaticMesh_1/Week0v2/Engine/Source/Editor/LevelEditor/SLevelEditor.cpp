@@ -28,32 +28,12 @@ void SLevelEditor::Initialize()
     }
     ActiveViewportClient = viewportClients[0];
     OnResize();
-    VSplitter = new SSplitterV();
-    VSplitter->Initialize(FRect(0.0f, EditorHeight * 0.5f - 10, EditorHeight, 20));
-    VSplitter->OnDrag(FPoint(0, 0));
-    HSplitter = new SSplitterH();
-    HSplitter->Initialize(FRect(EditorWidth * 0.5f - 10, 0.0f, 20, EditorWidth));
-    HSplitter->OnDrag(FPoint(0, 0));
     LoadConfig();
     bInitialize = true;
 }
 
 void SLevelEditor::Tick(double deltaTime)
 {
-    if (bMultiViewportMode) {
-        POINT pt;
-        GetCursorPos(&pt);
-        ScreenToClient(GEngineLoop.hWnd, &pt);
-        if (VSplitter->IsHover(FPoint(pt.x, pt.y)) || HSplitter->IsHover(FPoint(pt.x, pt.y)))
-        {
-            SetCursor(LoadCursor(NULL, IDC_SIZEALL));
-        }
-        else
-        {
-            SetCursor(LoadCursor(NULL, IDC_ARROW));
-        }
-        Input();
-    }
     //Test Code Cursor icon End
     OnResize();
 
@@ -75,10 +55,7 @@ void SLevelEditor::Input()
             ScreenToClient(GEngineLoop.hWnd, &pt);
 
             SelectViewport(pt);
-
-            VSplitter->OnPressed(FPoint(pt.x, pt.y));
-            HSplitter->OnPressed(FPoint(pt.x, pt.y));
-        }
+    }
         else
         {
             POINT currentMousePos;
@@ -88,14 +65,7 @@ void SLevelEditor::Input()
             int32 deltaX = currentMousePos.x - lastMousePos.x;
             int32 deltaY = currentMousePos.y - lastMousePos.y;
 
-            if (VSplitter->IsPressing())
-            {
-                VSplitter->OnDrag(FPoint(deltaX, deltaY));
-            }
-            if (HSplitter->IsPressing())
-            {
-                HSplitter->OnDrag(FPoint(deltaX, deltaY));
-            }
+       
             ResizeViewports();
             lastMousePos = currentMousePos;
         }
@@ -103,8 +73,6 @@ void SLevelEditor::Input()
     else
     {
         bLButtonDown = false;
-        VSplitter->OnReleased();
-        HSplitter->OnReleased();
     }
     if (GetAsyncKeyState(VK_RBUTTON) & 0x8000)
     {
@@ -128,8 +96,6 @@ void SLevelEditor::Input()
 void SLevelEditor::Release()
 {
     SaveConfig();
-    delete VSplitter;
-    delete HSplitter;
 }
 
 void SLevelEditor::SelectViewport(POINT point)
@@ -151,10 +117,6 @@ void SLevelEditor::OnResize()
     EditorWidth = GEngineLoop.graphicDevice.screenWidth;
     EditorHeight = GEngineLoop.graphicDevice.screenHeight;
     if (bInitialize) {
-        //HSplitter 에는 바뀐 width 비율이 들어감 
-        HSplitter->OnResize(EditorWidth/PrevWidth, EditorHeight);
-        //HSplitter 에는 바뀐 Height 비율이 들어감 
-        VSplitter->OnResize(EditorWidth, EditorHeight/PrevHeight);
         ResizeViewports();
     }
 }
@@ -206,20 +168,13 @@ void SLevelEditor::LoadConfig()
     {
         viewportClients[i]->LoadConfig(config);
     }
-    if (HSplitter)
-        HSplitter->LoadConfig(config);
-    if (VSplitter)
-        VSplitter->LoadConfig(config);
-
+  
 }
 
 void SLevelEditor::SaveConfig()
 {
     TMap<FString, FString> config;
-    if (HSplitter)
-        HSplitter->SaveConfig(config);
-    if (VSplitter)
-        VSplitter->SaveConfig(config);
+ 
     for (size_t i = 0; i < 1; i++)
     {
         viewportClients[i]->SaveConfig(config);

@@ -214,7 +214,7 @@ void FGraphicsDevice::CreateFrameBuffer()
     Device->CreateRenderTargetView(UUIDFrameBuffer, &UUIDFrameBufferRTVDesc, &UUIDFrameBufferRTV);
 
     RTVs[0] = FrameBufferRTV;
-    RTVs[1] = UUIDFrameBufferRTV;
+    //RTVs[1] = UUIDFrameBufferRTV;
 }
 
 void FGraphicsDevice::ReleaseFrameBuffer()
@@ -307,6 +307,7 @@ void FGraphicsDevice::Prepare()
     // DeviceContext->RSSetState(CurrentRasterizer); //레스터 라이저 상태 설정
 
     // DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);
+
     
     DeviceContext->OMSetRenderTargets(2, RTVs, DepthStencilView); // 렌더 타겟 설정(백버퍼를 가르킴)
     // DeviceContext->OMSetRenderTargets(1, &FrameBufferRTV, DepthStencilView); // 렌더 타겟 설정(백버퍼를 가르킴)

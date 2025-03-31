@@ -423,6 +423,22 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\GameFramework\Actor.cpp" />
     <ClInclude Include="Engine\Source\Runtime\Core\Container\BVH.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Container\TriangleBVH.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\DirectXTK\Include\WICTextureLoader.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\core.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\core_config.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\errors.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\global.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\lod_func.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\mesh.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\algorithms\algorithms.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\algorithms\basic_alg.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\algorithms\vertex_cluster.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\gpu_math\gpu_core.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\gpu_math\gpu_test.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\gpu_math\kernel_code.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\math\lod_math.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\LodGenerator\Include\LodGenerator.h" />
+    <ClInclude Include="Engine\Source\ThirdParty\meshoptimizer\meshoptimizer.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Container\KDTree.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Container\TriangleKDTree.h" />
   </ItemGroup>
@@ -520,5 +536,25 @@
     <ClCompile Include="Engine\Source\Runtime\Core\Container\TriangleBVH.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Core\Container\KDTree.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Core\Container\TriangleKDTree.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\allocator.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\clusterizer.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\indexanalyzer.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\indexcodec.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\indexgenerator.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\overdrawoptimizer.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\partition.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\quantization.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\rasterizer.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\simplifier.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\spatialorder.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\stripifier.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\vcacheoptimizer.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\vertexcodec.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\vertexfilter.cpp" />
+    <ClCompile Include="Engine\Source\ThirdParty\meshoptimizer\vfetchoptimizer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="Engine\Source\ThirdParty\LodGenerator\lib\x64\Debug\LodGenerator.lib" />
+    <Library Include="Engine\Source\ThirdParty\LodGenerator\lib\x64\Release\LodGenerator.lib" />
   </ItemGroup>
 </Project>

@@ -56,13 +56,12 @@ cbuffer MatrixConstants : register(b0)
 struct PS_INPUT
 {
     float4 position : SV_POSITION; // 변환된 화면 좌표
-    float2 texcoord : TEXCOORD1;
+    float2 texcoord : TEXCOORD0;
 };
 
 struct PS_OUTPUT
 {
     float4 color : SV_Target0;
-    float4 UUID : SV_Target1;
 };
 
 PS_OUTPUT mainPS(PS_INPUT input)
