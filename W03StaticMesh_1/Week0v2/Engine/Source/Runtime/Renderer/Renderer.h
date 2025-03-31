@@ -173,6 +173,7 @@ private:
     class UMaterial* CurrentMaterial = nullptr;
     bool bIsDirtyRenderObj = true;
 
+    
     //TMap<FName, TArray<UStaticMeshComponent>> StaticMeshObjsSorting;
     TArray<UGizmoBaseComponent*> GizmoObjs;
     TArray<UBillboardComponent*> BillboardObjs;
@@ -182,6 +183,7 @@ private:
 
 
 public:
+    TSet<uint32_t> RenderUUIDs;
     ID3D11VertexShader* VertexLineShader = nullptr;
     ID3D11PixelShader* PixelLineShader = nullptr;
     ID3D11Buffer* GridConstantBuffer = nullptr;

@@ -1071,32 +1071,9 @@ void FRenderer::RenderStaticMeshesStop(UWorld* World, std::shared_ptr<FEditorVie
 {
     PrepareShader();
     TArray<UStaticMeshComponent*> RenderComps;
-    TSet<uint32_t> RenderUUIDs;
     
     const int Width = Graphics->SwapchainDesc.BufferDesc.Width;
     const int Height = Graphics->SwapchainDesc.BufferDesc.Height;
-
-    for (int i=0;i<Height; i++)
-    {
-        for (int j=0;j<Width; j++)
-        {
-            if (j > 1999)
-            {
-                break;
-            }
-
-            uint32_t uid = Graphics->UUIDBuffer[i][j];
-            if (uid == 0)
-            {
-                continue;
-            }
-            RenderUUIDs.Add(uid);
-        }
-        if (i>1999)
-        {
-            break;
-        }
-    }
 
     for (uint32_t uuid:RenderUUIDs)
     {
@@ -1154,9 +1131,6 @@ void FRenderer::RenderStaticMeshes(UWorld* World, std::shared_ptr<FEditorViewpor
         item.distanceSq = FVector::DistanceSquared(StaticMeshComp->GetWorldLocation(), ActiveViewport->ViewTransformPerspective.GetLocation());
 
         visibleRenderItems.Add(item);
-
-
-       
     }
 
     RenderSorting();

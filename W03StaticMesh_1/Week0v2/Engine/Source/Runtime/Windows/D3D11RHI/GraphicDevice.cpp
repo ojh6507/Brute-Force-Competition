@@ -426,7 +426,9 @@ void FGraphicsDevice::CacheUUIDBuffer()
         stagingTexture, // 대상 텍스처
         UUIDFrameBuffer // 원본 텍스처
     );
-        
+
+    FEngineLoop::renderer.RenderUUIDs.Empty();
+    
     // 4. 데이터 매핑
     D3D11_MAPPED_SUBRESOURCE mapped = {};
     DeviceContext->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mapped);
@@ -460,6 +462,8 @@ void FGraphicsDevice::CacheUUIDBuffer()
 
                 // 배열에 저장
                 UUIDBuffer[i][j] = UUID;
+                FEngineLoop::renderer.RenderUUIDs.Add(UUID);
+
             }
             if (i > 1999)
             {
