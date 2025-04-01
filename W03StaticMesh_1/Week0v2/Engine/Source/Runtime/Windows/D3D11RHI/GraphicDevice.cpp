@@ -443,7 +443,7 @@ void FGraphicsDevice::CacheUUIDBuffer()
         {
             for (int j=0;j<Width; j++)
             {
-                if (j > 1999)
+                if (j > (sizeof(*UUIDBuffer)/sizeof(**UUIDBuffer))-1)
                 {
                     break;
                 }
@@ -465,7 +465,7 @@ void FGraphicsDevice::CacheUUIDBuffer()
                 FEngineLoop::renderer.RenderUUIDs.Add(UUID);
 
             }
-            if (i > 1999)
+            if (i > (sizeof(UUIDBuffer)/sizeof(*UUIDBuffer))-1)
             {
                 break;
             }
